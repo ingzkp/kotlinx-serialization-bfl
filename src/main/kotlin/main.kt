@@ -1,11 +1,5 @@
-// @file:UseSerializers(PublicKeyAsSurrogate::class)
-// @file:UseSerializers(ListSerde::class)
-// @file:UseSerializers(RSAPublicKeyImplSerde::class)
-
 import kotlinx.serialization.*
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.*
 import kotlinx.serialization.modules.*
@@ -15,8 +9,9 @@ import java.security.KeyPairGenerator
 import java.security.PublicKey
 import java.security.SecureRandom
 import kotlin.random.Random
+import kotlin.reflect.KClass
 
-class DataOutputEncoder(val output: DataOutput, val totalLength: Int = 10) : AbstractEncoder() {
+class DataOutputEncoder(val output: DataOutput, val scheme: KClass<*>) : AbstractEncoder() {
     private val baSerializer = serializer<ByteArray>()
 
     override val serializersModule: SerializersModule = SerializersModule {
@@ -41,16 +36,20 @@ class DataOutputEncoder(val output: DataOutput, val totalLength: Int = 10) : Abs
         return this
     }
 
+    override fun <T> encodeSerializableValue(serializer: SerializationStrategy<T>, value: T) {
+        super.encodeSerializableValue(serializer, value)
+    }
+
     override fun encodeNull() = encodeBoolean(false)
     override fun encodeNotNullMark() = encodeBoolean(true)
 }
 
-fun <T> encodeTo(output: DataOutput, serializer: SerializationStrategy<T>, value: T) {
-    val encoder = DataOutputEncoder(output)
+fun <T: Any> encodeTo(output: DataOutput, serializer: SerializationStrategy<T>, value: T) {
+    val encoder = DataOutputEncoder(output, value::class)
     encoder.encodeSerializableValue(serializer, value)
 }
 
-inline fun <reified T> encodeTo(output: DataOutput, value: T){
+inline fun <reified T: Any> encodeTo(output: DataOutput, value: T){
     val serializer = serializer<T>()
     encodeTo(output, serializer, value)
 }
@@ -118,9 +117,9 @@ inline fun <reified T> test(
     val output = ByteArrayOutputStream()
 
     if (serde != null) {
-        encodeTo(DataOutputStream(output), serde, data)
+        encodeTo(DataOutputStream(output), serde, data!!)
     } else {
-        encodeTo(DataOutputStream(output), data)
+        encodeTo(DataOutputStream(output), data!!)
     }
 
     val bytes = output.toByteArray()
@@ -182,32 +181,36 @@ object RSAPublicKeySerializer : KSerializer<RSAPublicKeyImpl> {
 @Serializable
 class ListSurrogate<T>(val list: List<T>, private val trash: ByteArray)
 
-object ListSerializer : KSerializer<List<Int>> {
-    val strategy = ListSurrogate.serializer(Int.serializer())
+class ListSerializer<T>(val inner: KSerializer<T>) : KSerializer<List<T>> {
+    val strategy = ListSurrogate.serializer(inner)
     override val descriptor: SerialDescriptor = strategy.descriptor
 
-    override fun serialize(encoder: Encoder, value: List<Int>) {
-        require(value.size <= 4) { "sad" }
+    @ExperimentalStdlibApi
+    override fun serialize(encoder: Encoder, value: List<T>) {
+        require(value.size <= 5) { "sad" }
+        val a = inner.descriptor
         // T here is Int
         // assume total size is 5 * sizeOf(Int) = 20
-        val surrogate = ListSurrogate(value, Random.nextBytes(20 - value.size))
+        val surrogate = ListSurrogate(value, Random.nextBytes(20 - 5 * value.size))
         encoder.encodeSerializableValue(strategy, surrogate)
     }
 
-    override fun deserialize(decoder: Decoder): List<Int> {
+    override fun deserialize(decoder: Decoder): List<T> {
         val surrogate = decoder.decodeSerializableValue(strategy)
         return surrogate.list
     }
 }
 
+annotation class Tag(val a: Int)
+
 @Serializable
 data class ML(
     @Serializable(with=ListSerializer::class)
-    val list: List<Int>
+    val list: List<User>
 )
 
 fun testML() {
-    val data = ML(listOf(1,2,3))
+    val data = ML(listOf(User(getRSA())))
     val output = ByteArrayOutputStream()
 
     encodeTo(DataOutputStream(output), data)

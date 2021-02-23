@@ -1,18 +1,29 @@
+
 import kotlinx.serialization.*
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.descriptors.*
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.StructureKind
+import kotlinx.serialization.descriptors.elementNames
 import kotlinx.serialization.encoding.*
-import kotlinx.serialization.modules.*
+import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.polymorphic
 import sun.security.rsa.RSAPublicKeyImpl
 import java.io.*
 import java.security.KeyPairGenerator
 import java.security.PublicKey
 import java.security.SecureRandom
+import java.text.SimpleDateFormat
+import java.time.Instant
+import java.util.*
 import kotlin.random.Random
 import kotlin.reflect.KClass
 
-class DataOutputEncoder(val output: DataOutput, val scheme: KClass<*>) : AbstractEncoder() {
-    private val baSerializer = serializer<ByteArray>()
+@ExperimentalSerializationApi
+class IndexedDataOutputEncoder(val output: DataOutput, val defaults: List<out Any>) : AbstractEncoder() {
+
+    private val propertyAnnotationsStack = Stack<List<Annotation>>()
+    private val startingIdxStack = Stack<Int>()
 
     override val serializersModule: SerializersModule = SerializersModule {
         polymorphic(PublicKey::class) {
@@ -20,40 +31,136 @@ class DataOutputEncoder(val output: DataOutput, val scheme: KClass<*>) : Abstrac
         }
     }
 
-    override fun encodeBoolean(value: Boolean) = output.writeByte(if (value) 1 else 0)
-    override fun encodeByte(value: Byte) = output.writeByte(value.toInt())
-    override fun encodeShort(value: Short) = output.writeShort(value.toInt())
-    override fun encodeInt(value: Int) = output.writeInt(value)
-    override fun encodeLong(value: Long) = output.writeLong(value)
-    override fun encodeFloat(value: Float) = output.writeFloat(value)
-    override fun encodeDouble(value: Double) = output.writeDouble(value)
-    override fun encodeChar(value: Char) = output.writeChar(value.toInt())
-    override fun encodeString(value: String) = output.writeUTF(value)
-    override fun encodeEnum(enumDescriptor: SerialDescriptor, index: Int) = output.writeInt(index)
+    init {
+        propertyAnnotationsStack.push(emptyList())
+    }
+
+    override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder {
+        descriptor.elementNames.toList()
+            .indices
+            .reversed()
+            .forEach {
+                propertyAnnotationsStack.push(descriptor.getElementAnnotations(it))
+            }
+
+        startingIdxStack.push(output.getCurrentByteIdx())
+
+        return super.beginStructure(descriptor)
+    }
+
+    override fun endStructure(descriptor: SerialDescriptor) {
+        val expectedNumberOfElements = propertyAnnotationsStack.pop()
+            .filterIsInstance<FixedLength>()
+            .firstOrNull()?.value
+
+        if (descriptor.kind == StructureKind.LIST) {
+            require(expectedNumberOfElements != null) {
+                "List-like structures `${descriptor.serialName}` must have FixedLength annotation"
+            }
+
+            // todo in fact there can be several elements, say Pair<A, B>
+            val elementDescriptor = descriptor.getElementDescriptor(0)
+            val expectedLength = expectedNumberOfElements * getElementSize(elementDescriptor)
+
+            val currentByteIdx = output.getCurrentByteIdx()
+            val startingByteIdx = startingIdxStack.pop()
+            val actualLength = currentByteIdx - startingByteIdx
+            require(expectedLength > actualLength) {
+                "Serialized elements don't fit into their expected length"
+            }
+
+            repeat(expectedLength - actualLength) {
+                encodeByte(0)
+            }
+        }
+
+        super.endStructure(descriptor)
+    }
+
+    private fun getElementSize(descriptor: SerialDescriptor): Int  =
+        when (descriptor.kind) {
+            is PrimitiveKind.BOOLEAN -> 1
+            is PrimitiveKind.BYTE -> 1
+            is PrimitiveKind.SHORT -> 2
+            is PrimitiveKind.INT -> 4
+            is PrimitiveKind.LONG -> 8
+            is PrimitiveKind.FLOAT -> throw IllegalStateException("Floats are not yet supported")
+            is PrimitiveKind.DOUBLE -> throw IllegalStateException("Double are not yet supported")
+            is PrimitiveKind.CHAR -> 2
+            is PrimitiveKind.STRING -> throw IllegalStateException("Serialize char arrays")
+            else -> {
+                descriptor.serialName
+                // todo send the string representation of type there somehow
+                //  serialName can be overridden, otherwise it coincides with the fully-qualified name
+                Size.of(descriptor.serialName, defaults)
+            }
+    }
+
+    override fun encodeBoolean(value: Boolean) {
+        output.writeByte(if (value) 1 else 0)
+    }
+
+    override fun encodeByte(value: Byte) {
+        output.writeByte(value.toInt())
+    }
+
+    override fun encodeShort(value: Short) {
+        output.writeShort(value.toInt())
+    }
+
+    override fun encodeInt(value: Int) {
+        output.writeInt(value)
+    }
+
+    override fun encodeLong(value: Long) {
+        output.writeLong(value)
+    }
+
+    override fun encodeFloat(value: Float) {
+        output.writeFloat(value)
+    }
+
+    override fun encodeDouble(value: Double) {
+        output.writeDouble(value)
+    }
+
+    override fun encodeChar(value: Char) {
+        output.writeChar(value.toInt())
+    }
+
+    override fun encodeString(value: String) {
+        encodeInt(value.length)
+        value.forEach { this.encodeChar(it) }
+    }
+
+    override fun encodeEnum(enumDescriptor: SerialDescriptor, index: Int) {
+        output.writeInt(index)
+    }
 
     override fun beginCollection(descriptor: SerialDescriptor, collectionSize: Int): CompositeEncoder {
         encodeInt(collectionSize)
         return this
     }
 
-    override fun <T> encodeSerializableValue(serializer: SerializationStrategy<T>, value: T) {
-        super.encodeSerializableValue(serializer, value)
-    }
-
     override fun encodeNull() = encodeBoolean(false)
     override fun encodeNotNullMark() = encodeBoolean(true)
+
+    private fun DataOutput.getCurrentByteIdx(): Int = (this as DataOutputStream).size()
 }
 
-fun <T: Any> encodeTo(output: DataOutput, serializer: SerializationStrategy<T>, value: T) {
-    val encoder = DataOutputEncoder(output, value::class)
+@ExperimentalSerializationApi
+fun <T: Any> encodeTo(output: DataOutput, serializer: SerializationStrategy<T>, value: T, defaults: List<out Any> = listOf()) {
+    val encoder = IndexedDataOutputEncoder(output, defaults)
     encoder.encodeSerializableValue(serializer, value)
 }
 
-inline fun <reified T: Any> encodeTo(output: DataOutput, value: T){
+@ExperimentalSerializationApi
+inline fun <reified T: Any> encodeTo(output: DataOutput, value: T, vararg defaults: Any){
     val serializer = serializer<T>()
-    encodeTo(output, serializer, value)
+    encodeTo(output, serializer, value, defaults.toList())
 }
 
+@ExperimentalSerializationApi
 class DataInputDecoder(val input: DataInput, var elementsCount: Int = 0) : AbstractDecoder() {
     private val baSerializer = serializer<ByteArray>()
 
@@ -93,11 +200,13 @@ class DataInputDecoder(val input: DataInput, var elementsCount: Int = 0) : Abstr
     override fun decodeNotNullMark(): Boolean = decodeBoolean()
 }
 
+@ExperimentalSerializationApi
 fun <T> decodeFrom(input: DataInput, deserializer: DeserializationStrategy<T>): T {
     val decoder = DataInputDecoder(input)
     return decoder.decodeSerializableValue(deserializer)
 }
 
+@ExperimentalSerializationApi
 inline fun <reified T> decodeFrom(input: DataInput): T = decodeFrom(input, serializer())
 
 //////////////////////
@@ -107,6 +216,7 @@ data class User(val id: PublicKey)
 @Serializable
 data class GenericUser<U>(val id: U)
 
+@ExperimentalSerializationApi
 inline fun <reified T> test(
     data: T,
     serde: KSerializer<T>? = null
@@ -136,6 +246,7 @@ inline fun <reified T> test(
     println("Deserialized:\n$obj\n")
 }
 
+@ExperimentalSerializationApi
 fun main() {
     // Generate some public key
     // val pk = getRSA()
@@ -157,9 +268,17 @@ fun getRSA(): PublicKey {
     return generator.genKeyPair().public
 }
 
+@Suppress("ArrayInDataClass")
 @Serializable
 @SerialName("RSAPublicKeyImpl")
-class RSAPublicKeySurrogate(val encoded: ByteArray)
+data class RSAPublicKeySurrogate(
+    @FixedLength(500) val encoded: ByteArray,
+    @FixedLength(20) val string: String
+)
+
+@SerialInfo
+@Target(AnnotationTarget.CLASS, AnnotationTarget.PROPERTY)
+annotation class FixedLength(val value: Int)
 
 object RSAPublicKeySerializer : KSerializer<RSAPublicKeyImpl> {
     override val descriptor = RSAPublicKeySurrogate.serializer().descriptor
@@ -167,13 +286,13 @@ object RSAPublicKeySerializer : KSerializer<RSAPublicKeyImpl> {
     override fun serialize(encoder: Encoder, value: RSAPublicKeyImpl) {
         encoder.encodeSerializableValue(
             RSAPublicKeySurrogate.serializer(),
-            RSAPublicKeySurrogate(value.encoded)
+            RSAPublicKeySurrogate(value.encoded, "foo.bar")
         )
     }
 
     override fun deserialize(decoder: Decoder): RSAPublicKeyImpl {
         val surrogate = decoder.decodeSerializableValue(RSAPublicKeySurrogate.serializer())
-        return RSAPublicKeyImpl(surrogate.encoded)
+        return RSAPublicKeyImpl(surrogate.encoded) as RSAPublicKeyImpl
     }
 }
 
@@ -201,19 +320,29 @@ class ListSerializer<T>(val inner: KSerializer<T>) : KSerializer<List<T>> {
     }
 }
 
-annotation class Tag(val a: Int)
-
 @Serializable
 data class ML(
-    @Serializable(with=ListSerializer::class)
-    val list: List<User>
+    @FixedLength(2)
+    val dates: List<@Serializable(with = DateSerializer::class) Date>
+
+
+
+
+    // // Problematic
+    // @Serializable(with = DateSerializer::class)
+    // val date: Date
+    // @FixedLength(2)
+    // val own: List<Own>
 )
 
+@ExperimentalSerializationApi
 fun testML() {
-    val data = ML(listOf(User(getRSA())))
+    val data = ML(
+        listOf()
+    )
     val output = ByteArrayOutputStream()
 
-    encodeTo(DataOutputStream(output), data)
+    encodeTo(DataOutputStream(output), data, Own(), DateSurrogate(Long.MIN_VALUE))
 
     val bytes = output.toByteArray()
     println("Serialized:\n${bytes.joinToString(",")}\n")

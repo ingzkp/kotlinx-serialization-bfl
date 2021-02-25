@@ -1,3 +1,8 @@
+package serde
+
+import DateSurrogate
+import Own
+import encodeTo
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import kotlin.reflect.KClass

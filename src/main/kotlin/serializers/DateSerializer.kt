@@ -1,12 +1,8 @@
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.descriptors.PrimitiveKind
-import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.descriptors.buildSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import java.time.Instant
 import java.util.Date
 
 // Serializer: Implement KSerializer for 3rd party classes.
@@ -15,7 +11,7 @@ import java.util.Date
 data class DateSurrogate(val l: Long)
 
 object DateSerializer : KSerializer<Date> {
-    val strategy = DateSurrogate.serializer()
+    private val strategy = DateSurrogate.serializer()
     override val descriptor: SerialDescriptor = strategy.descriptor
     override fun serialize(encoder: Encoder, value: Date) {
         encoder.encodeSerializableValue(strategy, DateSurrogate(value.time))

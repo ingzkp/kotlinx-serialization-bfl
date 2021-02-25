@@ -1,10 +1,9 @@
-
 import kotlinx.serialization.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.StructureKind
-import kotlinx.serialization.descriptors.elementNames
+import kotlinx.serialization.descriptors.elementDescriptors
 import kotlinx.serialization.encoding.*
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
@@ -14,16 +13,21 @@ import java.security.KeyPairGenerator
 import java.security.PublicKey
 import java.security.SecureRandom
 import java.text.SimpleDateFormat
-import java.time.Instant
 import java.util.*
 import kotlin.random.Random
-import kotlin.reflect.KClass
+
+data class CollectionMeta(
+    var start: Int?,
+    var occupies: Int?,
+    val annotations: List<Annotation>,
+    val free: MutableMap<String, Any>
+    )
 
 @ExperimentalSerializationApi
 class IndexedDataOutputEncoder(val output: DataOutput, val defaults: List<out Any>) : AbstractEncoder() {
 
-    private val propertyAnnotationsStack = Stack<List<Annotation>>()
-    private val startingIdxStack = Stack<Int>()
+    // we cannot guarantee whether stack or queue will be ok
+    private val collections = mutableMapOf<Int, CollectionMeta>()
 
     override val serializersModule: SerializersModule = SerializersModule {
         polymorphic(PublicKey::class) {
@@ -31,70 +35,91 @@ class IndexedDataOutputEncoder(val output: DataOutput, val defaults: List<out An
         }
     }
 
-    init {
-        propertyAnnotationsStack.push(emptyList())
-    }
-
     override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder {
-        descriptor.elementNames.toList()
-            .indices
-            .reversed()
-            .forEach {
-                propertyAnnotationsStack.push(descriptor.getElementAnnotations(it))
+        descriptor.elementDescriptors
+            .forEachIndexed { idx, child ->
+                when (child.kind) {
+                    StructureKind.LIST -> {
+                        collections[child.hashCode()] = CollectionMeta(
+                            start = null,
+                            occupies = null,
+                            descriptor.getElementAnnotations(idx),
+                            mutableMapOf("field" to descriptor.getElementName(idx))
+                        )
+                    }
+                    //
+                    else -> {}
+                }
             }
-
-        startingIdxStack.push(output.getCurrentByteIdx())
 
         return super.beginStructure(descriptor)
     }
 
+    override fun beginCollection(descriptor: SerialDescriptor, collectionSize: Int): CompositeEncoder {
+        encodeInt(collectionSize)
+        collections[descriptor.hashCode()]?.start = output.getCurrentByteIdx()
+        return this
+    }
+
     override fun endStructure(descriptor: SerialDescriptor) {
-        val expectedNumberOfElements = propertyAnnotationsStack.pop()
-            .filterIsInstance<FixedLength>()
-            .firstOrNull()?.value
+        when (descriptor.kind) {
+            StructureKind.LIST -> with (collections[descriptor.hashCode()]) {
+                // Not removing this metadata because it may be handy for treating lists of ... lists of stuff.
+                this ?: error(" Something does't add up")
 
-        if (descriptor.kind == StructureKind.LIST) {
-            require(expectedNumberOfElements != null) {
-                "List-like structures `${descriptor.serialName}` must have FixedLength annotation"
+                occupies = finalizeCollection(descriptor, annotations, start ?: error ("Wait a minute. Hang on a second."))
+                free["processed"] = true
             }
 
-            // todo in fact there can be several elements, say Pair<A, B>
-            val elementDescriptor = descriptor.getElementDescriptor(0)
-            val expectedLength = expectedNumberOfElements * getElementSize(elementDescriptor)
-
-            val currentByteIdx = output.getCurrentByteIdx()
-            val startingByteIdx = startingIdxStack.pop()
-            val actualLength = currentByteIdx - startingByteIdx
-            require(expectedLength > actualLength) {
-                "Serialized elements don't fit into their expected length"
-            }
-
-            repeat(expectedLength - actualLength) {
-                encodeByte(0)
-            }
+            else -> {}
         }
 
         super.endStructure(descriptor)
     }
 
-    private fun getElementSize(descriptor: SerialDescriptor): Int  =
-        when (descriptor.kind) {
-            is PrimitiveKind.BOOLEAN -> 1
-            is PrimitiveKind.BYTE -> 1
-            is PrimitiveKind.SHORT -> 2
-            is PrimitiveKind.INT -> 4
-            is PrimitiveKind.LONG -> 8
-            is PrimitiveKind.FLOAT -> throw IllegalStateException("Floats are not yet supported")
-            is PrimitiveKind.DOUBLE -> throw IllegalStateException("Double are not yet supported")
-            is PrimitiveKind.CHAR -> 2
-            is PrimitiveKind.STRING -> throw IllegalStateException("Serialize char arrays")
-            else -> {
-                descriptor.serialName
-                // todo send the string representation of type there somehow
-                //  serialName can be overridden, otherwise it coincides with the fully-qualified name
-                Size.of(descriptor.serialName, defaults)
-            }
+    private fun finalizeCollection(descriptor: SerialDescriptor, annotations: List<Annotation>, startIdx: Int): Int {
+        val expectedNumberOfElements = annotations
+            .filterIsInstance<FixedLength>()
+            .firstOrNull()?.value
+
+        require(expectedNumberOfElements != null) {
+            "Collection `${descriptor.serialName}` must have FixedLength annotation"
+        }
+
+        val expectedLength = expectedNumberOfElements * getElementSize(descriptor.elementDescriptors.single())
+
+        val currentByteIdx = output.getCurrentByteIdx()
+        val actualLength = currentByteIdx - startIdx
+        require(expectedLength > actualLength) {
+            "Serialized elements don't fit into their expected length"
+        }
+
+        repeat(expectedLength - actualLength) { encodeByte(0) }
+
+        return expectedLength
     }
+
+    private fun getElementSize(descriptor: SerialDescriptor): Int =
+        // TODO have a better look here, is descriptor always decomposable in primitive types?
+        //   no it is not, it can also be a list or map or a class.
+        kotlin.runCatching {
+            // todo send the string representation of type there somehow
+            //  serialName can be overridden, otherwise it coincides with the fully-qualified name
+            Size.of(descriptor.serialName, defaults)
+        }.getOrElse {
+            when (descriptor.kind) {
+                is PrimitiveKind.BOOLEAN -> 1
+                is PrimitiveKind.BYTE -> 1
+                is PrimitiveKind.SHORT -> 2
+                is PrimitiveKind.INT -> 4
+                is PrimitiveKind.LONG -> 8
+                is PrimitiveKind.FLOAT -> throw IllegalStateException("Floats are not yet supported")
+                is PrimitiveKind.DOUBLE -> throw IllegalStateException("Double are not yet supported")
+                is PrimitiveKind.CHAR -> 2
+                is PrimitiveKind.STRING -> throw IllegalStateException("Serialize char arrays")
+                else -> descriptor.elementDescriptors.sumBy { getElementSize(it) }
+            }
+        }
 
     override fun encodeBoolean(value: Boolean) {
         output.writeByte(if (value) 1 else 0)
@@ -135,11 +160,6 @@ class IndexedDataOutputEncoder(val output: DataOutput, val defaults: List<out An
 
     override fun encodeEnum(enumDescriptor: SerialDescriptor, index: Int) {
         output.writeInt(index)
-    }
-
-    override fun beginCollection(descriptor: SerialDescriptor, collectionSize: Int): CompositeEncoder {
-        encodeInt(collectionSize)
-        return this
     }
 
     override fun encodeNull() = encodeBoolean(false)
@@ -322,22 +342,25 @@ class ListSerializer<T>(val inner: KSerializer<T>) : KSerializer<List<T>> {
 
 @Serializable
 data class ML(
+    @FixedLength(3)
+    val dates: List<@Serializable(with = DateSerializer::class) Date>,
+
     @FixedLength(2)
-    val dates: List<@Serializable(with = DateSerializer::class) Date>
+    val pairs: List<Pair<Int, Int>>,
 
+    @Serializable(with = DateSerializer::class)
+    val date: Date,
 
-
-
-    // // Problematic
-    // @Serializable(with = DateSerializer::class)
-    // val date: Date
-    // @FixedLength(2)
-    // val own: List<Own>
+    @FixedLength(2)
+    val own: List<Own>
 )
 
 @ExperimentalSerializationApi
 fun testML() {
     val data = ML(
+        listOf(),
+        listOf(Pair(1, 2)),
+        SimpleDateFormat("yyyy-MM-ddX").parse("2016-02-15+00"),
         listOf()
     )
     val output = ByteArrayOutputStream()
@@ -348,8 +371,8 @@ fun testML() {
     println("Serialized:\n${bytes.joinToString(",")}\n")
     // --------
 
-    val input = ByteArrayInputStream(bytes)
-    val obj = decodeFrom<ML>(DataInputStream(input))
-
-    println("Deserialized:\n$obj\n")
+    // val input = ByteArrayInputStream(bytes)
+    // val obj = decodeFrom<ML>(DataInputStream(input))
+    //
+    // println("Deserialized:\n$obj\n")
 }

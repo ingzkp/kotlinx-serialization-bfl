@@ -67,9 +67,10 @@ class IndexedDataOutputEncoder(private val output: DataOutput, private val defau
         when (descriptor.kind) {
             StructureKind.LIST -> with (collections[descriptor]) {
                 // Not removing this metadata because it may be handy for treating nested lists.
-                this ?: error(" Something doesn't add up")
+                this ?: error("Collection must have meta information")
+                start ?: error("Starting position for the collection elements must known")
 
-                occupies = finalizeCollection(descriptor, annotations, start ?: error ("Wait a minute. Hang on a second."))
+                occupies = finalizeCollection(descriptor, annotations, start!!) + 4
                 free["processed"] = true
             }
             StructureKind.MAP -> TODO("Implement map support")
@@ -82,7 +83,7 @@ class IndexedDataOutputEncoder(private val output: DataOutput, private val defau
     private fun finalizeCollection(descriptor: SerialDescriptor, annotations: List<Annotation>, startIdx: Int): Int {
         val expectedNumberOfElements = annotations
             .filterIsInstance<FixedLength>()
-            .firstOrNull()?.value
+            .firstOrNull()?.values?.firstOrNull()
 
         require(expectedNumberOfElements != null) {
             "Collection `${descriptor.serialName}` must have FixedLength annotation"
@@ -96,7 +97,7 @@ class IndexedDataOutputEncoder(private val output: DataOutput, private val defau
             "Serialized elements don't fit into their expected length"
         }
 
-        repeat(expectedLength - actualLength) { encodeByte(0) }
+        repeat(expectedLength - actualLength) { encodeByte(5) }
 
         return expectedLength
     }
@@ -119,7 +120,7 @@ class IndexedDataOutputEncoder(private val output: DataOutput, private val defau
         value.forEach { encodeChar(it) }
 
         val collectionMeta = collections[String.serializer().descriptor]!!
-        val expectedStringLength = collectionMeta.annotations.filterIsInstance<FixedLength>().firstOrNull()?.value
+        val expectedStringLength = collectionMeta.annotations.filterIsInstance<FixedLength>().firstOrNull()?.values?.firstOrNull()
 
         check(expectedStringLength != null) { "Strings should have @FixedLength annotation" }
 

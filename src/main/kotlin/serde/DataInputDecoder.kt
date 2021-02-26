@@ -53,7 +53,7 @@ class DataInputDecoder(
         val string = (0 until actualStringLength).map { decodeChar() }.joinToString("")
 
         val collectionMeta = deserializationState.collections[String.serializer().descriptor]!!
-        val expectedStringLength = collectionMeta.annotations.filterIsInstance<FixedLength>().firstOrNull()?.value
+        val expectedStringLength = collectionMeta.annotations.filterIsInstance<FixedLength>().firstOrNull()?.values?.firstOrNull()
 
         check(expectedStringLength != null) { "Strings should have @FixedLength annotation" }
 
@@ -128,7 +128,7 @@ class DataInputDecoder(
     private fun finalizeCollection(descriptor: SerialDescriptor, annotations: List<Annotation>, startIdx: Int): Int {
         val expectedNumberOfElements = annotations
             .filterIsInstance<FixedLength>()
-            .firstOrNull()?.value
+            .firstOrNull()?.values?.firstOrNull()
 
         require(expectedNumberOfElements != null) {
             "Collection `${descriptor.serialName}` must have FixedLength annotation"

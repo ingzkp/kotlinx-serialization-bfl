@@ -5,6 +5,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.StructureKind
 import kotlinx.serialization.descriptors.elementDescriptors
 import kotlinx.serialization.serializer
 import serde.Size
@@ -34,9 +35,9 @@ fun ByteArray.toAsciiHexString() = joinToString("") {
 
 // TODO Ultimately this function must only belong to the encoder only
 fun getElementSize(descriptor: SerialDescriptor, defaults: List<out Any>): Int =
-// TODO have a better look here, is descriptor always decomposable in primitive types?
+    // TODO have a better look here, is descriptor always decomposable in primitive types?
     //   no it is not, it can also be a list or map or a class.
-    kotlin.runCatching {
+    runCatching {
         // todo send the string representation of type there somehow
         //  serialName can be overridden, otherwise it coincides with the fully-qualified name
         Size.of(descriptor.serialName, defaults)
@@ -51,6 +52,7 @@ fun getElementSize(descriptor: SerialDescriptor, defaults: List<out Any>): Int =
             is PrimitiveKind.DOUBLE -> throw IllegalStateException("Double are not yet supported")
             is PrimitiveKind.CHAR -> 2
             is PrimitiveKind.STRING -> throw IllegalStateException("Serialize char arrays")
+            //
             else -> descriptor.elementDescriptors.sumBy { getElementSize(it, defaults) }
         }
     }

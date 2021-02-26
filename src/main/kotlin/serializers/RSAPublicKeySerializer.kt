@@ -11,7 +11,7 @@ import sun.security.rsa.RSAPublicKeyImpl
 @Suppress("ArrayInDataClass")
 @Serializable
 @SerialName("RSAPublicKeyImpl")
-data class RSAPublicKeySurrogate(@FixedLength(500) val encoded: ByteArray)
+data class RSAPublicKeySurrogate(@FixedLength([500]) val encoded: ByteArray)
 
 object RSAPublicKeySerializer : KSerializer<RSAPublicKeyImpl> {
     private val strategy = RSAPublicKeySurrogate.serializer()

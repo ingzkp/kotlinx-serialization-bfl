@@ -1,3 +1,6 @@
+import annotations.FixedLength
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import java.security.PublicKey
 
@@ -11,3 +14,9 @@ data class User(val id: PublicKey)
 
 @Serializable
 data class GenericUser<U>(val id: U)
+
+@ExperimentalSerializationApi
+@Suppress("ArrayInDataClass")
+@Serializable
+@SerialName("RSAPublicKeyImpl")
+data class RSAPublicKeySurrogate(@FixedLength([500]) val encoded: ByteArray)

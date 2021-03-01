@@ -1,10 +1,17 @@
 import annotations.FixedLength
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.polymorphic
+import serializers.RSAPublicKeySerializer
+import sun.security.rsa.RSAPublicKeyImpl
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
+import java.security.KeyPairGenerator
+import java.security.PublicKey
+import java.security.SecureRandom
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -17,7 +24,8 @@ fun main() {
         listOf(listOf(1, 2, 3), listOf(4, 5, 6)),
         listOf(Pair(1, 2)),
         SimpleDateFormat("yyyy-MM-ddX").parse("2016-02-15+00"),
-        listOf(Own(25))
+        listOf(Own(25)),
+        getRSA()
     )
     val splitMask = listOf(
         Pair("string.length", 2),
@@ -42,7 +50,12 @@ fun main() {
     println(data)
 
     val output = ByteArrayOutputStream()
-    encodeTo(DataOutputStream(output), data, Own(), DateSurrogate(Long.MIN_VALUE))
+    val serializersModule = SerializersModule {
+        polymorphic(PublicKey::class) {
+            subclass(RSAPublicKeyImpl::class, RSAPublicKeySerializer)
+        }
+    }
+    encodeTo(DataOutputStream(output), data, serializersModule, Own(), DateSurrogate(Long.MIN_VALUE))
     val bytes = output.toByteArray()
 
     println("Serialized:")
@@ -86,7 +99,10 @@ data class CoverAll(
     val date: Date,
 
     @FixedLength([2])
-    val owns: List<Own>
+    val owns: List<Own>,
+
+    @Serializable(with = RSAPublicKeySerializer::class)
+    val publicKey: PublicKey
 )
 
 @Serializable
@@ -109,3 +125,9 @@ data class Inner(
     @FixedLength([3])
     val ints_i: List<Int> = listOf(100)
 )
+
+fun getRSA(): PublicKey {
+    val generator = KeyPairGenerator.getInstance("RSA")
+    generator.initialize(2048, SecureRandom())
+    return generator.genKeyPair().public
+}

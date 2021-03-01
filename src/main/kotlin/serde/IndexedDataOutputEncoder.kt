@@ -7,45 +7,42 @@ import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.AbstractEncoder
 import kotlinx.serialization.encoding.CompositeEncoder
 import kotlinx.serialization.modules.SerializersModule
-import kotlinx.serialization.modules.polymorphic
-import serializers.RSAPublicKeySerializer
-import sun.security.rsa.RSAPublicKeyImpl
 import java.io.DataOutput
 import java.io.DataOutputStream
-import java.security.PublicKey
 
 @ExperimentalSerializationApi
-class IndexedDataOutputEncoder(private val output: DataOutput, private val defaults: List<Any>) : AbstractEncoder() {
+class IndexedDataOutputEncoder(
+    private val output: DataOutput,
+    override val serializersModule: SerializersModule,
+    private vararg val defaults: Any,
+) : AbstractEncoder() {
 
     private val serializingState = SerializingState()
-
-    override val serializersModule: SerializersModule = SerializersModule {
-        polymorphic(PublicKey::class) {
-            subclass(RSAPublicKeyImpl::class, RSAPublicKeySerializer)
-        }
-    }
 
     override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder {
         if (serializingState.collectionSizingStack.isEmpty()) {
             serializingState.collectionSizingStack.addLast(ElementSizingInfo.getRoot(descriptor.serialName))
         }
+        processAnnotations(descriptor)
+        serializingState.collectionSizingStack.last().startByte = getCurrentByteIdx()
 
+        return super.beginStructure(descriptor)
+    }
+
+    private fun processAnnotations(descriptor: SerialDescriptor) {
         descriptor.elementNames.toList()
             .indices
             .reversed()
             .forEach {
-                if (descriptor.getElementDescriptor(it).kind !is PrimitiveKind || descriptor.getElementDescriptor(it).kind == PrimitiveKind.STRING) {
+                val elementDescriptor = descriptor.getElementDescriptor(it)
+                if (elementDescriptor.kind is StructureKind || elementDescriptor.kind is PolymorphicKind || elementDescriptor.kind == SerialKind.CONTEXTUAL || elementDescriptor.kind == PrimitiveKind.STRING) {
                     pushToSizingStack(
-                        "${descriptor.serialName}.${descriptor.elementNames.toList()[it]}",
-                        descriptor.getElementDescriptor(it),
+                        "${descriptor.serialName}.${descriptor.getElementName(it)}",
+                        elementDescriptor,
                         descriptor.getElementAnnotations(it)
                     )
                 }
             }
-
-        serializingState.collectionSizingStack.last().startByte = getCurrentByteIdx()
-
-        return super.beginStructure(descriptor)
     }
 
     private fun pushToSizingStack(propertyName: String, descriptor: SerialDescriptor, annotations: List<Annotation>) {
@@ -122,7 +119,7 @@ class IndexedDataOutputEncoder(private val output: DataOutput, private val defau
                 val elementsStartByteIdx = sizingInfo.startByte + 4
                 val elementSize =
                     if (serializingState.lastStructureSize == -1)
-                        getElementSize(descriptor, defaults)
+                        getElementSize(descriptor, serializersModule, defaults)
                     else
                         serializingState.lastStructureSize
 

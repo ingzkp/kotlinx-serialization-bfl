@@ -1,17 +1,10 @@
 package serializers
 
-import annotations.FixedLength
+import RSAPublicKeySurrogate
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import sun.security.rsa.RSAPublicKeyImpl
-
-@Suppress("ArrayInDataClass")
-@Serializable
-@SerialName("RSAPublicKeyImpl")
-data class RSAPublicKeySurrogate(@FixedLength([500]) val encoded: ByteArray)
 
 object RSAPublicKeySerializer : KSerializer<RSAPublicKeyImpl> {
     private val strategy = RSAPublicKeySurrogate.serializer()

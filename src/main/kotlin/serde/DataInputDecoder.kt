@@ -56,7 +56,7 @@ class DataInputDecoder(
         //TODO: I removed check, but it was useful to prevent user from missing non-annotated list-like structures
 
         val paddingStringLength = expectedStringLength - actualStringLength
-        val paddedBytesLength = paddingStringLength * getElementSize(Char.serializer().descriptor, defaults)
+        val paddedBytesLength = paddingStringLength * getElementSize(Char.serializer().descriptor, serializersModule, defaults)
 
         input.skipBytes(paddedBytesLength)
         deserializationState.byteIndex += paddedBytesLength
@@ -132,7 +132,7 @@ class DataInputDecoder(
             "Collection `${descriptor.serialName}` must have FixedLength annotation"
         }
 
-        val expectedLength = expectedNumberOfElements * getElementSize(descriptor.elementDescriptors.single(), defaults)
+        val expectedLength = expectedNumberOfElements * getElementSize(descriptor.elementDescriptors.single(), serializersModule, defaults)
 
         val currentByteIdx = deserializationState.byteIndex
         val actualLength = currentByteIdx - startIdx

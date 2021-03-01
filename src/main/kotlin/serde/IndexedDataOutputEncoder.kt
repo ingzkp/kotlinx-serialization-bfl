@@ -99,7 +99,7 @@ class IndexedDataOutputEncoder(private val output: DataOutput, private val defau
             removeRedundantSizingInfo(container, collectionSize)
         }
         serializingState.collectionSizingStack.last().startByte = getCurrentByteIdx()
-        serializingState.collectionSizingStack.last().elementSize = -1
+        serializingState.lastStructureSize = -1
         encodeInt(collectionSize)
         return this
     }
@@ -121,13 +121,10 @@ class IndexedDataOutputEncoder(private val output: DataOutput, private val defau
                 }
                 val elementsStartByteIdx = sizingInfo.startByte + 4
                 val elementSize =
-                    if (sizingInfo.elementSize == -1 && serializingState.lastStructureSize == 0)
+                    if (serializingState.lastStructureSize == -1)
                         getElementSize(descriptor, defaults)
                     else
-                        if (serializingState.lastStructureSize == 0)
-                            sizingInfo.elementSize
-                        else
-                            serializingState.lastStructureSize
+                        serializingState.lastStructureSize
 
                 serializingState.lastStructureSize = 0
                 val expectedNumberOfElements = sizingInfo.numberOfElements
@@ -139,9 +136,7 @@ class IndexedDataOutputEncoder(private val output: DataOutput, private val defau
                 val paddingBytesLength = expectedBytes - writtenBytes
                 repeat(paddingBytesLength) { encodeByte(0) }
 
-                if (container != null) {
-                    container.elementSize = expectedBytes + 4
-                }
+                serializingState.lastStructureSize = expectedBytes + 4
             }
             StructureKind.MAP -> {
                 TODO("Implement map support")
@@ -153,8 +148,8 @@ class IndexedDataOutputEncoder(private val output: DataOutput, private val defau
                 val container = sizingInfo.container
                 if (container != null && container.numberOfElements != -1) {
                     container.startByte = sizingInfo.startByte - 4
-                    container.elementSize = currentByteIdx - sizingInfo.startByte
                 }
+                serializingState.lastStructureSize = currentByteIdx - sizingInfo.startByte
             }
             else -> TODO("Unknown structure kind `${descriptor.kind}`")
         }

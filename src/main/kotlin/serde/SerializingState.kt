@@ -2,7 +2,7 @@ package serde
 
 data class SerializingState(
     var currentByte: Int = 0,
-    var lastStructureSize: Int = 0,
+    var lastStructureSize: Int = -1,
     val collectionSizingStack: ArrayDeque<ElementSizingInfo> = ArrayDeque())
 
 data class ElementSizingInfo(
@@ -11,7 +11,6 @@ data class ElementSizingInfo(
     //-1 is used for fail-fast policy, such that users will know if they didn't annotate list-like structures
     var numberOfElements: Int = -1,
     var isRemovedRedundant: Boolean = false,
-    var elementSize: Int = -1,
     var container: ElementSizingInfo? = null,
     val isPolymorphicKind: Boolean = false,
     //debug purposes

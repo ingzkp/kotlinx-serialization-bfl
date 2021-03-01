@@ -1,19 +1,12 @@
 import annotations.FixedLength
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.SerialInfo
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.builtins.serializer
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.text.SimpleDateFormat
-import java.util.Date
+import java.util.*
 
 @ExperimentalUnsignedTypes
 @ExperimentalSerializationApi
@@ -21,16 +14,30 @@ fun main() {
     val data = CoverAll(
         "12345678901234567890",
         listOf(),
+        listOf(listOf(1, 2, 3), listOf(4, 5, 6)),
         listOf(Pair(1, 2)),
         SimpleDateFormat("yyyy-MM-ddX").parse("2016-02-15+00"),
         listOf(Own(25))
     )
     val splitMask = listOf(
-        Pair("string", 2 + 2 * 20),
-        Pair("dates", 4 + 3 * 8),
-        Pair("pairs", 4 + 2 * (4 + 4)),
+        Pair("string.length", 2),
+        Pair("string.value", 2 * 25),
+        Pair("dates.length", 4),
+        Pair("dates.value", 8 * 3),
+        Pair("listMatrix.length", 4),
+        Pair("listMatrix[0].length", 4),
+        Pair("listMatrix[0].value", 4 * 5),
+        Pair("listMatrix[1].length", 4),
+        Pair("listMatrix[1].value", 4 * 5),
+        Pair("listMatrix[2].length", 4),
+        Pair("listMatrix[2].value", 4 * 5),
+        Pair("listMatrix[3].length", 4),
+        Pair("listMatrix[3].value", 4 * 5),
+        Pair("pairs.length", 4),
+        Pair("pairs.value", 2 * (4 + 4)),
         Pair("date", 8),
-        Pair("owns", 4 + 2 * 4)
+        Pair("owns.length", 4),
+        Pair("owns.value", 4)
     )
     println(data)
 
@@ -63,11 +70,14 @@ fun main() {
 @Serializable
 @ExperimentalSerializationApi
 data class CoverAll(
-    @FixedLength([20])
+    @FixedLength([25])
     val string: String,
 
     @FixedLength([3])
     val dates: List<@Serializable(with = DateSerializer::class) Date>,
+
+    @FixedLength([4, 5])
+    val listMatrix: List<List<Int>>,
 
     @FixedLength([2])
     val pairs: List<Pair<Int, Int>>,

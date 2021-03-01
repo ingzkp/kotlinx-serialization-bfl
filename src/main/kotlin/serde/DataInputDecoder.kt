@@ -4,21 +4,19 @@ import annotations.FixedLength
 import getElementSize
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.builtins.serializer
-import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.descriptors.StructureKind
 import kotlinx.serialization.descriptors.elementDescriptors
 import kotlinx.serialization.encoding.AbstractDecoder
 import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
-import serde.CollectionMeta
+import serde.ElementSizingInfo
 import serializers.RSAPublicKeySerializer
 import sun.security.rsa.RSAPublicKeyImpl
 import java.io.DataInput
 import java.security.PublicKey
 
-data class DeserializationState(var byteIndex: Int, val collections: MutableMap<SerialDescriptor, CollectionMeta>)
+data class DeserializationState(var byteIndex: Int, val collections: MutableMap<SerialDescriptor, ElementSizingInfo>)
 
 @ExperimentalSerializationApi
 class DataInputDecoder(
@@ -53,9 +51,9 @@ class DataInputDecoder(
         val string = (0 until actualStringLength).map { decodeChar() }.joinToString("")
 
         val collectionMeta = deserializationState.collections[String.serializer().descriptor]!!
-        val expectedStringLength = collectionMeta.annotations.filterIsInstance<FixedLength>().firstOrNull()?.values?.firstOrNull()
+        val expectedStringLength = collectionMeta.numberOfElements!!
 
-        check(expectedStringLength != null) { "Strings should have @FixedLength annotation" }
+        //TODO: I removed check, but it was useful to prevent user from missing non-annotated list-like structures
 
         val paddingStringLength = expectedStringLength - actualStringLength
         val paddedBytesLength = paddingStringLength * getElementSize(Char.serializer().descriptor, defaults)
@@ -77,50 +75,50 @@ class DataInputDecoder(
     }
 
     override fun beginStructure(descriptor: SerialDescriptor): CompositeDecoder {
-        descriptor.elementDescriptors
-            .forEachIndexed { idx, child ->
-                when (child.kind) {
-                    StructureKind.LIST -> {
-                        deserializationState.collections[child] = CollectionMeta(
-                            start = deserializationState.byteIndex + 4,
-                            occupies = null,
-                            descriptor.getElementAnnotations(idx),
-                            mutableMapOf("field" to descriptor.getElementName(idx))
-                        )
-                    }
-                    PrimitiveKind.STRING -> {
-                        deserializationState.collections[child] = CollectionMeta(
-                            start = deserializationState.byteIndex,
-                            occupies = null,
-                            descriptor.getElementAnnotations(idx),
-                            mutableMapOf("field" to descriptor.getElementName(idx))
-                        )
-                    }
-                    StructureKind.MAP -> TODO("Implement map support")
-                    else -> println("Ignored field ${descriptor.serialName}.${child.serialName}")
-                }
-            }
-
-        val meta = deserializationState.collections[descriptor]
-        if (meta != null && descriptor.kind == StructureKind.LIST) {
-            meta.start = deserializationState.byteIndex + 4
-        }
+//        descriptor.elementDescriptors
+//            .forEachIndexed { idx, child ->
+//                when (child.kind) {
+//                    StructureKind.LIST -> {
+//                        deserializationState.collections[child] = ElementSizingInfo(
+//                            start = deserializationState.byteIndex + 4,
+//                            occupies = null,
+//                            descriptor.getElementAnnotations(idx),
+//                            mutableMapOf("field" to descriptor.getElementName(idx))
+//                        )
+//                    }
+//                    PrimitiveKind.STRING -> {
+//                        deserializationState.collections[child] = ElementSizingInfo(
+//                            start = deserializationState.byteIndex,
+//                            occupies = null,
+//                            descriptor.getElementAnnotations(idx),
+//                            mutableMapOf("field" to descriptor.getElementName(idx))
+//                        )
+//                    }
+//                    StructureKind.MAP -> TODO("Implement map support")
+//                    else -> println("Ignored field ${descriptor.serialName}.${child.serialName}")
+//                }
+//            }
+//
+//        val meta = deserializationState.collections[descriptor]
+//        if (meta != null && descriptor.kind == StructureKind.LIST) {
+//            meta.start = deserializationState.byteIndex + 4
+//        }
 
         return DataInputDecoder(input, descriptor.elementsCount, deserializationState, defaults)
     }
 
     override fun endStructure(descriptor: SerialDescriptor) {
-        when (descriptor.kind) {
-            StructureKind.LIST -> with (deserializationState.collections[descriptor]) {
-                // Not removing this metadata because it may be handy for treating nested lists.
-                this ?: error(" Something doesn't add up")
-
-                occupies = finalizeCollection(descriptor, annotations, start ?: error ("Wait a minute. Hang on a second."))
-                free["processed"] = true
-            }
-            StructureKind.MAP -> TODO("Implement map support")
-            else -> println("Ignored field ${descriptor.serialName}")
-        }
+//        when (descriptor.kind) {
+//            StructureKind.LIST -> with (deserializationState.collections[descriptor]) {
+//                // Not removing this metadata because it may be handy for treating nested lists.
+//                this ?: error(" Something doesn't add up")
+//
+//                occupies = finalizeCollection(descriptor, annotations, start ?: error ("Wait a minute. Hang on a second."))
+//                free["processed"] = true
+//            }
+//            StructureKind.MAP -> TODO("Implement map support")
+//            else -> println("Ignored field ${descriptor.serialName}")
+//        }
 
         super.endStructure(descriptor)
     }
@@ -128,7 +126,7 @@ class DataInputDecoder(
     private fun finalizeCollection(descriptor: SerialDescriptor, annotations: List<Annotation>, startIdx: Int): Int {
         val expectedNumberOfElements = annotations
             .filterIsInstance<FixedLength>()
-            .firstOrNull()?.values?.firstOrNull()
+            .firstOrNull()?.lengths?.firstOrNull()
 
         require(expectedNumberOfElements != null) {
             "Collection `${descriptor.serialName}` must have FixedLength annotation"

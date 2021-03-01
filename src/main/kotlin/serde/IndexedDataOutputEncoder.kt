@@ -3,11 +3,7 @@ package serde
 import annotations.FixedLength
 import getElementSize
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.builtins.serializer
-import kotlinx.serialization.descriptors.PrimitiveKind
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.descriptors.StructureKind
-import kotlinx.serialization.descriptors.elementDescriptors
+import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.AbstractEncoder
 import kotlinx.serialization.encoding.CompositeEncoder
 import kotlinx.serialization.modules.SerializersModule
@@ -21,7 +17,7 @@ import java.security.PublicKey
 @ExperimentalSerializationApi
 class IndexedDataOutputEncoder(private val output: DataOutput, private val defaults: List<Any>) : AbstractEncoder() {
 
-    private val collections = mutableMapOf<SerialDescriptor, CollectionMeta>()
+    private val serializingState = SerializingState()
 
     override val serializersModule: SerializersModule = SerializersModule {
         polymorphic(PublicKey::class) {
@@ -30,76 +26,140 @@ class IndexedDataOutputEncoder(private val output: DataOutput, private val defau
     }
 
     override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder {
-        descriptor.elementDescriptors
-            .forEachIndexed { idx, child ->
-                when (child.kind) {
-                    StructureKind.LIST -> {
-                        collections[child] = CollectionMeta(
-                            start = null,
-                            occupies = null,
-                            descriptor.getElementAnnotations(idx),
-                            mutableMapOf("field" to descriptor.getElementName(idx))
-                        )
-                    }
-                    PrimitiveKind.STRING -> {
-                        collections[child] = CollectionMeta(
-                            start = null,
-                            occupies = null,
-                            descriptor.getElementAnnotations(idx),
-                            mutableMapOf("field" to descriptor.getElementName(idx))
-                        )
-                    }
-                    StructureKind.MAP -> TODO("Implement map support")
-                    else -> println("Ignored field ${descriptor.serialName}.${child.serialName}")
+        if (serializingState.collectionSizingStack.isEmpty()) {
+            serializingState.collectionSizingStack.addLast(ElementSizingInfo.getRoot(descriptor.serialName))
+        }
+
+        descriptor.elementNames.toList()
+            .indices
+            .reversed()
+            .forEach {
+                if (descriptor.getElementDescriptor(it).kind !is PrimitiveKind || descriptor.getElementDescriptor(it).kind == PrimitiveKind.STRING) {
+                    pushToSizingStack(
+                        "${descriptor.serialName}.${descriptor.elementNames.toList()[it]}",
+                        descriptor.getElementDescriptor(it),
+                        descriptor.getElementAnnotations(it)
+                    )
                 }
             }
+
+        serializingState.collectionSizingStack.last().startByte = getCurrentByteIdx()
 
         return super.beginStructure(descriptor)
     }
 
+    private fun pushToSizingStack(propertyName: String, descriptor: SerialDescriptor, annotations: List<Annotation>) {
+        val expectedElementLengths = annotations.filterIsInstance<FixedLength>().firstOrNull()?.lengths
+
+        if (expectedElementLengths == null) {
+            serializingState.collectionSizingStack.addLast(
+                ElementSizingInfo(
+                    getCurrentByteIdx(),
+                    isPolymorphicKind = descriptor.kind is PolymorphicKind,
+                    name = propertyName
+                )
+            )
+        } else {
+            pushRecursivelyWithContainer(
+                expectedElementLengths = expectedElementLengths,
+                propertyName = propertyName,
+                descriptor = descriptor
+            )
+        }
+    }
+
+    private fun pushRecursivelyWithContainer(
+        container: ElementSizingInfo? = null,
+        numberOfElements: Int = 1,
+        expectedElementLengths: IntArray,
+        lengthIdx: Int = 0,
+        propertyName: String,
+        descriptor: SerialDescriptor) {
+        if (descriptor.kind is PrimitiveKind && descriptor.kind != PrimitiveKind.STRING) {
+            return
+        }
+        for (i in 0 until numberOfElements) {
+            val sizingInfo = ElementSizingInfo(
+                -1,
+                numberOfElements = if (lengthIdx == expectedElementLengths.size) -1 else expectedElementLengths[lengthIdx],
+                container = container,
+                isPolymorphicKind = descriptor.kind is PolymorphicKind,
+                name = propertyName
+            )
+            serializingState.collectionSizingStack.addLast(sizingInfo)
+            if (descriptor.kind != PrimitiveKind.STRING) {
+                pushRecursivelyWithContainer(sizingInfo, sizingInfo.numberOfElements, expectedElementLengths, lengthIdx + 1, propertyName, descriptor.getElementDescriptor(0))
+            }
+        }
+    }
+
     override fun beginCollection(descriptor: SerialDescriptor, collectionSize: Int): CompositeEncoder {
+        val container = serializingState.collectionSizingStack.last().container
+        if (container != null && !container.isRemovedRedundant) {
+            removeRedundantSizingInfo(container, collectionSize)
+        }
+        serializingState.collectionSizingStack.last().startByte = getCurrentByteIdx()
+        serializingState.collectionSizingStack.last().elementSize = -1
         encodeInt(collectionSize)
-        collections[descriptor]?.start = output.getCurrentByteIdx()
         return this
+    }
+
+    private fun removeRedundantSizingInfo(container: ElementSizingInfo, actualCollectionSize: Int) {
+        val expectedNumberOfElements = container.numberOfElements
+        repeat(expectedNumberOfElements - actualCollectionSize) { serializingState.collectionSizingStack.removeLast() }
+        container.isRemovedRedundant = true
     }
 
     override fun endStructure(descriptor: SerialDescriptor) {
         when (descriptor.kind) {
-            StructureKind.LIST -> with (collections[descriptor]) {
-                // Not removing this metadata because it may be handy for treating nested lists.
-                this ?: error("Collection must have meta information")
-                start ?: error("Starting position for the collection elements must known")
+            StructureKind.LIST -> {
+                val sizingInfo = serializingState.collectionSizingStack.removeLast()
+                val container = sizingInfo.container
 
-                occupies = finalizeCollection(descriptor, annotations, start!!) + 4
-                free["processed"] = true
+                if (container != null && container.startByte == -1) {
+                    container.startByte = sizingInfo.startByte - 4
+                }
+                val elementsStartByteIdx = sizingInfo.startByte + 4
+                val elementSize =
+                    if (sizingInfo.elementSize == -1 && serializingState.lastStructureSize == 0)
+                        getElementSize(descriptor, defaults)
+                    else
+                        if (serializingState.lastStructureSize == 0)
+                            sizingInfo.elementSize
+                        else
+                            serializingState.lastStructureSize
+
+                serializingState.lastStructureSize = 0
+                val expectedNumberOfElements = sizingInfo.numberOfElements
+
+                check(expectedNumberOfElements != -1) { "Collection `${descriptor.serialName}` must have FixedLength annotation" }
+                val writtenBytes = getCurrentByteIdx() - elementsStartByteIdx
+                val expectedBytes = elementSize * expectedNumberOfElements
+
+                val paddingBytesLength = expectedBytes - writtenBytes
+                repeat(paddingBytesLength) { encodeByte(0) }
+
+                if (container != null) {
+                    container.elementSize = expectedBytes + 4
+                }
             }
-            StructureKind.MAP -> TODO("Implement map support")
-            else -> println("Ignored field ${descriptor.serialName}")
+            StructureKind.MAP -> {
+                TODO("Implement map support")
+            }
+            StructureKind.CLASS -> {
+                val sizingInfo = serializingState.collectionSizingStack.removeLast()
+                val currentByteIdx = getCurrentByteIdx()
+
+                val container = sizingInfo.container
+                if (container != null && container.numberOfElements != -1) {
+                    container.startByte = sizingInfo.startByte - 4
+                    container.elementSize = currentByteIdx - sizingInfo.startByte
+                }
+            }
+            else -> TODO("Unknown structure kind `${descriptor.kind}`")
         }
 
         super.endStructure(descriptor)
-    }
-
-    private fun finalizeCollection(descriptor: SerialDescriptor, annotations: List<Annotation>, startIdx: Int): Int {
-        val expectedNumberOfElements = annotations
-            .filterIsInstance<FixedLength>()
-            .firstOrNull()?.values?.firstOrNull()
-
-        require(expectedNumberOfElements != null) {
-            "Collection `${descriptor.serialName}` must have FixedLength annotation"
-        }
-
-        val expectedLength = expectedNumberOfElements * getElementSize(descriptor.elementDescriptors.single(), defaults)
-
-        val currentByteIdx = output.getCurrentByteIdx()
-        val actualLength = currentByteIdx - startIdx
-        require(expectedLength > actualLength) {
-            "Serialized elements don't fit into their expected length"
-        }
-
-        repeat(expectedLength - actualLength) { encodeByte(5) }
-
-        return expectedLength
     }
 
     override fun encodeBoolean(value: Boolean) = output.writeByte(if (value) 1 else 0)
@@ -119,15 +179,15 @@ class IndexedDataOutputEncoder(private val output: DataOutput, private val defau
         encodeShort(value.length.toShort())
         value.forEach { encodeChar(it) }
 
-        val collectionMeta = collections[String.serializer().descriptor]!!
-        val expectedStringLength = collectionMeta.annotations.filterIsInstance<FixedLength>().firstOrNull()?.values?.firstOrNull()
+        val sizingInfo = serializingState.collectionSizingStack.removeLast()
+        val expectedStringLength = sizingInfo.numberOfElements
+        check(expectedStringLength != -1) { "Strings should have @FixedLength annotation" }
 
-        check(expectedStringLength != null) { "Strings should have @FixedLength annotation" }
+        val paddingLength = expectedStringLength - actualStringLength
+        check(paddingLength >= 0) { "Serializing string doesn't fit expected size" }
 
-        val paddingStringLength = expectedStringLength - actualStringLength
-        val paddedBytesLength = paddingStringLength * getElementSize(Char.serializer().descriptor, defaults)
-
-        repeat(paddedBytesLength) { encodeByte(0) }
+        val paddingBytesLength = 2 * paddingLength
+        repeat(paddingBytesLength) { encodeByte(0) }
     }
 
     override fun encodeEnum(enumDescriptor: SerialDescriptor, index: Int) = output.writeInt(index)
@@ -136,4 +196,6 @@ class IndexedDataOutputEncoder(private val output: DataOutput, private val defau
     override fun encodeNotNullMark() = encodeBoolean(true)
 
     private fun DataOutput.getCurrentByteIdx(): Int = (this as DataOutputStream).size()
+
+    private fun getCurrentByteIdx(): Int = (output as DataOutputStream).size()
 }

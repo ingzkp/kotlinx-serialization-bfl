@@ -29,21 +29,20 @@ class IndexedDataOutputEncoder(
         return super.beginStructure(descriptor)
     }
 
-    private fun processAnnotations(descriptor: SerialDescriptor) {
-        descriptor.elementNames.toList()
-            .indices
-            .reversed()
-            .forEach {
-                val elementDescriptor = descriptor.getElementDescriptor(it)
-                if (elementDescriptor.kind is StructureKind || elementDescriptor.kind is PolymorphicKind || elementDescriptor.kind == SerialKind.CONTEXTUAL || elementDescriptor.kind == PrimitiveKind.STRING) {
-                    pushToSizingStack(
-                        "${descriptor.serialName}.${descriptor.getElementName(it)}",
-                        elementDescriptor,
-                        descriptor.getElementAnnotations(it)
-                    )
-                }
-            }
-    }
+    private fun processAnnotations(descriptor: SerialDescriptor) = (descriptor.elementsCount - 1 downTo 0)
+        .filter { descriptor.getElementDescriptor(it).canBeAnnotated() }
+        .forEach {
+            pushToSizingStack(
+                "${descriptor.serialName}.${descriptor.getElementName(it)}",
+                descriptor.getElementDescriptor(it),
+                descriptor.getElementAnnotations(it)
+            )
+        }
+
+    private fun SerialDescriptor.canBeAnnotated() = this.kind is StructureKind
+            || this.kind is PolymorphicKind
+            || this.kind == SerialKind.CONTEXTUAL
+            || this.kind == PrimitiveKind.STRING
 
     private fun pushToSizingStack(propertyName: String, descriptor: SerialDescriptor, annotations: List<Annotation>) {
         val expectedElementLengths = annotations.filterIsInstance<FixedLength>().firstOrNull()?.lengths
@@ -71,7 +70,8 @@ class IndexedDataOutputEncoder(
         expectedElementLengths: IntArray,
         lengthIdx: Int = 0,
         propertyName: String,
-        descriptor: SerialDescriptor) {
+        descriptor: SerialDescriptor
+    ) {
         if (descriptor.kind is PrimitiveKind && descriptor.kind != PrimitiveKind.STRING) {
             return
         }
@@ -85,7 +85,14 @@ class IndexedDataOutputEncoder(
             )
             serializingState.collectionSizingStack.addLast(sizingInfo)
             if (descriptor.kind != PrimitiveKind.STRING) {
-                pushRecursivelyWithContainer(sizingInfo, sizingInfo.numberOfElements, expectedElementLengths, lengthIdx + 1, propertyName, descriptor.getElementDescriptor(0))
+                pushRecursivelyWithContainer(
+                    sizingInfo,
+                    sizingInfo.numberOfElements,
+                    expectedElementLengths,
+                    lengthIdx + 1,
+                    propertyName,
+                    descriptor.getElementDescriptor(0)
+                )
             }
         }
     }

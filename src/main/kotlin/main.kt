@@ -45,7 +45,9 @@ fun main() {
         Pair("pairs.value", 2 * (4 + 4)),
         Pair("date", 8),
         Pair("owns.length", 4),
-        Pair("owns.value", 4)
+        Pair("owns.value", 2 * 4),
+        Pair("publicKey.length", 4),
+        Pair("publicKey.length", 500)
     )
     println(data)
 
@@ -64,7 +66,7 @@ fun main() {
         val range = bytes.copyOfRange(start, start + it.second)
         val repr = range.joinToString(separator = ",") { d -> String.format("%2d", d) }
         // val repr = range.toAsciiHexString()
-        println("${it.first}\t: $repr")
+        println("${it.first} [$start, ${start + it.second}]\t: $repr")
         start += it.second
     }
 

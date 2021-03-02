@@ -16,6 +16,6 @@ data class ElementSizingInfo(
     val name: String
 ) {
     companion object {
-        fun getRoot(name: String) = ElementSizingInfo(startByte = 0, name = name)
+        fun getWithName(startByte: Int, name: String) = ElementSizingInfo(startByte = startByte, name = name)
     }
 }

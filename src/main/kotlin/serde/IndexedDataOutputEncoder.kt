@@ -17,124 +17,119 @@ class IndexedDataOutputEncoder(
     private vararg val defaults: Any
 ) : AbstractEncoder() {
 
-    private val serializingState = SerializingState()
+    private var lastStructureSize: Int? = null
+    private val elementMetaStack: ArrayDeque<ElementSerializingMeta> = ArrayDeque()
 
     override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder {
-        pushStructureToStack(descriptor)
-        processAnnotations(descriptor)
-        serializingState.collectionSizingStack.last().startByte = getCurrentByteIdx()
+        pushStructureMetaToStack(descriptor)
+        processStructureFields(descriptor)
+        elementMetaStack.peek().startByte = getCurrentByteIdx()
 
         return super.beginStructure(descriptor)
     }
 
-    private fun pushStructureToStack(descriptor: SerialDescriptor) =
-        serializingState.collectionSizingStack.addLast(
-            ElementSizingInfo.getWithName(getCurrentByteIdx(), descriptor.serialName)
-        )
+    private fun pushStructureMetaToStack(descriptor: SerialDescriptor) =
+        elementMetaStack.push(ElementSerializingMeta(startByte = getCurrentByteIdx(), name = descriptor.serialName))
 
-    private fun processAnnotations(descriptor: SerialDescriptor) = (descriptor.elementsCount - 1 downTo 0)
-        .filter { descriptor.getElementDescriptor(it).canBeAnnotated() }
-        .forEach {
-            pushToSizingStack(
-                "${descriptor.serialName}.${descriptor.getElementName(it)}",
-                descriptor.getElementDescriptor(it),
-                descriptor.getElementAnnotations(it)
-            )
-        }
+    private fun processStructureFields(descriptor: SerialDescriptor) =
+        (descriptor.elementsCount - 1 downTo 0)
+            .filter { descriptor.getElementDescriptor(it).canBeAnnotated() }
+            .forEach {
+                pushCollectionMetaToStack(
+                    "${descriptor.serialName}.${descriptor.getElementName(it)}",
+                    descriptor.getElementDescriptor(it),
+                    descriptor.getElementAnnotations(it)
+                )
+            }
 
     private fun SerialDescriptor.canBeAnnotated() = this.kind is StructureKind
             || this.kind is PolymorphicKind
-            || this.kind == SerialKind.CONTEXTUAL
-            || this.kind == PrimitiveKind.STRING
+            || this.kind is SerialKind.CONTEXTUAL
+            || this.kind is PrimitiveKind.STRING
 
-    private fun pushToSizingStack(propertyName: String, descriptor: SerialDescriptor, annotations: List<Annotation>) {
+    private fun pushCollectionMetaToStack(
+        name: String,
+        descriptor: SerialDescriptor,
+        annotations: List<Annotation>
+    ) {
         val expectedElementLengths = annotations.filterIsInstance<FixedLength>().firstOrNull()?.lengths
+        expectedElementLengths?.let { unrollToLinkedListAndPushHeadToStack(name, descriptor, it) }
+    }
 
-        if (expectedElementLengths != null) {
-            var lengthIdx = 0
-            var serializingDescriptor = descriptor
-            var element = ElementSizingInfo(
-                numberOfElements = expectedElementLengths.getOrDefault(lengthIdx),
-                isPolymorphicKind = serializingDescriptor.isPolymorphicKind(),
-                name = propertyName
-            )
-            serializingState.collectionSizingStack.addLast(element)
-            if (serializingDescriptor.kind is PrimitiveKind) {
-                return
-            }
+    private fun unrollToLinkedListAndPushHeadToStack(
+        name: String,
+        elementDescriptor: SerialDescriptor,
+        lengths: IntArray
+    ) {
+        var lengthIdx = 0
+        var descriptor = elementDescriptor
+        var element = ElementSerializingMeta(numberOfElements = lengths.getOrDefault(lengthIdx), name = name)
+        elementMetaStack.push(element)
+        if (descriptor.kind is PrimitiveKind) {
+            return
+        }
 
-            serializingDescriptor = serializingDescriptor.getElementDescriptor(0)
-            while (serializingDescriptor.isListLike()) {
-                lengthIdx++
+        descriptor = descriptor.getElementDescriptor(0)
+        while (descriptor.isCollection()) {
+            lengthIdx++
 
+            element.inner =
+                ElementSerializingMeta(numberOfElements = lengths.getOrDefault(lengthIdx), name = name)
+            element = element.inner!!
 
-                element.inner = ElementSizingInfo(
-                    numberOfElements = expectedElementLengths.getOrDefault(lengthIdx),
-                    isPolymorphicKind = serializingDescriptor.isPolymorphicKind(),
-                    name = propertyName
-                )
-                element = element.inner!!
-                serializingDescriptor = serializingDescriptor.getElementDescriptor(0)
-            }
+            descriptor = descriptor.getElementDescriptor(0)
         }
     }
 
-    private fun SerialDescriptor.isListLike() = this.kind == StructureKind.LIST
-            || this.kind == StructureKind.MAP
+    private fun SerialDescriptor.isCollection() = this.kind is StructureKind.LIST || this.kind is StructureKind.MAP
 
     private fun IntArray.getOrDefault(idx: Int) = if (idx >= this.size) -1 else this[idx]
 
-    private fun SerialDescriptor.isPolymorphicKind() = this.kind is PolymorphicKind
-
     override fun beginCollection(descriptor: SerialDescriptor, collectionSize: Int): CompositeEncoder {
-        val collectionSizingInfo = serializingState.collectionSizingStack.last()
-        collectionSizingInfo.startByte = getCurrentByteIdx()
-        serializingState.lastStructureSize = -1
-        encodeInt(collectionSize)
+        val collectionMeta = elementMetaStack.peek()
+        collectionMeta.startByte = getCurrentByteIdx()
+        collectionMeta.inner?.let { inner -> repeat(collectionSize) { elementMetaStack.addLast(inner.copy()) } }
 
-        if (collectionSizingInfo.inner != null) {
-            repeat(collectionSize) { serializingState.collectionSizingStack.addLast(collectionSizingInfo.inner!!.copy()) }
-        }
+        lastStructureSize = null
+        encodeInt(collectionSize)
 
         return this
     }
 
     override fun endStructure(descriptor: SerialDescriptor) {
         when (descriptor.kind) {
-            StructureKind.LIST -> {
-                val sizingInfo = serializingState.collectionSizingStack.removeLast()
-
-                val elementsStartByteIdx = sizingInfo.startByte + 4
-                val elementSize =
-                    if (serializingState.lastStructureSize == -1)
-                        getElementSize(descriptor, serializersModule, defaults)
-                    else
-                        serializingState.lastStructureSize
-
-                serializingState.lastStructureSize = 0
-                val expectedNumberOfElements = sizingInfo.numberOfElements
-
-                check(expectedNumberOfElements != -1) { "Collection `${descriptor.serialName}` must have FixedLength annotation" }
-                val writtenBytes = getCurrentByteIdx() - elementsStartByteIdx
-                val expectedBytes = elementSize * expectedNumberOfElements
-
-                val paddingBytesLength = expectedBytes - writtenBytes
-                repeat(paddingBytesLength) { encodeByte(0) }
-
-                serializingState.lastStructureSize = expectedBytes + 4
-            }
-            StructureKind.MAP -> {
-                TODO("Implement map support")
-            }
+            StructureKind.LIST -> endList(descriptor)
+            StructureKind.MAP -> TODO("Implement map support")
             StructureKind.CLASS -> {
-                val sizingInfo = serializingState.collectionSizingStack.removeLast()
+                val sizingInfo = elementMetaStack.pop()
                 val currentByteIdx = getCurrentByteIdx()
-                serializingState.lastStructureSize = currentByteIdx - sizingInfo.startByte
+                check(sizingInfo.startByte != null) { "Class `${sizingInfo.name}` has no start byte index" }
+                lastStructureSize = currentByteIdx - sizingInfo.startByte!!
             }
             else -> TODO("Unknown structure kind `${descriptor.kind}`")
         }
 
         super.endStructure(descriptor)
+    }
+
+    private fun endList(descriptor: SerialDescriptor) {
+        val sizingInfo = elementMetaStack.pop()
+
+        check(sizingInfo.startByte != null) { "List `${sizingInfo.name}` has no start byte index" }
+        val elementsStartByteIdx = sizingInfo.startByte!! + 4
+        val elementSize = lastStructureSize ?: getElementSize(descriptor, serializersModule, defaults)
+
+        lastStructureSize = null
+        val expectedNumberOfElements = sizingInfo.numberOfElements
+
+        check(expectedNumberOfElements != null) { "List `${descriptor.serialName}` must have FixedLength annotation" }
+        val writtenBytes = getCurrentByteIdx() - elementsStartByteIdx
+        val expectedBytes = elementSize * expectedNumberOfElements
+
+        val paddingBytesLength = expectedBytes - writtenBytes
+        repeat(paddingBytesLength) { encodeByte(0) }
+
+        lastStructureSize = expectedBytes + 4
     }
 
     override fun encodeBoolean(value: Boolean) = output.writeByte(if (value) 1 else 0)
@@ -154,9 +149,9 @@ class IndexedDataOutputEncoder(
         encodeShort(value.length.toShort())
         value.forEach { encodeChar(it) }
 
-        val sizingInfo = serializingState.collectionSizingStack.removeLast()
+        val sizingInfo = elementMetaStack.pop()
         val expectedStringLength = sizingInfo.numberOfElements
-        check(expectedStringLength != -1) { "Strings should have @FixedLength annotation" }
+        check(expectedStringLength != null) { "Strings should have @FixedLength annotation" }
 
         val paddingLength = expectedStringLength - actualStringLength
         check(paddingLength >= 0) { "Serializing string doesn't fit expected size" }
@@ -170,7 +165,9 @@ class IndexedDataOutputEncoder(
     override fun encodeNull() = encodeBoolean(false)
     override fun encodeNotNullMark() = encodeBoolean(true)
 
-    private fun DataOutput.getCurrentByteIdx(): Int = (this as DataOutputStream).size()
-
     private fun getCurrentByteIdx(): Int = (output as DataOutputStream).size()
+
+    private fun <T> ArrayDeque<T>.push(value: T) = this.addLast(value)
+    private fun <T> ArrayDeque<T>.pop(): T = this.removeLast()
+    private fun <T> ArrayDeque<T>.peek(): T = this.last()
 }

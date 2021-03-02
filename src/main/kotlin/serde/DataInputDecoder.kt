@@ -10,13 +10,13 @@ import kotlinx.serialization.encoding.AbstractDecoder
 import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
-import serde.ElementSizingInfo
+import serde.ElementSerializingMeta
 import serializers.RSAPublicKeySerializer
 import sun.security.rsa.RSAPublicKeyImpl
 import java.io.DataInput
 import java.security.PublicKey
 
-data class DeserializationState(var byteIndex: Int, val collections: MutableMap<SerialDescriptor, ElementSizingInfo>)
+data class DeserializationState(var byteIndex: Int, val collections: MutableMap<SerialDescriptor, ElementSerializingMeta>)
 
 @ExperimentalSerializationApi
 class DataInputDecoder(

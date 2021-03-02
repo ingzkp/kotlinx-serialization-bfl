@@ -6,17 +6,16 @@ data class SerializingState(
     val collectionSizingStack: ArrayDeque<ElementSizingInfo> = ArrayDeque())
 
 data class ElementSizingInfo(
-    var startByte: Int = 0,
+    var startByte: Int = -1,
     //must be positive or -1, the later indicates that the element is not list-like
     //-1 is used for fail-fast policy, such that users will know if they didn't annotate list-like structures
     var numberOfElements: Int = -1,
-    var isRemovedRedundant: Boolean = false,
-    var container: ElementSizingInfo? = null,
+    var inner: ElementSizingInfo? = null,
     val isPolymorphicKind: Boolean = false,
     //debug purposes
     val name: String
 ) {
     companion object {
-        fun getRoot(name: String) = ElementSizingInfo(name = name)
+        fun getRoot(name: String) = ElementSizingInfo(startByte = 0, name = name)
     }
 }

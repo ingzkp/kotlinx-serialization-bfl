@@ -14,7 +14,7 @@ import java.io.DataOutputStream
 class IndexedDataOutputEncoder(
     private val output: DataOutput,
     override val serializersModule: SerializersModule,
-    private vararg val defaults: Any,
+    private vararg val defaults: Any
 ) : AbstractEncoder() {
 
     private val serializingState = SerializingState()
@@ -56,73 +56,59 @@ class IndexedDataOutputEncoder(
                 )
             )
         } else {
-            pushRecursivelyWithContainer(
-                expectedElementLengths = expectedElementLengths,
-                propertyName = propertyName,
-                descriptor = descriptor
-            )
-        }
-    }
-
-    private fun pushRecursivelyWithContainer(
-        container: ElementSizingInfo? = null,
-        numberOfElements: Int = 1,
-        expectedElementLengths: IntArray,
-        lengthIdx: Int = 0,
-        propertyName: String,
-        descriptor: SerialDescriptor
-    ) {
-        if (descriptor.kind is PrimitiveKind && descriptor.kind != PrimitiveKind.STRING) {
-            return
-        }
-        for (i in 0 until numberOfElements) {
-            val sizingInfo = ElementSizingInfo(
-                -1,
-                numberOfElements = if (lengthIdx == expectedElementLengths.size) -1 else expectedElementLengths[lengthIdx],
-                container = container,
-                isPolymorphicKind = descriptor.kind is PolymorphicKind,
+            var lengthIdx = 0
+            var serializingDescriptor = descriptor
+            var element = ElementSizingInfo(
+                numberOfElements = expectedElementLengths.getOrDefault(lengthIdx),
+                isPolymorphicKind = serializingDescriptor.isPolymorphicKind(),
                 name = propertyName
             )
-            serializingState.collectionSizingStack.addLast(sizingInfo)
-            if (descriptor.kind != PrimitiveKind.STRING) {
-                pushRecursivelyWithContainer(
-                    sizingInfo,
-                    sizingInfo.numberOfElements,
-                    expectedElementLengths,
-                    lengthIdx + 1,
-                    propertyName,
-                    descriptor.getElementDescriptor(0)
+            serializingState.collectionSizingStack.addLast(element)
+            if (serializingDescriptor.kind is PrimitiveKind) {
+                return
+            }
+
+            serializingDescriptor = serializingDescriptor.getElementDescriptor(0)
+            while (serializingDescriptor.isListLike()) {
+                lengthIdx++
+
+
+                element.inner = ElementSizingInfo(
+                    numberOfElements = expectedElementLengths.getOrDefault(lengthIdx),
+                    isPolymorphicKind = serializingDescriptor.isPolymorphicKind(),
+                    name = propertyName
                 )
+                element = element.inner!!
+                serializingDescriptor = serializingDescriptor.getElementDescriptor(0)
             }
         }
     }
 
+    private fun SerialDescriptor.isListLike() = this.kind == StructureKind.LIST
+            || this.kind == StructureKind.MAP
+
+    private fun IntArray.getOrDefault(idx: Int) = if (idx >= this.size) -1 else this[idx]
+
+    private fun SerialDescriptor.isPolymorphicKind() = this.kind is PolymorphicKind
+
     override fun beginCollection(descriptor: SerialDescriptor, collectionSize: Int): CompositeEncoder {
-        val container = serializingState.collectionSizingStack.last().container
-        if (container != null && !container.isRemovedRedundant) {
-            removeRedundantSizingInfo(container, collectionSize)
-        }
-        serializingState.collectionSizingStack.last().startByte = getCurrentByteIdx()
+        val collectionSizingInfo = serializingState.collectionSizingStack.last()
+        collectionSizingInfo.startByte = getCurrentByteIdx()
         serializingState.lastStructureSize = -1
         encodeInt(collectionSize)
-        return this
-    }
 
-    private fun removeRedundantSizingInfo(container: ElementSizingInfo, actualCollectionSize: Int) {
-        val expectedNumberOfElements = container.numberOfElements
-        repeat(expectedNumberOfElements - actualCollectionSize) { serializingState.collectionSizingStack.removeLast() }
-        container.isRemovedRedundant = true
+        if (collectionSizingInfo.inner != null) {
+            repeat(collectionSize) { serializingState.collectionSizingStack.addLast(collectionSizingInfo.inner!!.copy()) }
+        }
+
+        return this
     }
 
     override fun endStructure(descriptor: SerialDescriptor) {
         when (descriptor.kind) {
             StructureKind.LIST -> {
                 val sizingInfo = serializingState.collectionSizingStack.removeLast()
-                val container = sizingInfo.container
 
-                if (container != null && container.startByte == -1) {
-                    container.startByte = sizingInfo.startByte - 4
-                }
                 val elementsStartByteIdx = sizingInfo.startByte + 4
                 val elementSize =
                     if (serializingState.lastStructureSize == -1)
@@ -148,11 +134,6 @@ class IndexedDataOutputEncoder(
             StructureKind.CLASS -> {
                 val sizingInfo = serializingState.collectionSizingStack.removeLast()
                 val currentByteIdx = getCurrentByteIdx()
-
-                val container = sizingInfo.container
-                if (container != null && container.numberOfElements != -1) {
-                    container.startByte = sizingInfo.startByte - 4
-                }
                 serializingState.lastStructureSize = currentByteIdx - sizingInfo.startByte
             }
             else -> TODO("Unknown structure kind `${descriptor.kind}`")

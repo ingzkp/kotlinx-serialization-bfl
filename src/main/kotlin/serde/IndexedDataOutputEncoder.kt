@@ -35,46 +35,47 @@ class IndexedDataOutputEncoder(
         (descriptor.elementsCount - 1 downTo 0)
             .filter { descriptor.getElementDescriptor(it).canBeAnnotated() }
             .forEach {
-                pushCollectionMetaToStack(
+                val annotations = descriptor.getElementAnnotations(it)
+                val expectedElementLengths = annotations
+                    .filterIsInstance<FixedLength>()
+                    .firstOrNull()?.lengths
+                    ?: error("Element ${descriptor.serialName}.${descriptor.getElementName(it)} must have FixedLength annotations")
+
+                scheduleCollectionMetaToStack(
                     "${descriptor.serialName}.${descriptor.getElementName(it)}",
                     descriptor.getElementDescriptor(it),
-                    descriptor.getElementAnnotations(it)
+                    expectedElementLengths
                 )
             }
 
-    private fun SerialDescriptor.canBeAnnotated() = this.kind is StructureKind
-            || this.kind is PolymorphicKind
-            || this.kind is SerialKind.CONTEXTUAL
-            || this.kind is PrimitiveKind.STRING
+    // todo bad naming. why "is StructureKind"?
+    private fun SerialDescriptor.canBeAnnotated() = kind is StructureKind
+            || kind is PolymorphicKind
+            || kind is SerialKind.CONTEXTUAL
+            || kind is PrimitiveKind.STRING
 
-    private fun pushCollectionMetaToStack(
-        name: String,
-        descriptor: SerialDescriptor,
-        annotations: List<Annotation>
-    ) {
-        val expectedElementLengths = annotations.filterIsInstance<FixedLength>().firstOrNull()?.lengths
-        expectedElementLengths?.let { unrollToLinkedListAndPushHeadToStack(name, descriptor, it) }
-    }
 
-    private fun unrollToLinkedListAndPushHeadToStack(
+    private fun scheduleCollectionMetaToStack(
         name: String,
         elementDescriptor: SerialDescriptor,
         lengths: IntArray
     ) {
         var lengthIdx = 0
         var descriptor = elementDescriptor
-        var element = ElementSerializingMeta(numberOfElements = lengths.getOrDefault(lengthIdx), name = name)
+        var element = ElementSerializingMeta(numberOfElements = lengths.getOrNull(lengthIdx), name = name)
         elementMetaStack.push(element)
         if (descriptor.kind is PrimitiveKind) {
             return
         }
-
+        // todo: are we confident there will be only one element descriptor here by the time we reach this code?
+        //   i don't see any prior checks, because map is also a collection.
+        //   this loop is a recursion imitation
         descriptor = descriptor.getElementDescriptor(0)
         while (descriptor.isCollection()) {
             lengthIdx++
 
             element.inner =
-                ElementSerializingMeta(numberOfElements = lengths.getOrDefault(lengthIdx), name = name)
+                ElementSerializingMeta(numberOfElements = lengths.getOrNull(lengthIdx), name = name)
             element = element.inner!!
 
             descriptor = descriptor.getElementDescriptor(0)
@@ -83,12 +84,12 @@ class IndexedDataOutputEncoder(
 
     private fun SerialDescriptor.isCollection() = this.kind is StructureKind.LIST || this.kind is StructureKind.MAP
 
-    private fun IntArray.getOrDefault(idx: Int) = if (idx >= this.size) -1 else this[idx]
-
     override fun beginCollection(descriptor: SerialDescriptor, collectionSize: Int): CompositeEncoder {
         val collectionMeta = elementMetaStack.peek()
         collectionMeta.startByte = getCurrentByteIdx()
-        collectionMeta.inner?.let { inner -> repeat(collectionSize) { elementMetaStack.addLast(inner.copy()) } }
+        collectionMeta.inner?.let { inner -> repeat(collectionSize) {
+            elementMetaStack.push(inner.copy()) }
+        }
 
         lastStructureSize = null
         encodeInt(collectionSize)

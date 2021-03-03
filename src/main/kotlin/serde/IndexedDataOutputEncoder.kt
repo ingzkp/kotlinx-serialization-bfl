@@ -49,7 +49,7 @@ class IndexedDataOutputEncoder(
             }
 
     // todo bad naming. why "is StructureKind"?
-    private fun SerialDescriptor.canBeAnnotated() = kind is StructureKind
+    private fun SerialDescriptor.canBeAnnotated() = kind is StructureKind.LIST
             || kind is PolymorphicKind
             || kind is SerialKind.CONTEXTUAL
             || kind is PrimitiveKind.STRING

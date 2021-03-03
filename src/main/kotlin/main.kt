@@ -1,4 +1,5 @@
 import annotations.FixedLength
+import annotations.KeyLength
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
@@ -25,7 +26,8 @@ fun main() {
         listOf(Pair(1, 2)),
         SimpleDateFormat("yyyy-MM-ddX").parse("2016-02-15+00"),
         listOf(Own(25)),
-        getRSA()
+        getRSA(),
+        mapOf("a" to listOf(1), "b" to listOf(2))
     )
     val splitMask = listOf(
         Pair("string.length", 2),
@@ -123,7 +125,11 @@ data class CoverAll(
     val owns: List<Own>,
 
     @Serializable(with = RSAPublicKeySerializer::class)
-    val publicKey: PublicKey
+    val publicKey: PublicKey,
+
+    @FixedLength([2])
+    @KeyLength(5)
+    val stringToIntList: Map<String, List<Int>>
 )
 
 @Serializable

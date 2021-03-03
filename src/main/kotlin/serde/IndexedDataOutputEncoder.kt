@@ -70,13 +70,17 @@ class IndexedDataOutputEncoder(
         // todo: are we confident there will be only one element descriptor here by the time we reach this code?
         //   i don't see any prior checks, because map is also a collection.
         //   this loop is a recursion imitation
+        if (descriptor.kind is StructureKind.MAP) {
+            TODO("Map is not implemented")
+        }
+
         descriptor = descriptor.getElementDescriptor(0)
         while (descriptor.isCollection()) {
             lengthIdx++
 
             element.inner =
-                ElementSerializingMeta(numberOfElements = lengths.getOrNull(lengthIdx), name = name)
-            element = element.inner!!
+                listOf(ElementSerializingMeta(numberOfElements = lengths.getOrNull(lengthIdx), name = name))
+            element = element.inner!![0]
 
             descriptor = descriptor.getElementDescriptor(0)
         }
@@ -87,8 +91,12 @@ class IndexedDataOutputEncoder(
     override fun beginCollection(descriptor: SerialDescriptor, collectionSize: Int): CompositeEncoder {
         val collectionMeta = elementMetaStack.peek()
         collectionMeta.startByte = getCurrentByteIdx()
-        collectionMeta.inner?.let { inner -> repeat(collectionSize) {
-            elementMetaStack.push(inner.copy()) }
+        if (descriptor.kind is StructureKind.LIST) {
+            collectionMeta.inner?.let { inner ->
+                repeat(collectionSize) {
+                    elementMetaStack.push(inner[0].copy())
+                }
+            }
         }
 
         lastStructureSize = null

@@ -1,5 +1,4 @@
-
-import decoder.DataInputDecoder
+import serde.DataInputDecoder
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationStrategy

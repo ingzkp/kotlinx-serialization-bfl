@@ -1,16 +1,13 @@
-package decoder
+package serde
 
 import annotations.ValueLength
-import getElementSize
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.descriptors.elementDescriptors
 import kotlinx.serialization.encoding.AbstractDecoder
 import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
-import serde.ElementSizingInfo
 import serializers.RSAPublicKeySerializer
 import sun.security.rsa.RSAPublicKeyImpl
 import java.io.DataInput

@@ -1,6 +1,6 @@
 package serde
 
-import annotations.FixedLength
+import annotations.DFLength
 import getElementSize
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.*
@@ -17,89 +17,150 @@ class IndexedDataOutputEncoder(
     private vararg val defaults: Any
 ) : AbstractEncoder() {
 
-    private var lastStructureSize: Int? = null
-    private val elementMetaStack: ArrayDeque<ElementSerializingMeta> = ArrayDeque()
+    // private var lastStructureSize: Int? = null
+    private val sizingInfoStack: ArrayDeque<SizingInfo> = ArrayDeque()
 
     override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder {
         pushStructureMetaToStack(descriptor)
         processStructureFields(descriptor)
-        elementMetaStack.peek().startByte = getCurrentByteIdx()
+
+        // This holds by stack construction.
+        (sizingInfoStack.peek() as SizingInfo.Compound).startByte = getCurrentByteIdx()
 
         return super.beginStructure(descriptor)
     }
 
     private fun pushStructureMetaToStack(descriptor: SerialDescriptor) =
-        elementMetaStack.push(ElementSerializingMeta(startByte = getCurrentByteIdx(), name = descriptor.serialName))
+        sizingInfoStack.push(SizingInfo.Compound(
+            ElementSizingInfoImpl(startByte = getCurrentByteIdx(), name = descriptor.serialName)
+        ))
 
     private fun processStructureFields(descriptor: SerialDescriptor) =
         (descriptor.elementsCount - 1 downTo 0)
-            .filter { descriptor.getElementDescriptor(it).canBeAnnotated() }
+            // .filter { descriptor.getElementDescriptor(it).mustBeAnnotated() }
+            .filter { descriptor.getElementDescriptor(it).isUnbounded }
             .forEach {
+                val name = "${descriptor.serialName}.${descriptor.getElementName(it)}"
                 val annotations = descriptor.getElementAnnotations(it)
-                val expectedElementLengths = annotations
-                    .filterIsInstance<FixedLength>()
+
+                // DFLength must always be present for all unbounded types.
+                val dfLength = annotations
+                    .filterIsInstance<DFLength>()
                     .firstOrNull()?.lengths
-                    ?: error("Element ${descriptor.serialName}.${descriptor.getElementName(it)} must have FixedLength annotations")
+                    ?: error("Element $name must have DFLength annotation")
 
                 scheduleCollectionMetaToStack(
-                    "${descriptor.serialName}.${descriptor.getElementName(it)}",
+                    descriptor.serialName,
                     descriptor.getElementDescriptor(it),
-                    expectedElementLengths
+                    dfLength.toMutableList()
                 )
             }
 
-    // todo bad naming. why "is StructureKind"?
-    private fun SerialDescriptor.canBeAnnotated() = kind is StructureKind.LIST
-            || kind is PolymorphicKind
-            || kind is SerialKind.CONTEXTUAL
-            || kind is PrimitiveKind.STRING
+    private val SerialDescriptor.isCollection: Boolean
+        get() = kind is StructureKind.LIST || kind is StructureKind.MAP
 
+    private val SerialDescriptor.isUnbounded: Boolean
+        get() = isCollection || kind is PrimitiveKind.STRING
+
+    // // todo get back to using this after the inner question is addressed
+    // private fun SerialDescriptor.mustBeAnnotated() =
+    //     kind is StructureKind.LIST
+    //         || kind is StructureKind.MAP
+    //         || kind is PrimitiveKind.STRING
+    //         // todo; explain better why the last two are required.
+    //         || kind is PolymorphicKind
+    //         || kind is SerialKind.CONTEXTUAL
 
     private fun scheduleCollectionMetaToStack(
-        name: String,
-        elementDescriptor: SerialDescriptor,
-        lengths: IntArray
+        parentName: String,
+        descriptor: SerialDescriptor,
+        lengths: MutableList<Int>
     ) {
-        var lengthIdx = 0
-        var descriptor = elementDescriptor
-        var element = ElementSerializingMeta(numberOfElements = lengths.getOrNull(lengthIdx), name = name)
-        elementMetaStack.push(element)
-        if (descriptor.kind is PrimitiveKind) {
-            return
-        }
-        // todo: are we confident there will be only one element descriptor here by the time we reach this code?
-        //   i don't see any prior checks, because map is also a collection.
-        //   this loop is a recursion imitation
-        if (descriptor.kind is StructureKind.MAP) {
-            TODO("Map is not implemented")
+        fun child(parentName: String, descriptor: SerialDescriptor, lengths: MutableList<Int>): SizingInfo {
+            if (!descriptor.isUnbounded) {
+                return SizingInfo.Bounded
+            }
+
+            val name = "$parentName.${descriptor.serialName}"
+            val requiredSize = lengths.removeFirstOrNull() ?: error("Insufficient sizing info for $name")
+
+            val children = descriptor.elementDescriptors.map {
+                child(name, it, lengths)
+            }
+
+            return SizingInfo.Compound(
+                ElementSizingInfoImpl(collectionRequiredSize = requiredSize, inner = children, name = name)
+            )
         }
 
-        descriptor = descriptor.getElementDescriptor(0)
-        while (descriptor.isCollection()) {
-            lengthIdx++
-
-            element.inner =
-                listOf(ElementSerializingMeta(numberOfElements = lengths.getOrNull(lengthIdx), name = name))
-            element = element.inner!![0]
-
-            descriptor = descriptor.getElementDescriptor(0)
-        }
+        val head = child(parentName, descriptor, lengths)
+        sizingInfoStack.push(head)
     }
 
-    private fun SerialDescriptor.isCollection() = this.kind is StructureKind.LIST || this.kind is StructureKind.MAP
+
+    // private fun scheduleCollectionMetaToStack(
+    //     name: String,
+    //     elementDescriptor: SerialDescriptor,
+    //     lengths: IntArray
+    // ) {
+    //     var lengthIdx = 0
+    //     var descriptor = elementDescriptor
+    //     // todo should we not throw if getOrNull = null? it means there is no fixed length for this collection.
+    //     var element = ElementSizingInfo(numberOfElements = lengths.getOrNull(lengthIdx), name = name)
+    //     collectionMetaStack.push(element)
+    //     if (descriptor.kind is PrimitiveKind) {
+    //         return
+    //     }
+    //     // todo: are we confident there will be only one element descriptor here by the time we reach this code?
+    //     //   i don't see any prior checks, because map is also a collection.
+    //     //   this loop is a recursion imitation
+    //     descriptor = descriptor.getElementDescriptor(0)
+    //     while (descriptor.isCollection()) {
+    //         lengthIdx++
+    //
+    //         element.inner =
+    //             listOf(ElementSizingInfo(numberOfElements = lengths.getOrNull(lengthIdx), name = name))
+    //         element = element.inner!![0]
+    //
+    //         descriptor = descriptor.getElementDescriptor(0)
+    //     }
+    // }
+
+
 
     override fun beginCollection(descriptor: SerialDescriptor, collectionSize: Int): CompositeEncoder {
-        val collectionMeta = elementMetaStack.peek()
+        // Unwind sizing meta information for this collection to the stack.
+        val collectionMeta = sizingInfoStack.peek()
+        check(collectionMeta is SizingInfo.Compound) { "Stack element must describe a compound type" }
+
         collectionMeta.startByte = getCurrentByteIdx()
-        if (descriptor.kind is StructureKind.LIST) {
-            collectionMeta.inner?.let { inner ->
-                repeat(collectionSize) {
-                    elementMetaStack.push(inner[0].copy())
-                }
-            }
+        collectionMeta.collectionActualSize = collectionSize
+
+        repeat(collectionSize) {
+            collectionMeta.inner
+                .filterIsInstance<SizingInfo.Compound>()
+                .asReversed()
+                .forEach { meta -> sizingInfoStack.push(meta.copy()) }
         }
 
-        lastStructureSize = null
+        // if (descriptor.isCollection) {
+        //     collectionMeta.inner?.let { inner ->
+        //         repeat(collectionSize) {
+        //            inner.asReversed().forEach { meta ->
+        //                sizingInfoStack.push(meta.copy())
+        //            }
+        //        }
+        //    }
+        // }
+
+        // if (descriptor.kind is StructureKind.LIST) {
+        //     collectionMeta.inner?.let { inner ->
+        //         repeat(collectionSize) {
+        //             collectionMetaStack.push(inner[0].copy())
+        //         }
+        //     }
+        // }
+
         encodeInt(collectionSize)
 
         return this
@@ -107,13 +168,15 @@ class IndexedDataOutputEncoder(
 
     override fun endStructure(descriptor: SerialDescriptor) {
         when (descriptor.kind) {
-            StructureKind.LIST -> endList(descriptor)
-            StructureKind.MAP -> TODO("Implement map support")
-            StructureKind.CLASS -> {
-                val sizingInfo = elementMetaStack.pop()
-                val currentByteIdx = getCurrentByteIdx()
-                check(sizingInfo.startByte != null) { "Class `${sizingInfo.name}` has no start byte index" }
-                lastStructureSize = currentByteIdx - sizingInfo.startByte!!
+            is StructureKind.LIST, StructureKind.MAP -> endCollection(descriptor)
+            is StructureKind.CLASS -> {
+                sizingInfoStack.pop()
+                // val sizingInfo = sizingInfoStack.pop()
+                // check(sizingInfo is SizingInfo.Compound) { "Stack element must describe a compound (Class) type" }
+                //
+                // val currentByteIdx = getCurrentByteIdx()
+                // check(sizingInfo.startByte != null) { "Class `${sizingInfo.name}` has no start byte index" }
+                // lastStructureSize = currentByteIdx - sizingInfo.startByte!!
             }
             else -> TODO("Unknown structure kind `${descriptor.kind}`")
         }
@@ -121,24 +184,58 @@ class IndexedDataOutputEncoder(
         super.endStructure(descriptor)
     }
 
-    private fun endList(descriptor: SerialDescriptor) {
-        val sizingInfo = elementMetaStack.pop()
+    private fun endCollection(descriptor: SerialDescriptor) {
+        val sizingInfo = sizingInfoStack.pop()
+        check(sizingInfo is SizingInfo.Compound) { "Stack element must describe a compound (List or Map) type" }
+        val (name, startByte, collectionActualSize, collectionRequiredSize, _) = sizingInfo.sizingInfo
 
-        check(sizingInfo.startByte != null) { "List `${sizingInfo.name}` has no start byte index" }
-        val elementsStartByteIdx = sizingInfo.startByte!! + 4
-        val elementSize = lastStructureSize ?: getElementSize(descriptor, serializersModule, defaults)
+        check(startByte != null) { "Structure `$name` has no start byte index" }
+        check(collectionActualSize != null) { "Structure `$name` does not specify its actual size" }
+        check(collectionRequiredSize != null) { "Structure `$name` does not specify its required size" }
 
-        lastStructureSize = null
-        val expectedNumberOfElements = sizingInfo.numberOfElements
 
-        check(expectedNumberOfElements != null) { "List `${descriptor.serialName}` must have FixedLength annotation" }
+        if (collectionRequiredSize == collectionActualSize) {
+            // No padding is required.
+            // Save the size of the written structure.
+            // lastStructureSize = getCurrentByteIdx() - startByte
+            return
+        }
+        // Collection is to be padded.
+
+        val elementsStartByteIdx = startByte + 4
+
+        // writtenBytes is the amount of bytes corresponding serialization of inner elements.
         val writtenBytes = getCurrentByteIdx() - elementsStartByteIdx
-        val expectedBytes = elementSize * expectedNumberOfElements
 
-        val paddingBytesLength = expectedBytes - writtenBytes
-        repeat(paddingBytesLength) { encodeByte(0) }
+        val elementSize = if (collectionActualSize != 0) {
+            writtenBytes / collectionActualSize
+        } else {
+            getElementSize(descriptor, sizingInfo, serializersModule, defaults)
+        }
 
-        lastStructureSize = expectedBytes + 4
+        repeat(elementSize * (collectionRequiredSize - collectionActualSize)) {
+            encodeByte(0)
+        }
+
+        // lastStructureSize = elementSize * collectionRequiredSize + 4
+
+        // check(sizingInfo.startByte != null) { "Structure `${sizingInfo.name}` has no start byte index" }
+        // val elementsStartByteIdx = sizingInfo.startByte!! + 4
+        //
+        // // writtenBytes is the amount of bytes corresponding serialization of inner elements.
+        // val writtenBytes = getCurrentByteIdx() - elementsStartByteIdx
+        //
+        //
+        // val expectedNumberOfElements = sizingInfo.collectionRequiredSize
+        // check(expectedNumberOfElements != null) { "List `${descriptor.serialName}` must have DFLength annotation" }
+        //
+        // val elementSize = lastStructureSize ?: getElementSize(descriptor, serializersModule, defaults)
+        // val expectedBytes = elementSize * expectedNumberOfElements
+        //
+        // val paddingBytesLength = expectedBytes - writtenBytes
+        // repeat(paddingBytesLength) { encodeByte(0) }
+        //
+        // lastStructureSize = expectedBytes + 4
     }
 
     override fun encodeBoolean(value: Boolean) = output.writeByte(if (value) 1 else 0)
@@ -158,9 +255,11 @@ class IndexedDataOutputEncoder(
         encodeShort(value.length.toShort())
         value.forEach { encodeChar(it) }
 
-        val sizingInfo = elementMetaStack.pop()
-        val expectedStringLength = sizingInfo.numberOfElements
-        check(expectedStringLength != null) { "Strings should have @FixedLength annotation" }
+        val sizingInfo = sizingInfoStack.pop()
+        check(sizingInfo is SizingInfo.Compound) { "Stack element must describe a compound (String) type" }
+
+        val expectedStringLength = sizingInfo.collectionRequiredSize
+        check(expectedStringLength != null) { "Strings should have @ValueLength annotation" }
 
         val paddingLength = expectedStringLength - actualStringLength
         check(paddingLength >= 0) { "Serializing string doesn't fit expected size" }

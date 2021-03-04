@@ -1,6 +1,6 @@
 package decoder
 
-import annotations.FixedLength
+import annotations.ValueLength
 import getElementSize
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.builtins.serializer
@@ -10,13 +10,13 @@ import kotlinx.serialization.encoding.AbstractDecoder
 import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
-import serde.ElementSerializingMeta
+import serde.ElementSizingInfo
 import serializers.RSAPublicKeySerializer
 import sun.security.rsa.RSAPublicKeyImpl
 import java.io.DataInput
 import java.security.PublicKey
 
-data class DeserializationState(var byteIndex: Int, val collections: MutableMap<SerialDescriptor, ElementSerializingMeta>)
+data class DeserializationState(var byteIndex: Int, val collections: MutableMap<SerialDescriptor, ElementSizingInfo>)
 
 @ExperimentalSerializationApi
 class DataInputDecoder(
@@ -51,12 +51,13 @@ class DataInputDecoder(
         val string = (0 until actualStringLength).map { decodeChar() }.joinToString("")
 
         val collectionMeta = deserializationState.collections[String.serializer().descriptor]!!
-        val expectedStringLength = collectionMeta.numberOfElements!!
+        val expectedStringLength = collectionMeta.collectionRequiredSize!!
 
         //TODO: I removed check, but it was useful to prevent user from missing non-annotated list-like structures
 
         val paddingStringLength = expectedStringLength - actualStringLength
-        val paddedBytesLength = paddingStringLength * getElementSize(Char.serializer().descriptor, serializersModule, defaults)
+        val paddedBytesLength = paddingStringLength * 2
+            // getElementSize(Char.serializer().descriptor, serializersModule, defaults)
 
         input.skipBytes(paddedBytesLength)
         deserializationState.byteIndex += paddedBytesLength
@@ -125,14 +126,15 @@ class DataInputDecoder(
 
     private fun finalizeCollection(descriptor: SerialDescriptor, annotations: List<Annotation>, startIdx: Int): Int {
         val expectedNumberOfElements = annotations
-            .filterIsInstance<FixedLength>()
+            .filterIsInstance<ValueLength>()
             .firstOrNull()?.lengths?.firstOrNull()
 
         require(expectedNumberOfElements != null) {
-            "Collection `${descriptor.serialName}` must have FixedLength annotation"
+            "Collection `${descriptor.serialName}` must have ValueLength annotation"
         }
 
-        val expectedLength = expectedNumberOfElements * getElementSize(descriptor.elementDescriptors.single(), serializersModule, defaults)
+        // val expectedLength = expectedNumberOfElements * getElementSize(descriptor.elementDescriptors.single(), serializersModule, defaults)
+        val expectedLength = 2
 
         val currentByteIdx = deserializationState.byteIndex
         val actualLength = currentByteIdx - startIdx

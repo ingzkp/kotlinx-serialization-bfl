@@ -10,17 +10,17 @@ import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.serializer
 import serde.IndexedDataOutputEncoder
 import serde.Size
-import serde.SizingInfo
+import serde.Element
 import java.io.DataInput
 import java.io.DataOutput
 
 @ExperimentalSerializationApi
 fun <T: Any> encodeTo(output: DataOutput, serializer: SerializationStrategy<T>, value: T, serializersModule: SerializersModule, vararg defaults: Any) =
-    IndexedDataOutputEncoder(output, serializersModule, defaults).encodeSerializableValue(serializer, value)
+    IndexedDataOutputEncoder(output, serializersModule, defaults.toList()).encodeSerializableValue(serializer, value)
 
 @ExperimentalSerializationApi
 inline fun <reified T: Any> encodeTo(output: DataOutput, value: T, serializersModule: SerializersModule, vararg defaults: Any) =
-    encodeTo(output, serializer(), value, serializersModule, defaults.toList())
+    encodeTo(output, serializer(), value, serializersModule, *defaults)
 
 @ExperimentalSerializationApi
 fun <T> decodeFrom(input: DataInput, deserializer: DeserializationStrategy<T>): T =
@@ -36,10 +36,12 @@ fun ByteArray.toAsciiHexString() = joinToString("") {
 }
 
 // TODO Ultimately this function must only belong to the encoder only
+@ExperimentalSerializationApi
 fun getElementSize(
     descriptor: SerialDescriptor,
-    sizingInfo: SizingInfo,
-    serializersModule: SerializersModule, vararg defaults: Any
+    element: Element,
+    serializersModule: SerializersModule,
+    defaults: List<Any>
 ): Int =
     // TODO have a better look here, is descriptor always decomposable in primitive types?
     //   no it is not, it can also be a list or map or a class.
@@ -59,10 +61,10 @@ fun getElementSize(
             is PrimitiveKind.CHAR -> 2
             is PrimitiveKind.STRING -> {
                 // SHORT (string length) + number_of_elements * CHAR = 2 + n * 2
-                check(sizingInfo is SizingInfo.Compound ) { "Sizing information on Strings must be present" }
+                check(element is Element.Collection) { "Sizing information on Strings must be present" }
 
-                val n = sizingInfo.collectionRequiredSize
-                check(n != null) { "Sizes of Strings must be known: ${sizingInfo.name}" }
+                val n = element.collectionRequiredSize
+                check(n != null) { "Sizes of Strings must be known: ${element.name}" }
 
                 2 + n * 2
             }
@@ -71,28 +73,29 @@ fun getElementSize(
                 // INT (collection length) + number_of_elements * sum_i { size(inner_i) }
                 // = 4 + n * sum_i { size(inner_i) }
 
-                check(sizingInfo is SizingInfo.Compound) { "Sizing information on Collections must be present" }
+                check(element is Element.Collection) { "Sizing information on Collections must be present" }
 
-                check(sizingInfo.inner.size == descriptor.elementsCount)
+                check(element.inner.size == descriptor.elementsCount)
                     { "Sizing info does not coincide with descriptors"}
 
-                val innerSize = sizingInfo.inner.zip(descriptor.elementDescriptors).sumBy { (childSizingInfo, childDescriptor) ->
+                val innerSize = element.inner.zip(descriptor.elementDescriptors).sumBy { (childSizingInfo, childDescriptor) ->
                     getElementSize(childDescriptor, childSizingInfo, serializersModule, defaults)
                 }
 
-                val n = sizingInfo.collectionRequiredSize
-                check(n != null) { "Sizes of List-like structures must be known: ${sizingInfo.name}" }
+                val n = element.collectionRequiredSize
+                check(n != null) { "Sizes of List-like structures must be known: ${element.name}" }
 
                 4 + n * innerSize
             }
             //
             else -> {
-                check(sizingInfo is SizingInfo.Compound) { "Sizing information on Collections must be present" }
+                // TODO this branch is buggy
+                check(element is Element.Structure) { "Structure expected" }
 
-                check(sizingInfo.inner.size == descriptor.elementsCount)
-                { "Sizing info does not coincide with descriptors"}
+                check(element.inner.size == descriptor.elementsCount)
+                    { "Sizing info does not coincide with descriptors"}
 
-                sizingInfo.inner.zip(descriptor.elementDescriptors).sumBy { (childSizingInfo, childDescriptor) ->
+                element.inner.zip(descriptor.elementDescriptors).sumBy { (childSizingInfo, childDescriptor) ->
                     getElementSize(childDescriptor, childSizingInfo, serializersModule, defaults)
                 }
             }

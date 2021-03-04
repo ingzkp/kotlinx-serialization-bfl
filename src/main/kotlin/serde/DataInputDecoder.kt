@@ -127,7 +127,7 @@ class DataInputDecoder(
             .firstOrNull()?.lengths?.firstOrNull()
 
         require(expectedNumberOfElements != null) {
-            "Collection `${descriptor.serialName}` must have ValueLength annotation"
+            "Compound `${descriptor.serialName}` must have ValueLength annotation"
         }
 
         // val expectedLength = expectedNumberOfElements * getElementSize(descriptor.elementDescriptors.single(), serializersModule, defaults)

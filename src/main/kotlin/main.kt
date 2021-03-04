@@ -1,31 +1,9 @@
-import annotations.DFLength
-import annotations.ValueLength
-import annotations.KeyLength
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.Serializer
-import kotlinx.serialization.modules.SerializersModule
-import kotlinx.serialization.modules.polymorphic
-import serializers.RSAPublicKeySerializer
-import sun.security.rsa.RSAPublicKeyImpl
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.io.DataInputStream
-import java.io.DataOutputStream
-import java.security.KeyPairGenerator
-import java.security.PublicKey
-import java.security.SecureRandom
-import java.text.SimpleDateFormat
-import java.util.*
-
-@ExperimentalUnsignedTypes
-@ExperimentalSerializationApi
 fun main() {
-    val serializersModule = SerializersModule {
-        polymorphic(PublicKey::class) {
-            subclass(RSAPublicKeyImpl::class, RSAPublicKeySerializer)
-        }
-    }
+    // val serializersModule = SerializersModule {
+    //     polymorphic(PublicKey::class) {
+    //         subclass(RSAPublicKeyImpl::class, RSAPublicKeySerializer)
+    //     }
+    // }
 
     /*
     val data = CoverAll(
@@ -33,7 +11,7 @@ fun main() {
         listOf(),
         listOf(listOf(listOf(1), listOf(2), listOf(3)), listOf(listOf(4), listOf(5), listOf(6))),
         listOf(Pair(1, 2)),
-        SimpleDateFormat("yyyy-MM-ddX").parse("2016-02-15+00"),
+        c,
         listOf(Own(25)),
         getRSA(),
         mapOf("a" to listOf(1), "b" to listOf(2))
@@ -103,60 +81,61 @@ fun main() {
     val deserialized = decodeFrom<CoverAll>(DataInputStream(ByteArrayInputStream(bytes)))
     println(deserialized)
 */
-    val data = MapMe()
-    val output = ByteArrayOutputStream()
-    encodeTo(DataOutputStream(output), data, serializersModule)
-    val bytes = output.toByteArray()
-    println("Serialized: ${bytes.joinToString(separator = ",")}")
+    // val data = MapMe()
+    // val output = ByteArrayOutputStream()
+    // encodeTo(DataOutputStream(output), data, serializersModule)
+    // val bytes = output.toByteArray()
+    // println("Serialized: ${bytes.joinToString(separator = ",")}")
     // val deserialized = decodeFrom<Outer>(DataInputStream(ByteArrayInputStream(bytes)))
     // println(deserialized)
 }
-
-@Serializable
-@ExperimentalSerializationApi
-data class CoverAll(
-    @ValueLength([25])
-    val string: String,
-
-    @ValueLength([3])
-    val dates: List<@Serializable(with = DateSerializer::class) Date>,
-
-    @ValueLength([3, 4, 5])
-    val listMatrix: List<List<List<Int>>>,
-
-    @ValueLength([2])
-    val pairs: List<Pair<Int, Int>>,
-
-    @Serializable(with = DateSerializer::class)
-    val date: Date,
-
-    @ValueLength([2])
-    val owns: List<Own>,
-
-    @Serializable(with = RSAPublicKeySerializer::class)
-    val publicKey: PublicKey,
-
-    @KeyLength([2])
-    @ValueLength([4])
-    val map: Map<String, List<Int>>
-
-    // Empty List of Strings. I expect it to fail because it does not set lastStructureSize.
-)
-
-@Serializable
-data class MapMe(
-    // @DFLength([2, 4,     2,     3,   5,   3])
-    // val map: Map<List<String>, List<Map<String, Int>>> =
-    //     mapOf(listOf("a") to listOf(), listOf("b") to listOf(mapOf("c" to 1)))
-
-    @DFLength([2, 4,     2])
-    val map: Map<String, List<Int>> =
-        mapOf("a" to listOf(), "b" to listOf(1))
-)
-
-
-fun getRSA(): PublicKey {
-    val generator = KeyPairGenerator.getInstance("RSA")
-    generator.initialize(2048, SecureRandom())
-    return generator.genKeyPair().public
-}
+//
+// @Serializable
+// @ExperimentalSerializationApi
+// data class CoverAll(
+//     @ValueLength([25])
+//     val string: String,
+//
+//     @ValueLength([3])
+//     val dates: List<@Serializable(with = DateSerializer::class) Date>,
+//
+//     @ValueLength([3, 4, 5])
+//     val listMatrix: List<List<List<Int>>>,
+//
+//     @ValueLength([2])
+//     val pairs: List<Pair<Int, Int>>,
+//
+//     @Serializable(with = DateSerializer::class)
+//     val date: Date,
+//
+//     @ValueLength([2])
+//     val owns: List<Own>,
+//
+//     @Serializable(with = RSAPublicKeySerializer::class)
+//     val publicKey: PublicKey,
+//
+//     @KeyLength([2])
+//     @ValueLength([4])
+//     val map: Map<String, List<Int>>
+//
+//     // Empty List of Strings. I expect it to fail because it does not set lastStructureSize.
+// )
+//
+// @Serializable
+// @ExperimentalSerializationApi
+// data class MapMe(
+//     // @DFLength([2, 4,     2,     3,   5,   3])
+//     // val map: Map<List<String>, List<Map<String, Int>>> =
+//     //     mapOf(listOf("a") to listOf(), listOf("b") to listOf(mapOf("c" to 1)))
+//
+//     @DFLength([2, 4,     2])
+//     val map: Map<String, List<Int>> =
+//         mapOf("a" to listOf(), "b" to listOf(1))
+// )
+//
+//
+// fun getRSA(): PublicKey {
+//     val generator = KeyPairGenerator.getInstance("RSA")
+//     generator.initialize(2048, SecureRandom())
+//     return generator.genKeyPair().public
+// }

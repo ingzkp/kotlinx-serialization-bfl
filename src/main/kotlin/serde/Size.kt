@@ -13,7 +13,7 @@ import kotlin.reflect.KClass
 object Size {
     private val sizes = mutableMapOf<KClass<*>, Int>()
 
-    fun of(name: String, serializersModule: SerializersModule, vararg defaults: Any): Int {
+    fun of(name: String, serializersModule: SerializersModule, defaults: List<Any>): Int {
         val clazz = Class.forName(name)
 
         val default = defaults.firstOrNull {

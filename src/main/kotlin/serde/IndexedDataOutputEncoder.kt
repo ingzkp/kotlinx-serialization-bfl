@@ -3,7 +3,10 @@ package serde
 import annotations.DFLength
 import getElementSize
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.descriptors.*
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.StructureKind
+import kotlinx.serialization.descriptors.elementDescriptors
 import kotlinx.serialization.encoding.AbstractEncoder
 import kotlinx.serialization.encoding.CompositeEncoder
 import kotlinx.serialization.modules.SerializersModule
@@ -26,83 +29,57 @@ class IndexedDataOutputEncoder(
 
             // Field processing only makes sense
             // This will be called for the top structure and this is the only place where annotations are accessible.
-            descriptor.elementDescriptors.reversed()
-                .forEachIndexed { idx, childDesc ->
-                    when {
-                        childDesc.isCollectionOrString -> {
-                            // Top-level Collection or String must have annotations
-                            val lengths = descriptor.getElementAnnotations(idx)
-                                .filterIsInstance<DFLength>()
-                                .firstOrNull()?.lengths?.toMutableList()
-                                ?: error("Element ${childDesc.serialName} must have DFLength annotation")
-
-                            scheduleCompoundToStack(descriptor.serialName, childDesc, lengths)
-                        }
-                        childDesc.isStructure -> {
-                            // Classes may have inner collections buried deep inside.
-                            // We can infer this by observing an appropriate length annotation.
-                            val lengths = descriptor.getElementAnnotations(idx)
-                                .filterIsInstance<DFLength>()
-                                .firstOrNull()?.lengths?.toMutableList()
-                            if (lengths != null) {
-                                scheduleCompoundToStack(descriptor.serialName, childDesc, lengths)
-                            }
-                        }
-                    }
-                }
+            (descriptor.elementsCount - 1 downTo 0).forEach {
+                scheduleElementToStack(descriptor, it)
+            }
 
             topLevelProcessing = false
         } else {
-            val structureMeta = elementStack.peek()
-            check(structureMeta is Element.Structure) { "Stack element must describe a structure type" }
-
-            if (structureMeta.inner.isEmpty()){
-                elementStack.push(Element.Structure(descriptor.serialName))
-            }
-
-            // Structure inner elements need to be unwound on the stack.
-            structureMeta.inner
-                .filter { it !is Element.Primitive }
-                .asReversed()
-                .forEach { meta -> elementStack.push(meta.copy()) }
+            unwindStructureToStack(descriptor)
         }
-
-        // pushStructureMetaToStack(descriptor)
-        // processStructureFields(descriptor)
-        //
-        // // This holds by stack construction.
-        // (elementStack.peek() as Element.Compound).startByte = getCurrentByteIdx()
 
         return super.beginStructure(descriptor)
     }
 
-    // private fun pushStructureMetaToStack(descriptor: SerialDescriptor) =
-    //     elementStack.push(Element.Compound(
-    //         CollectedSizingInfo(startByte = getCurrentByteIdx(), name = descriptor.serialName)
-    //     ))
+    private fun unwindStructureToStack(descriptor: SerialDescriptor) {
+        val structureMeta = elementStack.peek()
+        check(structureMeta is Element.Structure) { "Stack element must describe a structure type" }
 
-    // private fun processStructureFields(descriptor: SerialDescriptor) =
-    //     (descriptor.elementsCount - 1 downTo 0)
-    //         // .filter { descriptor.getElementDescriptor(it).mustBeAnnotated() }
-    //         .filter { descriptor.getElementDescriptor(it).isCollected }
-    //         .forEach {
-    //             val name = "${descriptor.serialName}.${descriptor.getElementName(it)}"
-    //             val annotations = descriptor.getElementAnnotations(it)
-    //
-    //             // DFLength must always be present for all unbounded types.
-    //             val dfLength = annotations
-    //                 .filterIsInstance<DFLength>()
-    //                 .firstOrNull()?.lengths
-    //                 ?: error("Element $name must have DFLength annotation")
-    //
-    //             scheduleCollectionMetaToStack(
-    //                 descriptor.serialName,
-    //                 descriptor.getElementDescriptor(it),
-    //                 dfLength.toMutableList()
-    //             )
-    //         }
+        if (structureMeta.inner.isEmpty()) {
+            elementStack.push(Element.Structure(descriptor.serialName))
+        }
 
+        // Structure inner elements need to be unwound on the stack.
+        structureMeta.inner
+            .filter { it !is Element.Primitive }
+            .asReversed()
+            .forEach { meta -> elementStack.push(meta.copy()) }
+    }
 
+    private fun scheduleElementToStack(parentDescriptor: SerialDescriptor, elementIdx: Int) {
+        val childDesc = parentDescriptor.getElementDescriptor(elementIdx)
+        when {
+            childDesc.isCollectionOrString -> {
+                // Top-level Collection or String must have annotations
+                val lengths = parentDescriptor.getElementAnnotations(elementIdx)
+                    .filterIsInstance<DFLength>()
+                    .firstOrNull()?.lengths?.toMutableList()
+                    ?: error("Element ${childDesc.serialName} must have DFLength annotation")
+
+                scheduleCompoundToStack(parentDescriptor.serialName, childDesc, lengths)
+            }
+            childDesc.isStructure -> {
+                // Classes may have inner collections buried deep inside.
+                // We can infer this by observing an appropriate length annotation.
+                val lengths = parentDescriptor.getElementAnnotations(elementIdx)
+                    .filterIsInstance<DFLength>()
+                    .firstOrNull()?.lengths?.toMutableList()
+                if (lengths != null) {
+                    scheduleCompoundToStack(parentDescriptor.serialName, childDesc, lengths)
+                }
+            }
+        }
+    }
 
     // // todo get back to using this after the inner question is addressed
     // private fun SerialDescriptor.mustBeAnnotated() =
@@ -113,11 +90,7 @@ class IndexedDataOutputEncoder(
     //         || kind is PolymorphicKind
     //         || kind is SerialKind.CONTEXTUAL
 
-    private fun scheduleCompoundToStack(
-        parentName: String,
-        descriptor: SerialDescriptor,
-        lengths: MutableList<Int>
-    ) {
+    private fun scheduleCompoundToStack(parentName: String, descriptor: SerialDescriptor, lengths: MutableList<Int>) {
         fun child(parentName: String, descriptor: SerialDescriptor, lengths: MutableList<Int>): Element {
             val name = "$parentName.${descriptor.serialName}"
 
@@ -160,7 +133,6 @@ class IndexedDataOutputEncoder(
         repeat(collectionSize) {
             collectionMeta.inner
                 .filter { it !is Element.Primitive }
-                .asReversed()
                 .forEach { meta -> elementStack.push(meta.copy()) }
         }
 
@@ -191,11 +163,9 @@ class IndexedDataOutputEncoder(
 
         if (collectionRequiredSize == collectionActualSize) {
             // No padding is required.
-            // Save the size of the written structure.
-            // lastStructureSize = getCurrentByteIdx() - startByte
             return
         }
-        // Compound is to be padded.
+        // Collection is to be padded.
 
         val elementsStartByteIdx = startByte + 4
 
@@ -254,9 +224,9 @@ class IndexedDataOutputEncoder(
 
     private fun getCurrentByteIdx(): Int = (output as DataOutputStream).size()
 
-    private fun <T> ArrayDeque<T>.push(value: T) = this.addLast(value)
-    private fun <T> ArrayDeque<T>.pop(): T = this.removeLast()
-    private fun <T> ArrayDeque<T>.peek(): T = this.last()
+    private fun <T> ArrayDeque<T>.push(value: T) = this.addFirst(value)
+    private fun <T> ArrayDeque<T>.pop(): T = this.removeFirst()
+    private fun <T> ArrayDeque<T>.peek(): T = this.first()
 
     private val SerialDescriptor.isCollection: Boolean
         get() = kind is StructureKind.LIST || kind is StructureKind.MAP

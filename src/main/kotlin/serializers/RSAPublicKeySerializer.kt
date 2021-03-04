@@ -16,6 +16,6 @@ object RSAPublicKeySerializer : KSerializer<RSAPublicKeyImpl> {
 
     override fun deserialize(decoder: Decoder): RSAPublicKeyImpl {
         val surrogate = decoder.decodeSerializableValue(strategy)
-        return RSAPublicKeyImpl(surrogate.encoded) as RSAPublicKeyImpl
+        return RSAPublicKeyImpl.newKey(surrogate.encoded) as RSAPublicKeyImpl
     }
 }

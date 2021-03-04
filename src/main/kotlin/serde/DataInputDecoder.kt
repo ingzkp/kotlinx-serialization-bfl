@@ -1,6 +1,6 @@
 package serde
 
-import annotations.ValueLength
+import annotations.DFLength
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -123,7 +123,7 @@ class DataInputDecoder(
 
     private fun finalizeCollection(descriptor: SerialDescriptor, annotations: List<Annotation>, startIdx: Int): Int {
         val expectedNumberOfElements = annotations
-            .filterIsInstance<ValueLength>()
+            .filterIsInstance<DFLength>()
             .firstOrNull()?.lengths?.firstOrNull()
 
         require(expectedNumberOfElements != null) {

@@ -3,8 +3,10 @@ package serde
 import annotations.DFLength
 import getElementSize
 import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.descriptors.PolymorphicKind
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.SerialKind
 import kotlinx.serialization.descriptors.StructureKind
 import kotlinx.serialization.descriptors.elementDescriptors
 import kotlinx.serialization.encoding.AbstractEncoder
@@ -24,7 +26,7 @@ class IndexedDataOutputEncoder(
     private var topLevelProcessing = true
 
     init {
-        elementStack.push(Element.Structure("ROOT"))
+        elementStack.push(Element.Structure("ROOT", isResolved = false))
     }
 
     override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder {
@@ -39,26 +41,16 @@ class IndexedDataOutputEncoder(
         if (head.isResolved) {
             unwindStructureToStack(descriptor)
         } else {
-            (descriptor.elementsCount - 1 downTo 0).forEach { idx ->
-                scheduleElementToStack(descriptor, idx)
+            if (descriptor.kind is PolymorphicKind) {
+                scheduleCompoundToStack(descriptor.serialName, descriptor, mutableListOf())
+                unwindStructureToStack(descriptor)
+            } else {
+                (descriptor.elementsCount - 1 downTo 0).forEach { idx ->
+                    scheduleElementToStack(descriptor, idx)
+                }
             }
             head.isResolved = true
         }
-
-
-        // if (topLevelProcessing) {
-        //     elementStack.push(Element.Structure(descriptor.serialName))
-        //
-        //     // Field processing only makes sense
-        //     // This will be called for the top structure and this is the only place where annotations are accessible.
-        //     (descriptor.elementsCount - 1 downTo 0).forEach {
-        //         scheduleElementToStack(descriptor, it)
-        //     }
-        //
-        //     topLevelProcessing = false
-        // } else {
-        //     unwindStructureToStack(descriptor)
-        // }
 
         return super.beginStructure(descriptor)
     }
@@ -68,7 +60,7 @@ class IndexedDataOutputEncoder(
         check(structureMeta is Element.Structure) { "Stack element must describe a structure type" }
 
         if (structureMeta.inner.isEmpty()) {
-            elementStack.push(Element.Structure(descriptor.serialName))
+            elementStack.push(Element.Structure(descriptor.serialName, isResolved = false))
         }
 
         // Structure inner elements need to be unwound on the stack.
@@ -79,28 +71,38 @@ class IndexedDataOutputEncoder(
     }
 
     private fun scheduleElementToStack(parentDescriptor: SerialDescriptor, elementIdx: Int) {
-        val childDesc = parentDescriptor.getElementDescriptor(elementIdx)
+        val descriptor = parentDescriptor.getElementDescriptor(elementIdx)
         when {
-            childDesc.isCollectionOrString -> {
+            descriptor.isCollectionOrString -> {
                 // Top-level Collection or String must have annotations
                 val lengths = parentDescriptor.getElementAnnotations(elementIdx)
                     .filterIsInstance<DFLength>()
                     .firstOrNull()?.lengths?.toMutableList()
-                    ?: error("Element ${childDesc.serialName} must have DFLength annotation")
+                    ?: error("Element ${descriptor.serialName} must have DFLength annotation")
 
-                scheduleCompoundToStack(parentDescriptor.serialName, childDesc, lengths)
+                scheduleCompoundToStack(parentDescriptor.serialName, descriptor, lengths)
             }
-            childDesc.isStructure -> {
+            descriptor.isStructure -> {
                 // Classes may have inner collections buried deep inside.
                 // We can infer this by observing an appropriate length annotation.
                 val lengths = parentDescriptor.getElementAnnotations(elementIdx)
                     .filterIsInstance<DFLength>()
                     .firstOrNull()?.lengths?.toMutableList()
                 if (lengths != null) {
-                    scheduleCompoundToStack(parentDescriptor.serialName, childDesc, lengths)
+                    scheduleCompoundToStack(parentDescriptor.serialName, descriptor, lengths)
                 } else {
-                    elementStack.push(Element.Structure("${parentDescriptor.serialName}.${childDesc.serialName}"))
+                    elementStack.push(Element.Structure(
+                        "${parentDescriptor.serialName}.${descriptor.serialName}",
+                        isResolved = false
+                    ))
                 }
+            }
+            descriptor.kind is PolymorphicKind -> {
+                scheduleCompoundToStack(parentDescriptor.serialName, descriptor, mutableListOf())
+            }
+
+            descriptor.kind is SerialKind.CONTEXTUAL -> {
+                scheduleCompoundToStack(parentDescriptor.serialName, descriptor, mutableListOf(100))
             }
         }
     }
@@ -139,6 +141,18 @@ class IndexedDataOutputEncoder(
                 return Element.Structure(name, inner = children, isResolved = true)
             }
 
+            if (descriptor.isPolymorphic) {
+                lengths.add(0, 100)
+                val children = descriptor.elementDescriptors.map {
+                    child(name, it, lengths)
+                }
+                return Element.Structure(name, inner = children, isResolved = true)
+            }
+
+            if (descriptor.kind is SerialKind.CONTEXTUAL) {
+                return Element.Structure(name, isResolved = false)
+            }
+
             error("Unreachable code")
         }
 
@@ -170,6 +184,7 @@ class IndexedDataOutputEncoder(
         when (descriptor.kind) {
             is StructureKind.LIST, StructureKind.MAP -> endCollection(descriptor)
             is StructureKind.CLASS -> elementStack.pop()
+            is PolymorphicKind -> elementStack.pop()
             else -> TODO("Unknown structure kind `${descriptor.kind}`")
         }
 
@@ -265,4 +280,7 @@ class IndexedDataOutputEncoder(
 
     private val SerialDescriptor.isStructure: Boolean
         get() = kind is StructureKind.CLASS
+
+    private val SerialDescriptor.isPolymorphic: Boolean
+        get() = kind is PolymorphicKind
 }

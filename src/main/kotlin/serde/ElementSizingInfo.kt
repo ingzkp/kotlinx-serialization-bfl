@@ -7,12 +7,12 @@ sealed class Element(val name: String) {
     // To be used to describe Collections (List/Map) and Strings
     class Collection(name: String, val sizingInfo: CollectedSizingInfo): ElementSizingInfo by sizingInfo, Element(name)
 
-    class Structure(name: String, val inner: List<Element> = listOf(), var isResolved: Boolean = false): Element(name)
+    class Structure(name: String, val inner: List<Element> = listOf(), var isResolved: Boolean): Element(name)
 
     fun copy(): Element  = when (this) {
         is Primitive -> this
         is Collection -> Collection(name, sizingInfo.copy())
-        is Structure -> Structure(name, ArrayList(inner))
+        is Structure -> Structure(name, ArrayList(inner), isResolved)
     }
 }
 

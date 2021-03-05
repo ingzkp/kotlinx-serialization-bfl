@@ -24,24 +24,26 @@ class IndexedDataOutputEncoder(
     private var topLevelProcessing = true
 
     init {
-        elementStack.push(Element.Structure("ROOT", resolved = true))
+        elementStack.push(Element.Structure("ROOT"))
     }
 
     override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder {
         // Field processing only makes sense
         // This will be called for the top structure and this is the only place where annotations are accessible.
 
-        with(elementStack.peek()) {
-            if (this is Element.Structure && !this.resolved) {
-                unwindStructureToStack(descriptor)
-                this.resolved = true
+        // When this function is called there must be a Structure on top of the stack.
+        val head = elementStack.peek()
+        check(head is Element.Structure) { "Structure may begin only when the head of the stack is Element.Structure" }
+
+        // add check if the struct on the stack is indeed this struct.
+        if (head.isResolved) {
+            unwindStructureToStack(descriptor)
+        } else {
+            (descriptor.elementsCount - 1 downTo 0).forEach { idx ->
+                scheduleElementToStack(descriptor, idx)
             }
+            head.isResolved = true
         }
-
-        (descriptor.elementsCount - 1 downTo 0).forEach {
-            scheduleElementToStack(descriptor, it)
-        }
-
 
 
         // if (topLevelProcessing) {
@@ -96,6 +98,8 @@ class IndexedDataOutputEncoder(
                     .firstOrNull()?.lengths?.toMutableList()
                 if (lengths != null) {
                     scheduleCompoundToStack(parentDescriptor.serialName, childDesc, lengths)
+                } else {
+                    elementStack.push(Element.Structure("${parentDescriptor.serialName}.${childDesc.serialName}"))
                 }
             }
         }
@@ -132,13 +136,13 @@ class IndexedDataOutputEncoder(
                 val children = descriptor.elementDescriptors.map {
                     child(name, it, lengths)
                 }
-                return Element.Structure(name, inner = children)
+                return Element.Structure(name, inner = children, isResolved = true)
             }
 
             error("Unreachable code")
         }
 
-        val head = child(parentName, descriptor, lengths)
+        var head = child(parentName, descriptor, lengths)
         elementStack.push(head)
     }
 
@@ -248,6 +252,7 @@ class IndexedDataOutputEncoder(
     private fun <T> ArrayDeque<T>.push(value: T) = this.addFirst(value)
     private fun <T> ArrayDeque<T>.pop(): T = this.removeFirst()
     private fun <T> ArrayDeque<T>.peek(): T = this.first()
+    private fun <T> ArrayDeque<T>.peekOrNull(): T? = this.firstOrNull()
 
     private val SerialDescriptor.isCollection: Boolean
         get() = kind is StructureKind.LIST || kind is StructureKind.MAP

@@ -10,7 +10,7 @@ class Own(val int: Int = 100) {
 }
 
 @Serializable
-class OwnList(val list: List<Int> = listOf(1)) {
+class OwnList(@DFLength([2]) val list: List<Int> = listOf(1)) {
     override fun toString() = "OwnList(list= ${list.joinToString()})"
 }
 

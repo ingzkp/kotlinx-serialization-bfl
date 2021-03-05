@@ -239,12 +239,11 @@ class SerdeTest {
         )
 
         var data = DataOwn(OwnList(listOf(10)))
-        @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
         var bytes = checkedSerialize(data, mask)
         //
-        // data = Data(OwnList(listOf()))
-        // bytes = checkedSerialize(data, mask, OwnList())
-        // bytes shouldBe ByteArray(mask.sumBy { it.second }) { 0 }
+        data = DataOwn(OwnList(listOf()))
+        bytes = checkedSerialize(data, mask, OwnList())
+        bytes shouldBe ByteArray(mask.sumBy { it.second }) { 0 }
     }
 
     // I had to move out from the respective test, as otherwise it generates an error on the JVM level.
@@ -308,7 +307,6 @@ class SerdeTest {
         )
 
         var data = Data(Triple("a", 1, mapOf("a" to listOf(2))))
-        @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
         checkedSerialize(data, mask)
 
         data = Data(Triple("a", 1, mapOf()))

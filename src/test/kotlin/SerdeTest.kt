@@ -1,7 +1,7 @@
+
 import annotations.DFLength
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.SerialInfo
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
@@ -10,9 +10,11 @@ import serializers.RSAPublicKeySerializer
 import sun.security.rsa.RSAPublicKeyImpl
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
+import java.security.KeyPairGenerator
 import java.security.PublicKey
+import java.security.SecureRandom
 import java.text.SimpleDateFormat
-import java.util.Date
+import java.util.*
 
 @ExperimentalSerializationApi
 @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
@@ -313,6 +315,65 @@ class SerdeTest {
         checkedSerialize(data, mask)
     }
 
+    @Test
+    fun `serialize polymorphic type itself`() {
+        val mask = listOf(
+            Pair("length", 4),
+            Pair("value", 500)
+        )
+
+        val data = getRSA()
+        checkedSerialize(data, mask)
+    }
+
+    @Test
+    fun `serialize polymorphic type within structure`() {
+        @Serializable
+        data class Data(val nested: PublicKey)
+
+        val mask = listOf(
+            Pair("nested.length", 4),
+            Pair("nested.value", 500)
+        )
+
+        val data = Data(getRSA())
+        checkedSerialize(data, mask)
+    }
+
+    @Test
+    fun `serialize polymorphic type within collection`() {
+        @Serializable
+        data class Data(@DFLength([2]) val nested: List<PublicKey>)
+
+        val mask = listOf(
+            Pair("nested.length", 4),
+            Pair("nested[0].length", 4),
+            Pair("nested[0].value", 500),
+            Pair("nested[1].length", 4),
+            Pair("nested[1].value", 500)
+        )
+
+        val data = Data(listOf(getRSA()))
+        checkedSerialize(data, mask)
+    }
+
+    @Test
+    fun `serialize polymorphic type within nested compound type`() {
+        @Serializable
+        data class Some(@DFLength([2]) val nested: PublicKey)
+
+        @Serializable
+        data class Data(@DFLength([2]) val some: Some)
+
+        val mask = listOf(
+            Pair("some.nested.length", 4),
+            Pair("some.nested.value", 500)
+        )
+
+        val data = Data(Some(getRSA()))
+        checkedSerialize(data, mask)
+    }
+
     private inline fun <reified T: Any> checkedSerialize(data: T, mask: List<Pair<String, Int>>, vararg defaults: Any): ByteArray {
         val bytes = serialize(data, *defaults)
         log(bytes, mask)
@@ -340,6 +401,12 @@ class SerdeTest {
         }
     }
 }
+
+ fun getRSA(): PublicKey {
+     val generator = KeyPairGenerator.getInstance("RSA")
+     generator.initialize(2048, SecureRandom())
+     return generator.genKeyPair().public
+ }
 
 
 //

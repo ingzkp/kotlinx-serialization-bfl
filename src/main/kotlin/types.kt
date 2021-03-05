@@ -5,8 +5,13 @@ import kotlinx.serialization.Serializable
 import java.security.PublicKey
 
 @Serializable
-class Own(val a: Int = 100) {
-    override fun toString() = "Owns(a= $a)"
+class Own(val int: Int = 100) {
+    override fun toString() = "Own(int= $int)"
+}
+
+@Serializable
+class OwnList(val list: List<Int> = listOf(1)) {
+    override fun toString() = "OwnList(list= ${list.joinToString()})"
 }
 
 @Serializable

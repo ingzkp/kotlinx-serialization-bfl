@@ -1,6 +1,7 @@
 import annotations.DFLength
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.SerialInfo
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
@@ -14,6 +15,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 @ExperimentalSerializationApi
+@Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
 class SerdeTest {
     companion object {
         val serializersModule = SerializersModule {
@@ -70,6 +72,30 @@ class SerdeTest {
 
         var data = Data(SimpleDateFormat("yyyy-MM-ddX").parse("2016-02-15+00"))
         checkedSerialize(data, mask, DateSurrogate(Long.MIN_VALUE))
+    }
+
+    @Serializable
+    data class Some(val i: Int)
+
+    @Test
+    fun `test of tests`() {
+        @Serializable
+        data class Data(
+            @DFLength([3,   2])
+            val map: Map<String, Some>
+            )
+        val mask = listOf(
+            Pair("map.length", 4),
+            Pair("map[0].key", 6),
+            Pair("map[0].value", 4),
+            Pair("map[1].key", 6),
+            Pair("map[1].value", 4),
+            Pair("map[2].key", 6),
+            Pair("map[2].value", 4),
+        )
+
+        var data = Data(mapOf("a" to Some(1), "b" to Some(2)))
+        var bytes = checkedSerialize(data, mask)
     }
 
     @Test
@@ -205,6 +231,27 @@ class SerdeTest {
     }
 
     @Test
+    fun `serialize list with own (with list) serializable class`() {
+        val mask = listOf(
+            Pair("own.list.length", 4),
+            Pair("own.list[0].value", 4),
+            Pair("own.list[1].value", 4),
+        )
+
+        var data = DataOwn(OwnList(listOf(10)))
+        @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
+        var bytes = checkedSerialize(data, mask)
+        //
+        // data = Data(OwnList(listOf()))
+        // bytes = checkedSerialize(data, mask, OwnList())
+        // bytes shouldBe ByteArray(mask.sumBy { it.second }) { 0 }
+    }
+
+    // I had to move out from the respective test, as otherwise it generates an error on the JVM level.
+    @Serializable
+    data class DataOwn(val own: OwnList)
+
+    @Test
     fun `serialize plain map`() {
         @Serializable
         data class Data(@DFLength([2]) val map: Map<Int, Int>)
@@ -247,7 +294,9 @@ class SerdeTest {
     @Test
     fun `serialize complex map within a compound type`() {
         @Serializable
-        data class Data(@DFLength([2, 2, 2, 2]) val nested: Triple<String, Int, Map<String, List<Int>>>)
+        data class Data(
+            @DFLength([          2,          2,   2,     2])
+            val nested: Triple<String, Int, Map<String, List<Int>>>)
         val mask = listOf(
             Pair("nested.1", 2 + 2 * 2),
             Pair("nested.2", 4),

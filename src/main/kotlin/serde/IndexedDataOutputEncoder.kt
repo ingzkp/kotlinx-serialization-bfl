@@ -23,20 +23,40 @@ class IndexedDataOutputEncoder(
     private val elementStack: ArrayDeque<Element> = ArrayDeque()
     private var topLevelProcessing = true
 
+    init {
+        elementStack.push(Element.Structure("ROOT", resolved = true))
+    }
+
     override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder {
-        if (topLevelProcessing) {
-            elementStack.push(Element.Structure(descriptor.serialName))
+        // Field processing only makes sense
+        // This will be called for the top structure and this is the only place where annotations are accessible.
 
-            // Field processing only makes sense
-            // This will be called for the top structure and this is the only place where annotations are accessible.
-            (descriptor.elementsCount - 1 downTo 0).forEach {
-                scheduleElementToStack(descriptor, it)
+        with(elementStack.peek()) {
+            if (this is Element.Structure && !this.resolved) {
+                unwindStructureToStack(descriptor)
+                this.resolved = true
             }
-
-            topLevelProcessing = false
-        } else {
-            unwindStructureToStack(descriptor)
         }
+
+        (descriptor.elementsCount - 1 downTo 0).forEach {
+            scheduleElementToStack(descriptor, it)
+        }
+
+
+
+        // if (topLevelProcessing) {
+        //     elementStack.push(Element.Structure(descriptor.serialName))
+        //
+        //     // Field processing only makes sense
+        //     // This will be called for the top structure and this is the only place where annotations are accessible.
+        //     (descriptor.elementsCount - 1 downTo 0).forEach {
+        //         scheduleElementToStack(descriptor, it)
+        //     }
+        //
+        //     topLevelProcessing = false
+        // } else {
+        //     unwindStructureToStack(descriptor)
+        // }
 
         return super.beginStructure(descriptor)
     }
@@ -133,6 +153,7 @@ class IndexedDataOutputEncoder(
         repeat(collectionSize) {
             collectionMeta.inner
                 .filter { it !is Element.Primitive }
+                .asReversed()
                 .forEach { meta -> elementStack.push(meta.copy()) }
         }
 

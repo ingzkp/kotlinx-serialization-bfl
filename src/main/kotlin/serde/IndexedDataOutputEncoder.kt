@@ -23,26 +23,27 @@ class IndexedDataOutputEncoder(
 ) : AbstractEncoder() {
 
     private val elementStack: ArrayDeque<Element> = ArrayDeque()
-    private var topLevelProcessing = true
 
     init {
         elementStack.push(Element.Structure("ROOT", isResolved = false))
     }
 
     override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder {
-        // Field processing only makes sense
-        // This will be called for the top structure and this is the only place where annotations are accessible.
+        // Annotations are only accessible at the properties level.
 
         // When this function is called there must be a Structure on top of the stack.
         val head = elementStack.peek()
         check(head is Element.Structure) { "Structure may begin only when the head of the stack is Element.Structure" }
 
-        // add check if the struct on the stack is indeed this struct.
+        // TODO: add check if the struct on the stack coincides with the current descriptor.
+
         if (head.isResolved) {
             unwindStructureToStack(descriptor)
         } else {
-            if (descriptor.kind is PolymorphicKind) {
-                scheduleCompoundToStack(descriptor.serialName, descriptor, mutableListOf())
+            // Corner case: If descriptor is polymorphic, it wall have a string attached to it.
+            // if this string is split from the rest of the structure we cannot infer its size.
+            if (descriptor.isPolymorphic) {
+                scheduleCompoundToStack(descriptor.serialName, descriptor)
                 unwindStructureToStack(descriptor)
             } else {
                 (descriptor.elementsCount - 1 downTo 0).forEach { idx ->
@@ -63,7 +64,7 @@ class IndexedDataOutputEncoder(
             elementStack.push(Element.Structure(descriptor.serialName, isResolved = false))
         }
 
-        // Structure inner elements need to be unwound on the stack.
+        // Structure's inner elements need to be unwound on the stack.
         structureMeta.inner
             .filter { it !is Element.Primitive }
             .asReversed()
@@ -72,8 +73,9 @@ class IndexedDataOutputEncoder(
 
     private fun scheduleElementToStack(parentDescriptor: SerialDescriptor, elementIdx: Int) {
         val descriptor = parentDescriptor.getElementDescriptor(elementIdx)
+
         when {
-            descriptor.isCollectionOrString -> {
+            descriptor.isCollection || descriptor.isString -> {
                 // Top-level Collection or String must have annotations
                 val lengths = parentDescriptor.getElementAnnotations(elementIdx)
                     .filterIsInstance<DFLength>()
@@ -97,63 +99,47 @@ class IndexedDataOutputEncoder(
                     ))
                 }
             }
-            descriptor.kind is PolymorphicKind -> {
-                scheduleCompoundToStack(parentDescriptor.serialName, descriptor, mutableListOf())
-            }
-
-            descriptor.kind is SerialKind.CONTEXTUAL -> {
-                scheduleCompoundToStack(parentDescriptor.serialName, descriptor, mutableListOf(100))
+            descriptor.isPolymorphic || descriptor.isContextual -> {
+                scheduleCompoundToStack(parentDescriptor.serialName, descriptor)
             }
         }
     }
 
-    // // todo get back to using this after the inner question is addressed
-    // private fun SerialDescriptor.mustBeAnnotated() =
-    //     kind is StructureKind.LIST
-    //         || kind is StructureKind.MAP
-    //         || kind is PrimitiveKind.STRING
-    //         // todo; explain better why the last two are required.
-    //         || kind is PolymorphicKind
-    //         || kind is SerialKind.CONTEXTUAL
-
-    private fun scheduleCompoundToStack(parentName: String, descriptor: SerialDescriptor, lengths: MutableList<Int>) {
+    private fun scheduleCompoundToStack(
+        parentName: String,
+        descriptor: SerialDescriptor,
+        lengths: MutableList<Int> = mutableListOf()
+    ) {
         fun child(parentName: String, descriptor: SerialDescriptor, lengths: MutableList<Int>): Element {
             val name = "$parentName.${descriptor.serialName}"
 
-            if (descriptor.isPrimitive) {
-                return Element.Primitive(name)
-            }
-
-            if (descriptor.isCollectionOrString) {
-                val requiredSize = lengths.removeFirstOrNull() ?: error("Insufficient sizing info for $name")
-                val children = descriptor.elementDescriptors.map {
-                    child(name, it, lengths)
+            return when {
+                descriptor.isTrulyPrimitive -> Element.Primitive(name)
+                descriptor.isCollection || descriptor.isString -> {
+                    val requiredSize = lengths.removeFirstOrNull() ?: error("Insufficient sizing info for $name")
+                    val children = descriptor.elementDescriptors.map {
+                        child(name, it, lengths)
+                    }
+                    Element.Collection(name,
+                        CollectedSizingInfo(collectionRequiredSize = requiredSize, inner = children)
+                    )
                 }
-                return Element.Collection(name,
-                    CollectedSizingInfo(collectionRequiredSize = requiredSize, inner = children)
-                )
-            }
-
-            if (descriptor.isStructure) {
-                val children = descriptor.elementDescriptors.map {
-                    child(name, it, lengths)
+                descriptor.isStructure ->  {
+                    val children = descriptor.elementDescriptors.map {
+                        child(name, it, lengths)
+                    }
+                    Element.Structure(name, inner = children, isResolved = true)
                 }
-                return Element.Structure(name, inner = children, isResolved = true)
-            }
-
-            if (descriptor.isPolymorphic) {
-                lengths.add(0, 100)
-                val children = descriptor.elementDescriptors.map {
-                    child(name, it, lengths)
+                descriptor.isPolymorphic -> {
+                    lengths.add(0, 100)
+                    val children = descriptor.elementDescriptors.map {
+                        child(name, it, lengths)
+                    }
+                    Element.Structure(name, inner = children, isResolved = true)
                 }
-                return Element.Structure(name, inner = children, isResolved = true)
+                descriptor.isContextual -> Element.Structure(name, isResolved = false)
+                else -> error("Unreachable code when building child ${descriptor.serialName}")
             }
-
-            if (descriptor.kind is SerialKind.CONTEXTUAL) {
-                return Element.Structure(name, isResolved = false)
-            }
-
-            error("Unreachable code")
         }
 
         var head = child(parentName, descriptor, lengths)
@@ -272,10 +258,10 @@ class IndexedDataOutputEncoder(
     private val SerialDescriptor.isCollection: Boolean
         get() = kind is StructureKind.LIST || kind is StructureKind.MAP
 
-    private val SerialDescriptor.isCollectionOrString: Boolean
-        get() = isCollection || kind is PrimitiveKind.STRING
+    private val SerialDescriptor.isString: Boolean
+        get() = kind is PrimitiveKind.STRING
 
-    private val SerialDescriptor.isPrimitive: Boolean
+    private val SerialDescriptor.isTrulyPrimitive: Boolean
         get() = kind is PrimitiveKind && kind !is PrimitiveKind.STRING
 
     private val SerialDescriptor.isStructure: Boolean
@@ -283,4 +269,7 @@ class IndexedDataOutputEncoder(
 
     private val SerialDescriptor.isPolymorphic: Boolean
         get() = kind is PolymorphicKind
+
+    private val SerialDescriptor.isContextual: Boolean
+        get() = kind is SerialKind.CONTEXTUAL
 }

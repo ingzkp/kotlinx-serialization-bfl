@@ -121,7 +121,7 @@ class IndexedDataOutputEncoder(
                         child(name, it, lengths)
                     }
                     Element.Collection(name,
-                        CollectedSizingInfo(collectionRequiredSize = requiredSize, inner = children)
+                        CollectedSizingInfo(collectionRequiredLength = Length.Fixed(requiredSize), inner = children)
                     )
                 }
                 descriptor.isStructure ->  {
@@ -131,10 +131,20 @@ class IndexedDataOutputEncoder(
                     Element.Structure(name, inner = children, isResolved = true)
                 }
                 descriptor.isPolymorphic -> {
-                    lengths.add(0, 100)
-                    val children = descriptor.elementDescriptors.map {
+                    // Polymorphic type consists of a string and a structure.
+                    val children = listOf(
+                        Element.Collection(
+                        "$name.${descriptor.getElementName(0)}",
+                        CollectedSizingInfo(
+                            collectionRequiredLength = Length.Actual, inner = listOf()
+                        )
+                    )) + descriptor.elementDescriptors.filterIndexed { idx, _ -> idx != 0 }.map {
                         child(name, it, lengths)
                     }
+
+                    // descriptor.elementDescriptors.map {
+                    //     child(name, it, lengths)
+                    // }
                     Element.Structure(name, inner = children, isResolved = true)
                 }
                 descriptor.isContextual -> Element.Structure(name, isResolved = false)
@@ -142,7 +152,7 @@ class IndexedDataOutputEncoder(
             }
         }
 
-        var head = child(parentName, descriptor, lengths)
+        val head = child(parentName, descriptor, lengths)
         elementStack.push(head)
     }
 
@@ -152,7 +162,7 @@ class IndexedDataOutputEncoder(
         check(collectionMeta is Element.Collection) { "Stack element must describe a collection type" }
 
         collectionMeta.startByte = getCurrentByteIdx()
-        collectionMeta.collectionActualSize = collectionSize
+        collectionMeta.collectionActualLength = collectionSize
 
         repeat(collectionSize) {
             collectionMeta.inner
@@ -181,13 +191,18 @@ class IndexedDataOutputEncoder(
         val sizingInfo = elementStack.pop()
         check(sizingInfo is Element.Collection) { "Stack element must describe a compound (List or Map) type" }
         val name = sizingInfo.name
-        val (startByte, collectionActualSize, collectionRequiredSize, innerSizingInfo) = sizingInfo.sizingInfo
+        val (startByte, collectionActualLength, collectionRequiredLengthWrapped, innerSizingInfo) = sizingInfo.sizingInfo
 
         check(startByte != null) { "Structure `$name` has no start byte index" }
-        check(collectionActualSize != null) { "Structure `$name` does not specify its actual size" }
-        check(collectionRequiredSize != null) { "Structure `$name` does not specify its required size" }
+        check(collectionActualLength != null) { "Structure `$name` does not specify its actual size" }
+        check(collectionRequiredLengthWrapped != null) { "Structure `$name` does not specify its required size" }
 
-        if (collectionRequiredSize == collectionActualSize) {
+        val collectionRequiredLength = when (collectionRequiredLengthWrapped) {
+            is Length.Actual -> return
+            is Length.Fixed -> collectionRequiredLengthWrapped.value
+        }
+
+        if (collectionRequiredLength == collectionActualLength) {
             // No padding is required.
             return
         }
@@ -198,8 +213,8 @@ class IndexedDataOutputEncoder(
         // writtenBytes is the amount of bytes corresponding serialization of inner elements.
         val writtenBytes = getCurrentByteIdx() - elementsStartByteIdx
 
-        val elementSize = if (collectionActualSize != 0) {
-            writtenBytes / collectionActualSize
+        val elementSize = if (collectionActualLength != 0) {
+            writtenBytes / collectionActualLength
         } else {
             check(innerSizingInfo.size == descriptor.elementsCount) { "Sizing info does not coincide with descriptors"}
 
@@ -208,7 +223,7 @@ class IndexedDataOutputEncoder(
             }
         }
 
-        repeat(elementSize * (collectionRequiredSize - collectionActualSize)) {
+        repeat(elementSize * (collectionRequiredLength - collectionActualLength)) {
             encodeByte(0)
         }
     }
@@ -233,10 +248,14 @@ class IndexedDataOutputEncoder(
         val sizingInfo = elementStack.pop()
         check(sizingInfo is Element.Collection) { "Stack element must describe a compound (String) type" }
 
-        val expectedStringLength = sizingInfo.collectionRequiredSize
-        check(expectedStringLength != null) { "Strings should have @ValueLength annotation" }
+        val stringRequiredLength = sizingInfo.collectionRequiredLength?.let {
+            when (it) {
+                is Length.Actual -> return
+                is Length.Fixed -> it.value
+            }
+        } ?: error( "Strings should have fixed length" )
 
-        val paddingLength = expectedStringLength - actualStringLength
+        val paddingLength = stringRequiredLength - actualStringLength
         check(paddingLength >= 0) { "Serializing string doesn't fit expected size" }
 
         val paddingBytesLength = 2 * paddingLength

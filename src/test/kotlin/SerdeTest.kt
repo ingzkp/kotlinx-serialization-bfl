@@ -25,6 +25,8 @@ class SerdeTest {
                 subclass(RSAPublicKeyImpl::class, RSAPublicKeySerializer)
             }
         }
+
+        val serialNameRSAPublicKeyImpl = "RSAPublicKeyImpl"
     }
 
     @Test
@@ -72,7 +74,7 @@ class SerdeTest {
         data class Data(val date: @Serializable(with = DateSerializer::class) Date)
         val mask = listOf(Pair("date", 8))
 
-        var data = Data(SimpleDateFormat("yyyy-MM-ddX").parse("2016-02-15+00"))
+        val data = Data(SimpleDateFormat("yyyy-MM-ddX").parse("2016-02-15+00"))
         checkedSerialize(data, mask, DateSurrogate(Long.MIN_VALUE))
     }
 
@@ -96,7 +98,7 @@ class SerdeTest {
             Pair("map[2].value", 4),
         )
 
-        var data = Data(mapOf("a" to Some(1), "b" to Some(2)))
+        val data = Data(mapOf("a" to Some(1), "b" to Some(2)))
         checkedSerialize(data, mask)
     }
 
@@ -171,7 +173,7 @@ class SerdeTest {
         data class Data(val pair: Pair<Int, Int>)
         val mask = listOf(Pair("pair", 8))
 
-        var data = Data(Pair(10, 20))
+        val data = Data(Pair(10, 20))
         checkedSerialize(data, mask)
     }
 
@@ -318,7 +320,7 @@ class SerdeTest {
     @Test
     fun `serialize polymorphic type itself`() {
         val mask = listOf(
-            Pair("serialName", 2 + 2 * 100),
+            Pair("serialName", 2 + 2 * serialNameRSAPublicKeyImpl.length),
             Pair("length", 4),
             Pair("value", 500)
         )
@@ -333,7 +335,7 @@ class SerdeTest {
         data class Data(val pk: PublicKey)
 
         val mask = listOf(
-            Pair("pk.serialName", 2 + 2 * 100),
+            Pair("pk.serialName", 2 + 2 * serialNameRSAPublicKeyImpl.length),
             Pair("pk.value", 4 + 500)
         )
 
@@ -348,10 +350,10 @@ class SerdeTest {
 
         val mask = listOf(
             Pair("nested.length", 4),
-            Pair("nested[0].serialName", 2 + 2 * 100),
+            Pair("nested[0].serialName", 2 + 2 * serialNameRSAPublicKeyImpl.length),
             Pair("nested[0].length", 4),
             Pair("nested[0].value", 500),
-            Pair("nested[0].serialName", 2 + 2 * 100),
+            Pair("nested[0].serialName", 2 + 2 * serialNameRSAPublicKeyImpl.length),
             Pair("nested[0].length", 4),
             Pair("nested[1].value", 500)
         )
@@ -369,7 +371,7 @@ class SerdeTest {
         data class Data(val some: Some)
 
         val mask = listOf(
-            Pair("some.pk.serialName", 2 + 2 * 100),
+            Pair("some.pk.serialName", 2 + 2 * serialNameRSAPublicKeyImpl.length),
             Pair("some.pk.length", 4),
             Pair("some.nested.value", 500)
         )

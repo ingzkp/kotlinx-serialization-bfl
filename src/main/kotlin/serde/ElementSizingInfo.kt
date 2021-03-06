@@ -18,14 +18,19 @@ sealed class Element(val name: String) {
 
 interface ElementSizingInfo {
     var startByte: Int?
-    var collectionActualSize: Int?
-    var collectionRequiredSize: Int?
+    var collectionActualLength: Int?
+    var collectionRequiredLength: Length?
     var inner: List<Element>
 }
 
 data class CollectedSizingInfo(
     override var startByte: Int? = null,
-    override var collectionActualSize: Int? = null,
-    override var collectionRequiredSize: Int? = null,
+    override var collectionActualLength: Int? = null,
+    override var collectionRequiredLength: Length? = null,
     override var inner: List<Element> = mutableListOf(),
 ) : ElementSizingInfo
+
+sealed class Length {
+    object Actual: Length()
+    data class Fixed(val value: Int): Length()
+}

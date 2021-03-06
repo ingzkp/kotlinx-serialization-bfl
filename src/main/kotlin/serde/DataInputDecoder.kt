@@ -48,16 +48,16 @@ class DataInputDecoder(
         val string = (0 until actualStringLength).map { decodeChar() }.joinToString("")
 
         val collectionMeta = deserializationState.collections[String.serializer().descriptor]!!
-        val expectedStringLength = collectionMeta.collectionRequiredSize!!
+        val expectedStringLength = collectionMeta.collectionRequiredLength!!
 
         //TODO: I removed check, but it was useful to prevent user from missing non-annotated list-like structures
 
-        val paddingStringLength = expectedStringLength - actualStringLength
-        val paddedBytesLength = paddingStringLength * 2
+        // val paddingStringLength = expectedStringLength - actualStringLength
+        // val paddedBytesLength = paddingStringLength * 2
             // getElementSize(Char.serializer().descriptor, serializersModule, defaults)
 
-        input.skipBytes(paddedBytesLength)
-        deserializationState.byteIndex += paddedBytesLength
+        // input.skipBytes(paddedBytesLength)
+        // deserializationState.byteIndex += paddedBytesLength
 
         return string
     }

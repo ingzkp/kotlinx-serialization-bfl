@@ -62,7 +62,7 @@ fun getElementSize(
             is PrimitiveKind.CHAR -> 2
             is PrimitiveKind.STRING -> {
                 // SHORT (string length) + number_of_elements * CHAR = 2 + n * 2
-                check(element is Element.Collection) { "Sizing information on Strings must be present" }
+                check(element is Element.Collected) { "Sizing information on Strings must be present" }
 
                 val n = element.collectionRequiredLength?.let {
                     when (it) {
@@ -78,7 +78,7 @@ fun getElementSize(
                 // INT (collection length) + number_of_elements * sum_i { size(inner_i) }
                 // = 4 + n * sum_i { size(inner_i) }
 
-                check(element is Element.Collection) { "Sizing information on Collections must be present" }
+                check(element is Element.Collected) { "Sizing information on Collections must be present" }
 
                 check(element.inner.size == descriptor.elementsCount)
                     { "Sizing info does not coincide with descriptors"}

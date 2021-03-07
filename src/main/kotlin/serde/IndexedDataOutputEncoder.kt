@@ -1,12 +1,9 @@
 package serde
 
-import annotations.DFLength
 import getElementSize
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.PolymorphicKind
-import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.descriptors.SerialKind
 import kotlinx.serialization.descriptors.StructureKind
 import kotlinx.serialization.descriptors.elementDescriptors
 import kotlinx.serialization.encoding.AbstractEncoder
@@ -43,11 +40,13 @@ class IndexedDataOutputEncoder(
             // Corner case: If descriptor is polymorphic, it wall have a string attached to it.
             // if this string is split from the rest of the structure we cannot infer its size.
             if (descriptor.isPolymorphic) {
-                scheduleCompoundToStack(descriptor.serialName, descriptor)
+                val scheduled = Element.fromType(descriptor.serialName, descriptor)
+                elementStack.push(scheduled)
                 unwindStructureToStack(descriptor)
             } else {
                 (descriptor.elementsCount - 1 downTo 0).forEach { idx ->
-                    scheduleElementToStack(descriptor, idx)
+                    val scheduled = Element.fromProperty(descriptor, idx)
+                    elementStack.push(scheduled)
                 }
             }
             head.isResolved = true
@@ -71,95 +70,10 @@ class IndexedDataOutputEncoder(
             .forEach { meta -> elementStack.push(meta.copy()) }
     }
 
-    private fun scheduleElementToStack(parentDescriptor: SerialDescriptor, elementIdx: Int) {
-        val descriptor = parentDescriptor.getElementDescriptor(elementIdx)
-
-        when {
-            descriptor.isCollection || descriptor.isString -> {
-                // Top-level Collection or String must have annotations
-                val lengths = parentDescriptor.getElementAnnotations(elementIdx)
-                    .filterIsInstance<DFLength>()
-                    .firstOrNull()?.lengths?.toMutableList()
-                    ?: error("Element ${descriptor.serialName} must have DFLength annotation")
-
-                scheduleCompoundToStack(parentDescriptor.serialName, descriptor, lengths)
-            }
-            descriptor.isStructure -> {
-                // Classes may have inner collections buried deep inside.
-                // We can infer this by observing an appropriate length annotation.
-                val lengths = parentDescriptor.getElementAnnotations(elementIdx)
-                    .filterIsInstance<DFLength>()
-                    .firstOrNull()?.lengths?.toMutableList()
-                if (lengths != null) {
-                    scheduleCompoundToStack(parentDescriptor.serialName, descriptor, lengths)
-                } else {
-                    elementStack.push(Element.Structure(
-                        "${parentDescriptor.serialName}.${descriptor.serialName}",
-                        isResolved = false
-                    ))
-                }
-            }
-            descriptor.isPolymorphic || descriptor.isContextual -> {
-                scheduleCompoundToStack(parentDescriptor.serialName, descriptor)
-            }
-        }
-    }
-
-    private fun scheduleCompoundToStack(
-        parentName: String,
-        descriptor: SerialDescriptor,
-        lengths: MutableList<Int> = mutableListOf()
-    ) {
-        fun child(parentName: String, descriptor: SerialDescriptor, lengths: MutableList<Int>): Element {
-            val name = "$parentName.${descriptor.serialName}"
-
-            return when {
-                descriptor.isTrulyPrimitive -> Element.Primitive(name)
-                descriptor.isCollection || descriptor.isString -> {
-                    val requiredSize = lengths.removeFirstOrNull() ?: error("Insufficient sizing info for $name")
-                    val children = descriptor.elementDescriptors.map {
-                        child(name, it, lengths)
-                    }
-                    Element.Collection(name,
-                        CollectedSizingInfo(collectionRequiredLength = Length.Fixed(requiredSize), inner = children)
-                    )
-                }
-                descriptor.isStructure ->  {
-                    val children = descriptor.elementDescriptors.map {
-                        child(name, it, lengths)
-                    }
-                    Element.Structure(name, inner = children, isResolved = true)
-                }
-                descriptor.isPolymorphic -> {
-                    // Polymorphic type consists of a string and a structure.
-                    val children = listOf(
-                        Element.Collection(
-                        "$name.${descriptor.getElementName(0)}",
-                        CollectedSizingInfo(
-                            collectionRequiredLength = Length.Actual, inner = listOf()
-                        )
-                    )) + descriptor.elementDescriptors.filterIndexed { idx, _ -> idx != 0 }.map {
-                        child(name, it, lengths)
-                    }
-
-                    // descriptor.elementDescriptors.map {
-                    //     child(name, it, lengths)
-                    // }
-                    Element.Structure(name, inner = children, isResolved = true)
-                }
-                descriptor.isContextual -> Element.Structure(name, isResolved = false)
-                else -> error("Unreachable code when building child ${descriptor.serialName}")
-            }
-        }
-
-        val head = child(parentName, descriptor, lengths)
-        elementStack.push(head)
-    }
-
     override fun beginCollection(descriptor: SerialDescriptor, collectionSize: Int): CompositeEncoder {
         // Unwind sizing meta information for this collection to the stack.
         val collectionMeta = elementStack.peek()
-        check(collectionMeta is Element.Collection) { "Stack element must describe a collection type" }
+        check(collectionMeta is Element.Collected) { "Stack element must describe a collection type" }
 
         collectionMeta.startByte = getCurrentByteIdx()
         collectionMeta.collectionActualLength = collectionSize
@@ -189,7 +103,7 @@ class IndexedDataOutputEncoder(
 
     private fun endCollection(descriptor: SerialDescriptor) {
         val sizingInfo = elementStack.pop()
-        check(sizingInfo is Element.Collection) { "Stack element must describe a compound (List or Map) type" }
+        check(sizingInfo is Element.Collected) { "Stack element must describe a compound (List or Map) type" }
         val name = sizingInfo.name
         val (startByte, collectionActualLength, collectionRequiredLengthWrapped, innerSizingInfo) = sizingInfo.sizingInfo
 
@@ -206,7 +120,7 @@ class IndexedDataOutputEncoder(
             // No padding is required.
             return
         }
-        // Collection is to be padded.
+        // Collected is to be padded.
 
         val elementsStartByteIdx = startByte + 4
 
@@ -246,7 +160,7 @@ class IndexedDataOutputEncoder(
         value.forEach { encodeChar(it) }
 
         val sizingInfo = elementStack.pop()
-        check(sizingInfo is Element.Collection) { "Stack element must describe a compound (String) type" }
+        check(sizingInfo is Element.Collected) { "Stack element must describe a compound (String) type" }
 
         val stringRequiredLength = sizingInfo.collectionRequiredLength?.let {
             when (it) {
@@ -272,23 +186,4 @@ class IndexedDataOutputEncoder(
     private fun <T> ArrayDeque<T>.push(value: T) = this.addFirst(value)
     private fun <T> ArrayDeque<T>.pop(): T = this.removeFirst()
     private fun <T> ArrayDeque<T>.peek(): T = this.first()
-    private fun <T> ArrayDeque<T>.peekOrNull(): T? = this.firstOrNull()
-
-    private val SerialDescriptor.isCollection: Boolean
-        get() = kind is StructureKind.LIST || kind is StructureKind.MAP
-
-    private val SerialDescriptor.isString: Boolean
-        get() = kind is PrimitiveKind.STRING
-
-    private val SerialDescriptor.isTrulyPrimitive: Boolean
-        get() = kind is PrimitiveKind && kind !is PrimitiveKind.STRING
-
-    private val SerialDescriptor.isStructure: Boolean
-        get() = kind is StructureKind.CLASS
-
-    private val SerialDescriptor.isPolymorphic: Boolean
-        get() = kind is PolymorphicKind
-
-    private val SerialDescriptor.isContextual: Boolean
-        get() = kind is SerialKind.CONTEXTUAL
 }

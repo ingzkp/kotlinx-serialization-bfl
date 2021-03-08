@@ -8,7 +8,9 @@ import kotlinx.serialization.modules.polymorphic
 import org.junit.jupiter.api.Test
 import serializers.RSAPublicKeySerializer
 import sun.security.rsa.RSAPublicKeyImpl
+import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.security.KeyPairGenerator
 import java.security.PublicKey
@@ -48,6 +50,19 @@ class SerdeTest {
     }
 
     @Test
+    fun `serialize and deserialize string`() {
+        @Serializable
+        data class Data(@DFLength([10]) val s: String = "123456789")
+
+        val data = Data()
+        val bytes = serialize(data)
+
+        val deserialized: Data = deserialize(bytes)
+
+        assert(data == deserialized)
+    }
+
+    @Test
     fun `serialize list of string`() {
         @Serializable
         data class Data(@DFLength([2, 10]) val list: List<String> = listOf("123456789"))
@@ -69,6 +84,19 @@ class SerdeTest {
     }
 
     @Test
+    fun `serialize and deserialize list of string`() {
+        @Serializable
+        data class Data(@DFLength([2, 10]) val list: List<String> = listOf("123456789"))
+
+        val data = Data()
+        val bytes = serialize(data)
+
+        val deserialized: Data = deserialize(bytes)
+
+        assert(data == deserialized)
+    }
+
+    @Test
     fun `serialize 3rd party class`() {
         @Serializable
         data class Data(val date: @Serializable(with = DateSerializer::class) Date)
@@ -76,6 +104,19 @@ class SerdeTest {
 
         val data = Data(SimpleDateFormat("yyyy-MM-ddX").parse("2016-02-15+00"))
         checkedSerialize(data, mask, DateSurrogate(Long.MIN_VALUE))
+    }
+
+    @Test
+    fun `serialize and deserialize 3rd party class`() {
+        @Serializable
+        data class Data(val date: @Serializable(with = DateSerializer::class) Date)
+
+        val data = Data(SimpleDateFormat("yyyy-MM-ddX").parse("2016-02-15+00"))
+        val bytes = serialize(data)
+
+        val deserialized: Data = deserialize(bytes)
+
+        assert(data == deserialized)
     }
 
     @Serializable
@@ -103,6 +144,22 @@ class SerdeTest {
     }
 
     @Test
+    fun `test of tests with deserialization`() {
+        @Serializable
+        data class Data(
+            @DFLength([3,   2])
+            val map: Map<String, Some>
+        )
+
+        val data = Data(mapOf("a" to Some(1), "b" to Some(2)))
+        val bytes = serialize(data)
+
+        val deserialized: Data = deserialize(bytes)
+
+        assert(data == deserialized)
+    }
+
+    @Test
     fun `serialize list of 3rd party class`() {
         @Serializable
         data class Data(@DFLength([2]) val dates: List<@Serializable(with = DateSerializer::class) Date>)
@@ -119,6 +176,19 @@ class SerdeTest {
         data = Data(listOf())
         bytes = checkedSerialize(data, mask, DateSurrogate(Long.MIN_VALUE))
         bytes shouldBe ByteArray(mask.sumBy { it.second }) { 0 }
+    }
+
+    @Test
+    fun `serialize and deserialize list of 3rd party class`() {
+        @Serializable
+        data class Data(@DFLength([2]) val dates: List<@Serializable(with = DateSerializer::class) Date>)
+
+        val data = Data(listOf(SimpleDateFormat("yyyy-MM-ddX").parse("2016-02-15+00")))
+        val bytes = serialize(data)
+
+        val deserialized: Data = deserialize(bytes)
+
+        assert(data == deserialized)
     }
 
     @Test
@@ -168,6 +238,21 @@ class SerdeTest {
     }
 
     @Test
+    fun `serialize and deserialize deeply nested lists`() {
+        @Serializable
+        data class Data(
+            @DFLength([  3,    4,   5])
+            val nested: List<List<List<Int>>>)
+
+        val data = Data(listOf(listOf(listOf(2))))
+        val bytes = serialize(data)
+
+        val deserialized: Data = deserialize(bytes)
+
+        assert(data == deserialized)
+    }
+
+    @Test
     fun `serialize compound type`() {
         @Serializable
         data class Data(val pair: Pair<Int, Int>)
@@ -175,6 +260,19 @@ class SerdeTest {
 
         val data = Data(Pair(10, 20))
         checkedSerialize(data, mask)
+    }
+
+    @Test
+    fun `serialize and deserialize compound type`() {
+        @Serializable
+        data class Data(val pair: Pair<Int, Int>)
+
+        val data = Data(Pair(10, 20))
+        val bytes = serialize(data)
+
+        val deserialized: Data = deserialize(bytes)
+
+        assert(data == deserialized)
     }
 
     @Test
@@ -197,6 +295,19 @@ class SerdeTest {
     }
 
     @Test
+    fun `serialize and deserialize list of compound type`() {
+        @Serializable
+        data class Data(@DFLength([2]) val list: List<Pair<Int, Int>>)
+
+        val data = Data(listOf(Pair(10, 20)))
+        val bytes = serialize(data)
+
+        val deserialized: Data = deserialize(bytes)
+
+        assert(data == deserialized)
+    }
+
+    @Test
     fun `serialize list within a compound type`() {
         @Serializable
         data class Data(@DFLength([2]) val nested: Pair<Int, List<Int>>)
@@ -213,6 +324,19 @@ class SerdeTest {
         data = Data(Pair(10, listOf()))
         bytes = checkedSerialize(data, mask)
         bytes shouldBe ByteArray(mask.sumBy { it.second }) { if (it == 3) { 10 } else { 0 } }
+    }
+
+    @Test
+    fun `serialize and deserialize list within a compound type`() {
+        @Serializable
+        data class Data(@DFLength([2]) val nested: Pair<Int, List<Int>>)
+
+        val data = Data(Pair(10, listOf(20)))
+        val bytes = serialize(data)
+
+        val deserialized: Data = deserialize(bytes)
+
+        assert(data == deserialized)
     }
 
     @Test
@@ -235,6 +359,19 @@ class SerdeTest {
     }
 
     @Test
+    fun `serialize and deserialize list with own serializable class`() {
+        @Serializable
+        data class Data(@DFLength([2]) val list: List<Own>)
+
+        val data = Data(listOf(Own()))
+        val bytes = serialize(data)
+
+        val deserialized: Data = deserialize(bytes)
+
+        assert(data == deserialized)
+    }
+
+    @Test
     fun `serialize list with own (with list) serializable class`() {
         val mask = listOf(
             Pair("own.list.length", 4),
@@ -248,6 +385,16 @@ class SerdeTest {
         data = DataOwn(OwnList(listOf()))
         bytes = checkedSerialize(data, mask, OwnList())
         bytes shouldBe ByteArray(mask.sumBy { it.second }) { 0 }
+    }
+
+    @Test
+    fun `serialize and deserialize list with own (with list) serializable class`() {
+        val data = DataOwn(OwnList(listOf(10)))
+        val bytes = serialize(data)
+
+        val deserialized: DataOwn = deserialize(bytes)
+
+        assert(data == deserialized)
     }
 
     // I had to move out from the respective test, as otherwise it generates an error on the JVM level.
@@ -274,6 +421,19 @@ class SerdeTest {
     }
 
     @Test
+    fun `serialize and deserialize plain map`() {
+        @Serializable
+        data class Data(@DFLength([2]) val map: Map<Int, Int>)
+
+        val data = Data(mapOf(1 to 2))
+        val bytes = serialize(data)
+
+        val deserialized: Data = deserialize(bytes)
+
+        assert(data == deserialized)
+    }
+
+    @Test
     fun `serialize complex map`() {
         @Serializable
         data class Data(@DFLength([2, 2, 2]) val map: Map<String, List<Int>>)
@@ -292,6 +452,19 @@ class SerdeTest {
         data = Data(mapOf())
         bytes = checkedSerialize(data, mask)
         bytes shouldBe ByteArray(mask.sumBy { it.second }) { 0 }
+    }
+
+    @Test
+    fun `serialize and deserialize complex map`() {
+        @Serializable
+        data class Data(@DFLength([2, 2, 2]) val map: Map<String, List<Int>>)
+
+        val data = Data(mapOf("a" to listOf(2)))
+        val bytes = serialize(data)
+
+        val deserialized: Data = deserialize(bytes)
+
+        assert(data == deserialized)
     }
 
     @Test
@@ -318,6 +491,21 @@ class SerdeTest {
     }
 
     @Test
+    fun `serialize and deserialize complex map within a compound type`() {
+        @Serializable
+        data class Data(
+            @DFLength([          2,          2,   2,     2])
+            val nested: Triple<String, Int, Map<String, List<Int>>>)
+
+        val data = Data(Triple("a", 1, mapOf("a" to listOf(2))))
+        val bytes = serialize(data)
+
+        val deserialized: Data = deserialize(bytes)
+
+        assert(data == deserialized)
+    }
+
+    @Test
     fun `serialize polymorphic type itself`() {
         val mask = listOf(
             Pair("serialName", 2 + 2 * serialNameRSAPublicKeyImpl.length),
@@ -327,6 +515,16 @@ class SerdeTest {
 
         val data = getRSA()
         checkedSerialize(data, mask)
+    }
+
+    @Test
+    fun `serialize and deserialize polymorphic type itself`() {
+        val data = getRSA()
+        val bytes = serialize(data)
+
+        val deserialized: PublicKey = deserialize(bytes)
+
+        assert(data == deserialized)
     }
 
     @Test
@@ -341,6 +539,19 @@ class SerdeTest {
 
         val data = Data(getRSA())
         checkedSerialize(data, mask)
+    }
+
+    @Test
+    fun `serialize and deserialize polymorphic type within structure`() {
+        @Serializable
+        data class Data(val pk: PublicKey)
+
+        val data = Data(getRSA())
+        val bytes = serialize(data)
+
+        val deserialized: Data = deserialize(bytes)
+
+        assert(data == deserialized)
     }
 
     @Test
@@ -363,6 +574,19 @@ class SerdeTest {
     }
 
     @Test
+    fun `serialize and deserialize polymorphic type within collection`() {
+        @Serializable
+        data class Data(@DFLength([2]) val nested: List<PublicKey>)
+
+        val data = Data(listOf(getRSA()))
+        val bytes = serialize(data)
+
+        val deserialized: Data = deserialize(bytes)
+
+        assert(data == deserialized)
+    }
+
+    @Test
     fun `serialize polymorphic type within nested compound type`() {
         @Serializable
         data class Some(val pk: PublicKey)
@@ -380,6 +604,22 @@ class SerdeTest {
         checkedSerialize(data, mask)
     }
 
+    @Test
+    fun `serialize and deserialize polymorphic type within nested compound type`() {
+        @Serializable
+        data class Some(val pk: PublicKey)
+
+        @Serializable
+        data class Data(val some: Some)
+
+        val data = Data(Some(getRSA()))
+        val bytes = serialize(data)
+
+        val deserialized: Data = deserialize(bytes)
+
+        assert(data == deserialized)
+    }
+
 
     private inline fun <reified T: Any> checkedSerialize(data: T, mask: List<Pair<String, Int>>, vararg defaults: Any): ByteArray {
         val bytes = serialize(data, *defaults)
@@ -389,11 +629,17 @@ class SerdeTest {
         return bytes
     }
 
-    private inline fun <reified T: Any> serialize(data: T, vararg defaults: Any): ByteArray{
+    private inline fun <reified T: Any> serialize(data: T, vararg defaults: Any): ByteArray {
         val output = ByteArrayOutputStream()
         val stream = DataOutputStream(output)
         encodeTo(stream, data, serializersModule, *defaults)
         return output.toByteArray()
+    }
+
+    private inline fun <reified T: Any> deserialize(data: ByteArray, vararg defaults: Any): T {
+        val input = ByteArrayInputStream(data)
+        val stream = DataInputStream(input)
+        return decodeFrom(stream, serializersModule, *defaults)
     }
 
     private fun log(bytes: ByteArray, splitMask: List<Pair<String, Int>>) {

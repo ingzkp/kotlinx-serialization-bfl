@@ -5,6 +5,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.elementDescriptors
 
+@ExperimentalSerializationApi
 sealed class Element(val name: String) {
     class Primitive(name: String): Element(name)
 
@@ -17,6 +18,12 @@ sealed class Element(val name: String) {
         is Primitive -> this
         is Collected -> Collected(name, sizingInfo.copy())
         is Structure -> Structure(name, ArrayList(inner), isResolved)
+    }
+
+    inline fun <reified T: Element> expect(): T {
+        // Non-null assertion is fine because T is bound to Element.
+        (this as? T) ?: throw SerdeError.WrongElement(T::class.simpleName!!, this)
+        return this
     }
 
     @ExperimentalSerializationApi
@@ -32,7 +39,7 @@ sealed class Element(val name: String) {
                     val lengths = containerDescriptor.getElementAnnotations(propertyIdx)
                         .filterIsInstance<DFLength>()
                         .firstOrNull()?.lengths?.toMutableList()
-                        ?: error("Element $name must have DFLength annotation")
+                        ?: throw SerdeError.AbsentAnnotations(containerDescriptor, propertyIdx)
 
                     fromType(containerDescriptor.serialName, descriptor, lengths)
                 }
@@ -61,7 +68,8 @@ sealed class Element(val name: String) {
             return when {
                 descriptor.isTrulyPrimitive -> Primitive(name)
                 descriptor.isCollection || descriptor.isString -> {
-                    val requiredSize = lengths.removeFirstOrNull() ?: error("Insufficient sizing info for $name")
+                    val requiredSize = lengths.removeFirstOrNull()
+                        ?: throw SerdeError.InsufficientLengthData(parentName, descriptor)
                     val children = descriptor.elementDescriptors.map {
                         fromType(name, it, lengths)
                     }
@@ -95,6 +103,7 @@ sealed class Element(val name: String) {
     }
 }
 
+@ExperimentalSerializationApi
 interface ElementSizingInfo {
     var startByte: Int?
     var collectionActualLength: Int?
@@ -102,6 +111,7 @@ interface ElementSizingInfo {
     var inner: List<Element>
 }
 
+@ExperimentalSerializationApi
 data class CollectedSizingInfo(
     override var startByte: Int? = null,
     override var collectionActualLength: Int? = null,

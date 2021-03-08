@@ -22,6 +22,13 @@ class DataInputDecoder(
     private var elementIndex = 0
 
     override fun beginStructure(descriptor: SerialDescriptor): CompositeDecoder {
+        if (descriptor.kind !is StructureKind.MAP && descriptor.kind !is StructureKind.LIST) {
+            return beginClass(descriptor)
+        }
+        return this
+    }
+
+    private fun beginClass(descriptor: SerialDescriptor): CompositeDecoder {
         // Annotations are only accessible at the properties level.
 
         // When this function is called there must be a Structure on top of the stack.
@@ -47,7 +54,7 @@ class DataInputDecoder(
             head.isResolved = true
         }
 
-        return DataInputDecoder(elementsCount, input, serializersModule, decodingState, defaults)
+        return this
     }
 
     private fun unwindStructureToStack(descriptor: SerialDescriptor) {
@@ -76,6 +83,11 @@ class DataInputDecoder(
     }
 
     private fun endCollection(descriptor: SerialDescriptor) {
+        // it's a crutch, but because of enabled sequential decoding (due to performance reasons),
+        // key-value serializers don't call endStructure() on elements of list-like structures
+        while (decodingState.elementStack.peek() !is Element.Collected) {
+            decodingState.elementStack.pop()
+        }
         val collection = decodingState.elementStack.pop().expect<Element.Collected>()
 
         val startByte = collection.startByte ?:throw SerdeError.CollectionNoStart(collection)
@@ -153,7 +165,24 @@ class DataInputDecoder(
     override fun decodeSequentially(): Boolean = true
 
     override fun decodeCollectionSize(descriptor: SerialDescriptor) =
-        decodeInt().also { elementsCount = it }
+        decodeInt().also { elementsCount = it }.also { beginCollection(descriptor) }
+
+    private fun beginCollection(descriptor: SerialDescriptor): CompositeDecoder {
+        // Unwind sizing meta information for this collection to the stack.
+        val collectionMeta = decodingState.elementStack.peek().expect<Element.Collected>()
+
+        collectionMeta.startByte = decodingState.byteIndex
+        collectionMeta.collectionActualLength = elementsCount
+
+        repeat(elementsCount) {
+            collectionMeta.inner
+                .filter { it !is Element.Primitive }
+                .asReversed()
+                .forEach { meta -> decodingState.elementStack.push(meta.copy()) }
+        }
+
+        return this
+    }
 
     override fun decodeElementIndex(descriptor: SerialDescriptor) =
         if (elementIndex == elementsCount) CompositeDecoder.DECODE_DONE else elementIndex++
@@ -164,5 +193,5 @@ class DataInputDecoder(
     private fun <T> ArrayDeque<T>.pop(): T = this.removeFirst()
     private fun <T> ArrayDeque<T>.peek(): T = this.first()
 
-    data class DecodingState(var byteIndex: Int = 0, val elementStack: ArrayDeque<Element> = ArrayDeque())
+    data class DecodingState(var byteIndex: Int = 0, val elementStack: ArrayDeque<Element> = ArrayDeque(listOf(Element.Structure("ROOT", isResolved = false))))
 }

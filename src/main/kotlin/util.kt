@@ -1,4 +1,3 @@
-import serde.DataInputDecoder
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationStrategy
@@ -8,10 +7,7 @@ import kotlinx.serialization.descriptors.StructureKind
 import kotlinx.serialization.descriptors.elementDescriptors
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.serializer
-import serde.IndexedDataOutputEncoder
-import serde.Size
-import serde.Element
-import serde.Length
+import serde.*
 import java.io.DataInput
 import java.io.DataOutput
 
@@ -24,11 +20,12 @@ inline fun <reified T: Any> encodeTo(output: DataOutput, value: T, serializersMo
     encodeTo(output, serializer(), value, serializersModule, *defaults)
 
 @ExperimentalSerializationApi
-fun <T> decodeFrom(input: DataInput, deserializer: DeserializationStrategy<T>): T =
-    DataInputDecoder(input).decodeSerializableValue(deserializer)
+fun <T> decodeFrom(input: DataInput, deserializer: DeserializationStrategy<T>, serializersModule: SerializersModule, vararg defaults: Any): T =
+    DataInputDecoder(input = input, serializersModule = serializersModule, defaults = defaults.toList()).decodeSerializableValue(deserializer)
 
 @ExperimentalSerializationApi
-inline fun <reified T> decodeFrom(input: DataInput): T = decodeFrom(input, serializer())
+inline fun <reified T> decodeFrom(input: DataInput, serializersModule: SerializersModule, vararg defaults: Any): T =
+    decodeFrom(input, serializer(), serializersModule, *defaults)
 
 @ExperimentalUnsignedTypes
 fun ByteArray.toAsciiHexString() = joinToString("") {

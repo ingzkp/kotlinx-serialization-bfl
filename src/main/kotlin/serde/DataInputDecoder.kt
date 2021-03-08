@@ -1,156 +1,168 @@
 package serde
 
-import annotations.DFLength
+import getElementSize
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.descriptors.PolymorphicKind
 import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.StructureKind
+import kotlinx.serialization.descriptors.elementDescriptors
 import kotlinx.serialization.encoding.AbstractDecoder
 import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.modules.SerializersModule
-import kotlinx.serialization.modules.polymorphic
-import serializers.RSAPublicKeySerializer
-import sun.security.rsa.RSAPublicKeyImpl
 import java.io.DataInput
-import java.security.PublicKey
-
-data class DeserializationState(var byteIndex: Int, val collections: MutableMap<SerialDescriptor, ElementSizingInfo>)
 
 @ExperimentalSerializationApi
 class DataInputDecoder(
-    private val input: DataInput,
     var elementsCount: Int = 0,
-    private val deserializationState: DeserializationState = DeserializationState(0, mutableMapOf()),
-    private val defaults: List<Any> = emptyList()
+    private val input: DataInput,
+    override val serializersModule: SerializersModule,
+    private val decodingState: DecodingState = DecodingState(),
+    private val defaults: List<Any>
 ) : AbstractDecoder() {
     private var elementIndex = 0
 
-    override val serializersModule: SerializersModule = SerializersModule {
-        polymorphic(PublicKey::class) {
-            subclass(RSAPublicKeyImpl::class, RSAPublicKeySerializer)
-        }
-    }
-
-    override fun decodeBoolean(): Boolean {
-        deserializationState.byteIndex++
-        return input.readByte().toInt() != 0
-    }
-
-    override fun decodeByte()= input.readByte().also { deserializationState.byteIndex++ }
-    override fun decodeShort() = input.readShort().also { deserializationState.byteIndex += 2 }
-    override fun decodeInt() = input.readInt().also { deserializationState.byteIndex += 4 }
-    override fun decodeLong() = input.readLong().also { deserializationState.byteIndex += 8 }
-    override fun decodeFloat() = input.readFloat().also { deserializationState.byteIndex += 4 }
-    override fun decodeDouble() = input.readDouble().also { deserializationState.byteIndex += 8 }
-    override fun decodeChar() = input.readChar().also { deserializationState.byteIndex += 2 }
-
-    override fun decodeString(): String {
-        val actualStringLength = decodeShort()
-        val string = (0 until actualStringLength).map { decodeChar() }.joinToString("")
-
-        val collectionMeta = deserializationState.collections[String.serializer().descriptor]!!
-        val expectedStringLength = collectionMeta.collectionRequiredLength!!
-
-        //TODO: I removed check, but it was useful to prevent user from missing non-annotated list-like structures
-
-        // val paddingStringLength = expectedStringLength - actualStringLength
-        // val paddedBytesLength = paddingStringLength * 2
-            // getElementSize(Char.serializer().descriptor, serializersModule, defaults)
-
-        // input.skipBytes(paddedBytesLength)
-        // deserializationState.byteIndex += paddedBytesLength
-
-        return string
-    }
-
-    override fun decodeEnum(enumDescriptor: SerialDescriptor): Int {
-        deserializationState.byteIndex += 4
-        return input.readInt()
-    }
-
-    override fun decodeElementIndex(descriptor: SerialDescriptor): Int {
-        if (elementIndex == elementsCount) return CompositeDecoder.DECODE_DONE
-        return elementIndex++
-    }
-
     override fun beginStructure(descriptor: SerialDescriptor): CompositeDecoder {
-//        descriptor.elementDescriptors
-//            .forEachIndexed { idx, child ->
-//                when (child.kind) {
-//                    StructureKind.LIST -> {
-//                        deserializationState.collections[child] = ElementSizingInfo(
-//                            start = deserializationState.byteIndex + 4,
-//                            occupies = null,
-//                            descriptor.getElementAnnotations(idx),
-//                            mutableMapOf("field" to descriptor.getElementName(idx))
-//                        )
-//                    }
-//                    PrimitiveKind.STRING -> {
-//                        deserializationState.collections[child] = ElementSizingInfo(
-//                            start = deserializationState.byteIndex,
-//                            occupies = null,
-//                            descriptor.getElementAnnotations(idx),
-//                            mutableMapOf("field" to descriptor.getElementName(idx))
-//                        )
-//                    }
-//                    StructureKind.MAP -> TODO("Implement map support")
-//                    else -> println("Ignored field ${descriptor.serialName}.${child.serialName}")
-//                }
-//            }
-//
-//        val meta = deserializationState.collections[descriptor]
-//        if (meta != null && descriptor.kind == StructureKind.LIST) {
-//            meta.start = deserializationState.byteIndex + 4
-//        }
+        // Annotations are only accessible at the properties level.
 
-        return DataInputDecoder(input, descriptor.elementsCount, deserializationState, defaults)
+        // When this function is called there must be a Structure on top of the stack.
+        val head = decodingState.elementStack.peek().expect<Element.Structure>()
+
+        // TODO: add check if the struct on the stack coincides with the current descriptor.
+
+        if (head.isResolved) {
+            unwindStructureToStack(descriptor)
+        } else {
+            // Corner case: If descriptor is polymorphic, it wall have a string attached to it.
+            // if this string is split from the rest of the structure we cannot infer its size.
+            if (descriptor.isPolymorphic) {
+                val scheduled = Element.fromType(descriptor.serialName, descriptor)
+                decodingState.elementStack.push(scheduled)
+                unwindStructureToStack(descriptor)
+            } else {
+                (descriptor.elementsCount - 1 downTo 0).forEach { idx ->
+                    val scheduled = Element.fromProperty(descriptor, idx)
+                    decodingState.elementStack.push(scheduled)
+                }
+            }
+            head.isResolved = true
+        }
+
+        return DataInputDecoder(elementsCount, input, serializersModule, decodingState, defaults)
+    }
+
+    private fun unwindStructureToStack(descriptor: SerialDescriptor) {
+        val structureMeta = decodingState.elementStack.peek().expect<Element.Structure>()
+
+        if (structureMeta.inner.isEmpty()) {
+            decodingState.elementStack.push(Element.Structure(descriptor.serialName, isResolved = false))
+        }
+
+        // Structure's inner elements need to be unwound on the stack.
+        structureMeta.inner
+            .filter { it !is Element.Primitive }
+            .asReversed()
+            .forEach { meta -> decodingState.elementStack.push(meta.copy()) }
     }
 
     override fun endStructure(descriptor: SerialDescriptor) {
-//        when (descriptor.kind) {
-//            StructureKind.LIST -> with (deserializationState.collections[descriptor]) {
-//                // Not removing this metadata because it may be handy for treating nested lists.
-//                this ?: error(" Something doesn't add up")
-//
-//                occupies = finalizeCollection(descriptor, annotations, start ?: error ("Wait a minute. Hang on a second."))
-//                free["processed"] = true
-//            }
-//            StructureKind.MAP -> TODO("Implement map support")
-//            else -> println("Ignored field ${descriptor.serialName}")
-//        }
+        when (descriptor.kind) {
+            is StructureKind.LIST, StructureKind.MAP -> endCollection(descriptor)
+            is StructureKind.CLASS -> decodingState.elementStack.pop()
+            is PolymorphicKind -> decodingState.elementStack.pop()
+            else -> TODO("Unknown structure kind `${descriptor.kind}`")
+        }
 
         super.endStructure(descriptor)
     }
 
-    private fun finalizeCollection(descriptor: SerialDescriptor, annotations: List<Annotation>, startIdx: Int): Int {
-        val expectedNumberOfElements = annotations
-            .filterIsInstance<DFLength>()
-            .firstOrNull()?.lengths?.firstOrNull()
+    private fun endCollection(descriptor: SerialDescriptor) {
+        val collection = decodingState.elementStack.pop().expect<Element.Collected>()
 
-        require(expectedNumberOfElements != null) {
-            "Compound `${descriptor.serialName}` must have ValueLength annotation"
+        val startByte = collection.startByte ?:throw SerdeError.CollectionNoStart(collection)
+        val collectionActualLength = collection.collectionActualLength ?: throw SerdeError.CollectionNoActualLength(collection)
+        val collectionRequiredLengthWrapped = collection.collectionRequiredLength ?: throw SerdeError.CollectedNoRequiredLength(collection)
+
+        val collectionRequiredLength = when (collectionRequiredLengthWrapped) {
+            is Length.Actual -> return
+            is Length.Fixed -> collectionRequiredLengthWrapped.value
         }
 
-        // val expectedLength = expectedNumberOfElements * getElementSize(descriptor.elementDescriptors.single(), serializersModule, defaults)
-        val expectedLength = 2
+        if (collectionRequiredLength == collectionActualLength) {
+            // No padding is required.
+            return
+        } else if (collectionRequiredLength < collectionActualLength) {
+            throw SerdeError.CollectedTooLarge(collection)
+        }
+        // Collected is to be padded.
 
-        val currentByteIdx = deserializationState.byteIndex
-        val actualLength = currentByteIdx - startIdx
-        require(expectedLength > actualLength) {
-            "Serialized elements don't fit into their expected length"
+        val elementsStartByteIdx = startByte + 4
+
+        // writtenBytes is the amount of bytes corresponding serialization of inner elements.
+        val writtenBytes = decodingState.byteIndex - elementsStartByteIdx
+
+        val elementSize = if (collectionActualLength != 0) {
+            writtenBytes / collectionActualLength
+        } else {
+            if (collection.inner.size != descriptor.elementsCount)
+                throw SerdeError.CollectionSizingMismatch(collection, descriptor.elementsCount)
+
+            collection.inner.zip(descriptor.elementDescriptors).sumBy { (childSizingInfo, childDescriptor) ->
+                getElementSize(childDescriptor, childSizingInfo, serializersModule, defaults)
+            }
         }
 
-        val paddedBytesLength = expectedLength - actualLength
-        input.skipBytes(paddedBytesLength)
-        deserializationState.byteIndex += paddedBytesLength
-
-
-        return expectedLength
+        input.skipBytes(elementSize * (collectionRequiredLength - collectionActualLength))
     }
+
+    override fun decodeString(): String {
+        // In output.writeUTF, length of the string is stored as short.
+        // We do the same for consistency.
+        val actualLength = decodeShort()
+        val string = (0 until actualLength).map { decodeChar() }.joinToString("")
+
+        val sizingInfo = decodingState.elementStack.pop().expect<Element.Collected>()
+
+        val requiredLength = sizingInfo.collectionRequiredLength?.let {
+            when (it) {
+                is Length.Actual -> return string
+                is Length.Fixed -> it.value
+            }
+        } ?: throw SerdeError.CollectedNoRequiredLength(sizingInfo)
+
+        if (actualLength > requiredLength)
+            throw SerdeError.StringSizingMismatch(actualLength.toInt(), requiredLength)
+
+        val paddingLength = requiredLength - actualLength
+
+        val paddingBytesLength = 2 * paddingLength
+        input.skipBytes(paddingBytesLength)
+
+        return string
+    }
+
+    override fun decodeBoolean(): Boolean = input.readBoolean().also { decodingState.byteIndex++ }
+    override fun decodeByte() = input.readByte().also { decodingState.byteIndex++ }
+    override fun decodeShort() = input.readShort().also { decodingState.byteIndex += 2 }
+    override fun decodeInt() = input.readInt().also { decodingState.byteIndex += 4 }
+    override fun decodeLong() = input.readLong().also { decodingState.byteIndex += 8 }
+    override fun decodeFloat() = input.readFloat().also { decodingState.byteIndex += 4 }
+    override fun decodeDouble() = input.readDouble().also { decodingState.byteIndex += 8 }
+    override fun decodeChar() = input.readChar().also { decodingState.byteIndex += 2 }
+    override fun decodeEnum(enumDescriptor: SerialDescriptor) = input.readInt().also { decodingState.byteIndex += 4 }
 
     override fun decodeSequentially(): Boolean = true
 
-    override fun decodeCollectionSize(descriptor: SerialDescriptor): Int =
+    override fun decodeCollectionSize(descriptor: SerialDescriptor) =
         decodeInt().also { elementsCount = it }
 
+    override fun decodeElementIndex(descriptor: SerialDescriptor) =
+        if (elementIndex == elementsCount) CompositeDecoder.DECODE_DONE else elementIndex++
+
     override fun decodeNotNullMark(): Boolean = decodeBoolean()
+
+    private fun <T> ArrayDeque<T>.push(value: T) = this.addFirst(value)
+    private fun <T> ArrayDeque<T>.pop(): T = this.removeFirst()
+    private fun <T> ArrayDeque<T>.peek(): T = this.first()
+
+    data class DecodingState(var byteIndex: Int = 0, val elementStack: ArrayDeque<Element> = ArrayDeque())
 }

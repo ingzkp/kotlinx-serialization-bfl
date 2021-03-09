@@ -5,45 +5,14 @@ import kotlinx.serialization.Serializable
 import java.security.PublicKey
 
 @Serializable
-class Own(val int: Int = 100) {
+data class Own(val int: Int = 100) {
     override fun toString() = "Own(int= $int)"
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as Own
-
-        if (int != other.int) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        return int
-    }
-
-
 }
 
+@ExperimentalSerializationApi
 @Serializable
-class OwnList(@DFLength([2]) val list: List<Int> = listOf(1)) {
+data class OwnList(@DFLength([2]) val list: List<Int> = listOf(1)) {
     override fun toString() = "OwnList(list= ${list.joinToString()})"
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as OwnList
-
-        if (list != other.list) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        return list.hashCode()
-    }
 }
 
 @Serializable

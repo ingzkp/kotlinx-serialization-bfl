@@ -107,3 +107,7 @@ fun getElementSize(
             }
         }
     }
+
+fun <T> ArrayDeque<T>.push(value: T) = this.addFirst(value)
+fun <T> ArrayDeque<T>.pop(): T = this.removeFirst()
+fun <T> ArrayDeque<T>.peek(): T = this.first()

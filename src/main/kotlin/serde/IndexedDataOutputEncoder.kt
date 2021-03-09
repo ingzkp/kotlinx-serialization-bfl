@@ -9,6 +9,9 @@ import kotlinx.serialization.descriptors.elementDescriptors
 import kotlinx.serialization.encoding.AbstractEncoder
 import kotlinx.serialization.encoding.CompositeEncoder
 import kotlinx.serialization.modules.SerializersModule
+import peek
+import pop
+import push
 import java.io.DataOutput
 import java.io.DataOutputStream
 
@@ -180,8 +183,4 @@ class IndexedDataOutputEncoder(
     override fun encodeNotNullMark() = encodeBoolean(true)
 
     private fun getCurrentByteIdx(): Int = (output as DataOutputStream).size()
-
-    private fun <T> ArrayDeque<T>.push(value: T) = this.addFirst(value)
-    private fun <T> ArrayDeque<T>.pop(): T = this.removeFirst()
-    private fun <T> ArrayDeque<T>.peek(): T = this.first()
 }

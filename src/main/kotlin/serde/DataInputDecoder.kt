@@ -9,22 +9,27 @@ import kotlinx.serialization.descriptors.elementDescriptors
 import kotlinx.serialization.encoding.AbstractDecoder
 import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.modules.SerializersModule
+import peek
+import pop
+import push
 import java.io.DataInput
 
 @ExperimentalSerializationApi
 class DataInputDecoder(
-    var elementsCount: Int = 0,
     private val input: DataInput,
     override val serializersModule: SerializersModule,
-    private val decodingState: DecodingState = DecodingState(),
     private val defaults: List<Any>
 ) : AbstractDecoder() {
     private var elementIndex = 0
+    private var elementsCount: Int = 0
+    private var byteIndex: Int = 0
+    private val elementStack: ArrayDeque<Element> = ArrayDeque(listOf(Element.Structure("ROOT", isResolved = false)))
 
     override fun beginStructure(descriptor: SerialDescriptor): CompositeDecoder {
-        if (descriptor.kind !is StructureKind.MAP && descriptor.kind !is StructureKind.LIST) {
+        if (!descriptor.isCollection) {
             return beginClass(descriptor)
         }
+
         return this
     }
 
@@ -32,7 +37,7 @@ class DataInputDecoder(
         // Annotations are only accessible at the properties level.
 
         // When this function is called there must be a Structure on top of the stack.
-        val head = decodingState.elementStack.peek().expect<Element.Structure>()
+        val head = elementStack.peek().expect<Element.Structure>()
 
         // TODO: add check if the struct on the stack coincides with the current descriptor.
 
@@ -43,12 +48,12 @@ class DataInputDecoder(
             // if this string is split from the rest of the structure we cannot infer its size.
             if (descriptor.isPolymorphic) {
                 val scheduled = Element.fromType(descriptor.serialName, descriptor)
-                decodingState.elementStack.push(scheduled)
+                elementStack.push(scheduled)
                 unwindStructureToStack(descriptor)
             } else {
                 (descriptor.elementsCount - 1 downTo 0).forEach { idx ->
                     val scheduled = Element.fromProperty(descriptor, idx)
-                    decodingState.elementStack.push(scheduled)
+                    elementStack.push(scheduled)
                 }
             }
             head.isResolved = true
@@ -58,24 +63,24 @@ class DataInputDecoder(
     }
 
     private fun unwindStructureToStack(descriptor: SerialDescriptor) {
-        val structureMeta = decodingState.elementStack.peek().expect<Element.Structure>()
+        val structureMeta = elementStack.peek().expect<Element.Structure>()
 
         if (structureMeta.inner.isEmpty()) {
-            decodingState.elementStack.push(Element.Structure(descriptor.serialName, isResolved = false))
+            elementStack.push(Element.Structure(descriptor.serialName, isResolved = false))
         }
 
         // Structure's inner elements need to be unwound on the stack.
         structureMeta.inner
             .filter { it !is Element.Primitive }
             .asReversed()
-            .forEach { meta -> decodingState.elementStack.push(meta.copy()) }
+            .forEach { meta -> elementStack.push(meta.copy()) }
     }
 
     override fun endStructure(descriptor: SerialDescriptor) {
         when (descriptor.kind) {
             is StructureKind.LIST, StructureKind.MAP -> endCollection(descriptor)
-            is StructureKind.CLASS -> decodingState.elementStack.pop()
-            is PolymorphicKind -> decodingState.elementStack.pop()
+            is StructureKind.CLASS -> elementStack.pop()
+            is PolymorphicKind -> elementStack.pop()
             else -> TODO("Unknown structure kind `${descriptor.kind}`")
         }
 
@@ -85,10 +90,10 @@ class DataInputDecoder(
     private fun endCollection(descriptor: SerialDescriptor) {
         // it's a crutch, but because of enabled sequential decoding (due to performance reasons),
         // key-value serializers don't call endStructure() on elements of list-like structures
-        while (decodingState.elementStack.peek() !is Element.Collected) {
-            decodingState.elementStack.pop()
+        while (elementStack.peek() !is Element.Collected) {
+            elementStack.pop()
         }
-        val collection = decodingState.elementStack.pop().expect<Element.Collected>()
+        val collection = elementStack.pop().expect<Element.Collected>()
 
         val startByte = collection.startByte ?:throw SerdeError.CollectionNoStart(collection)
         val collectionActualLength = collection.collectionActualLength ?: throw SerdeError.CollectionNoActualLength(collection)
@@ -110,7 +115,7 @@ class DataInputDecoder(
         val elementsStartByteIdx = startByte + 4
 
         // writtenBytes is the amount of bytes corresponding serialization of inner elements.
-        val writtenBytes = decodingState.byteIndex - elementsStartByteIdx
+        val writtenBytes = byteIndex - elementsStartByteIdx
 
         val elementSize = if (collectionActualLength != 0) {
             writtenBytes / collectionActualLength
@@ -132,7 +137,7 @@ class DataInputDecoder(
         val actualLength = decodeShort()
         val string = (0 until actualLength).map { decodeChar() }.joinToString("")
 
-        val sizingInfo = decodingState.elementStack.pop().expect<Element.Collected>()
+        val sizingInfo = elementStack.pop().expect<Element.Collected>()
 
         val requiredLength = sizingInfo.collectionRequiredLength?.let {
             when (it) {
@@ -152,15 +157,15 @@ class DataInputDecoder(
         return string
     }
 
-    override fun decodeBoolean(): Boolean = input.readBoolean().also { decodingState.byteIndex++ }
-    override fun decodeByte() = input.readByte().also { decodingState.byteIndex++ }
-    override fun decodeShort() = input.readShort().also { decodingState.byteIndex += 2 }
-    override fun decodeInt() = input.readInt().also { decodingState.byteIndex += 4 }
-    override fun decodeLong() = input.readLong().also { decodingState.byteIndex += 8 }
-    override fun decodeFloat() = input.readFloat().also { decodingState.byteIndex += 4 }
-    override fun decodeDouble() = input.readDouble().also { decodingState.byteIndex += 8 }
-    override fun decodeChar() = input.readChar().also { decodingState.byteIndex += 2 }
-    override fun decodeEnum(enumDescriptor: SerialDescriptor) = input.readInt().also { decodingState.byteIndex += 4 }
+    override fun decodeBoolean(): Boolean = input.readBoolean().also { byteIndex++ }
+    override fun decodeByte() = input.readByte().also { byteIndex++ }
+    override fun decodeShort() = input.readShort().also { byteIndex += 2 }
+    override fun decodeInt() = input.readInt().also { byteIndex += 4 }
+    override fun decodeLong() = input.readLong().also { byteIndex += 8 }
+    override fun decodeFloat() = input.readFloat().also { byteIndex += 4 }
+    override fun decodeDouble() = input.readDouble().also { byteIndex += 8 }
+    override fun decodeChar() = input.readChar().also { byteIndex += 2 }
+    override fun decodeEnum(enumDescriptor: SerialDescriptor) = input.readInt().also { byteIndex += 4 }
 
     override fun decodeSequentially(): Boolean = true
 
@@ -169,16 +174,16 @@ class DataInputDecoder(
 
     private fun beginCollection(descriptor: SerialDescriptor): CompositeDecoder {
         // Unwind sizing meta information for this collection to the stack.
-        val collectionMeta = decodingState.elementStack.peek().expect<Element.Collected>()
+        val collectionMeta = elementStack.peek().expect<Element.Collected>()
 
-        collectionMeta.startByte = decodingState.byteIndex
+        collectionMeta.startByte = byteIndex
         collectionMeta.collectionActualLength = elementsCount
 
         repeat(elementsCount) {
             collectionMeta.inner
                 .filter { it !is Element.Primitive }
                 .asReversed()
-                .forEach { meta -> decodingState.elementStack.push(meta.copy()) }
+                .forEach { meta -> elementStack.push(meta.copy()) }
         }
 
         return this
@@ -188,10 +193,4 @@ class DataInputDecoder(
         if (elementIndex == elementsCount) CompositeDecoder.DECODE_DONE else elementIndex++
 
     override fun decodeNotNullMark(): Boolean = decodeBoolean()
-
-    private fun <T> ArrayDeque<T>.push(value: T) = this.addFirst(value)
-    private fun <T> ArrayDeque<T>.pop(): T = this.removeFirst()
-    private fun <T> ArrayDeque<T>.peek(): T = this.first()
-
-    data class DecodingState(var byteIndex: Int = 0, val elementStack: ArrayDeque<Element> = ArrayDeque(listOf(Element.Structure("ROOT", isResolved = false))))
 }

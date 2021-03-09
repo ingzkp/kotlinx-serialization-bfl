@@ -28,7 +28,7 @@ class SerdeTest {
             }
         }
 
-        val serialNameRSAPublicKeyImpl = "RSAPublicKeyImpl"
+        const val serialNameRSAPublicKeyImpl = "RSAPublicKeyImpl"
     }
 
     @Test
@@ -58,8 +58,7 @@ class SerdeTest {
         val bytes = serialize(data)
 
         val deserialized: Data = deserialize(bytes)
-
-        assert(data == deserialized)
+        data shouldBe deserialized
     }
 
     @Test
@@ -92,8 +91,7 @@ class SerdeTest {
         val bytes = serialize(data)
 
         val deserialized: Data = deserialize(bytes)
-
-        assert(data == deserialized)
+        data shouldBe deserialized
     }
 
     @Test
@@ -115,8 +113,7 @@ class SerdeTest {
         val bytes = serialize(data)
 
         val deserialized: Data = deserialize(bytes)
-
-        assert(data == deserialized)
+        data shouldBe deserialized
     }
 
     @Serializable
@@ -155,8 +152,7 @@ class SerdeTest {
         val bytes = serialize(data)
 
         val deserialized: Data = deserialize(bytes)
-
-        assert(data == deserialized)
+        data shouldBe deserialized
     }
 
     @Test
@@ -187,8 +183,7 @@ class SerdeTest {
         val bytes = serialize(data)
 
         val deserialized: Data = deserialize(bytes)
-
-        assert(data == deserialized)
+        data shouldBe deserialized
     }
 
     @Test
@@ -248,8 +243,7 @@ class SerdeTest {
         val bytes = serialize(data)
 
         val deserialized: Data = deserialize(bytes)
-
-        assert(data == deserialized)
+        data shouldBe deserialized
     }
 
     @Test
@@ -271,8 +265,7 @@ class SerdeTest {
         val bytes = serialize(data)
 
         val deserialized: Data = deserialize(bytes)
-
-        assert(data == deserialized)
+        data shouldBe deserialized
     }
 
     @Test
@@ -303,8 +296,7 @@ class SerdeTest {
         val bytes = serialize(data)
 
         val deserialized: Data = deserialize(bytes)
-
-        assert(data == deserialized)
+        data shouldBe deserialized
     }
 
     @Test
@@ -318,7 +310,6 @@ class SerdeTest {
         )
 
         var data = Data(Pair(10, listOf(20)))
-        @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
         var bytes = checkedSerialize(data, mask)
 
         data = Data(Pair(10, listOf()))
@@ -335,8 +326,7 @@ class SerdeTest {
         val bytes = serialize(data)
 
         val deserialized: Data = deserialize(bytes)
-
-        assert(data == deserialized)
+        data shouldBe deserialized
     }
 
     @Test
@@ -350,7 +340,6 @@ class SerdeTest {
         )
 
         var data = Data(listOf(Own()))
-        @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
         var bytes = checkedSerialize(data, mask)
 
         data = Data(listOf())
@@ -367,8 +356,7 @@ class SerdeTest {
         val bytes = serialize(data)
 
         val deserialized: Data = deserialize(bytes)
-
-        assert(data == deserialized)
+        data shouldBe deserialized
     }
 
     @Test
@@ -393,8 +381,7 @@ class SerdeTest {
         val bytes = serialize(data)
 
         val deserialized: DataOwn = deserialize(bytes)
-
-        assert(data == deserialized)
+        data shouldBe deserialized
     }
 
     // I had to move out from the respective test, as otherwise it generates an error on the JVM level.
@@ -429,8 +416,7 @@ class SerdeTest {
         val bytes = serialize(data)
 
         val deserialized: Data = deserialize(bytes)
-
-        assert(data == deserialized)
+        data shouldBe deserialized
     }
 
     @Test
@@ -463,8 +449,7 @@ class SerdeTest {
         val bytes = serialize(data)
 
         val deserialized: Data = deserialize(bytes)
-
-        assert(data == deserialized)
+        data shouldBe deserialized
     }
 
     @Test
@@ -501,8 +486,7 @@ class SerdeTest {
         val bytes = serialize(data)
 
         val deserialized: Data = deserialize(bytes)
-
-        assert(data == deserialized)
+        data shouldBe deserialized
     }
 
     @Test
@@ -523,8 +507,7 @@ class SerdeTest {
         val bytes = serialize(data)
 
         val deserialized: PublicKey = deserialize(bytes)
-
-        assert(data == deserialized)
+        data shouldBe deserialized
     }
 
     @Test
@@ -550,8 +533,7 @@ class SerdeTest {
         val bytes = serialize(data)
 
         val deserialized: Data = deserialize(bytes)
-
-        assert(data == deserialized)
+        data shouldBe deserialized
     }
 
     @Test
@@ -582,8 +564,7 @@ class SerdeTest {
         val bytes = serialize(data)
 
         val deserialized: Data = deserialize(bytes)
-
-        assert(data == deserialized)
+        data shouldBe deserialized
     }
 
     @Test
@@ -616,8 +597,7 @@ class SerdeTest {
         val bytes = serialize(data)
 
         val deserialized: Data = deserialize(bytes)
-
-        assert(data == deserialized)
+        data shouldBe deserialized
     }
 
 

@@ -97,12 +97,7 @@ class DataInputDecoder(
 
         val startByte = collection.startByte ?:throw SerdeError.CollectionNoStart(collection)
         val collectionActualLength = collection.collectionActualLength ?: throw SerdeError.CollectionNoActualLength(collection)
-        val collectionRequiredLengthWrapped = collection.collectionRequiredLength ?: throw SerdeError.CollectedNoRequiredLength(collection)
-
-        val collectionRequiredLength = when (collectionRequiredLengthWrapped) {
-            is Length.Actual -> return
-            is Length.Fixed -> collectionRequiredLengthWrapped.value
-        }
+        val collectionRequiredLength = collection.collectionRequiredLength ?: throw SerdeError.CollectedNoRequiredLength(collection)
 
         if (collectionRequiredLength == collectionActualLength) {
             // No padding is required.
@@ -139,15 +134,11 @@ class DataInputDecoder(
 
         val sizingInfo = elementStack.pop().expect<Element.Collected>()
 
-        val requiredLength = sizingInfo.collectionRequiredLength?.let {
-            when (it) {
-                is Length.Actual -> return string
-                is Length.Fixed -> it.value
-            }
-        } ?: throw SerdeError.CollectedNoRequiredLength(sizingInfo)
+        val requiredLength = sizingInfo.collectionRequiredLength?: throw SerdeError.CollectedNoRequiredLength(sizingInfo)
 
-        if (actualLength > requiredLength)
+        if (actualLength > requiredLength) {
             throw SerdeError.StringSizingMismatch(actualLength.toInt(), requiredLength)
+        }
 
         val paddingLength = requiredLength - actualLength
 

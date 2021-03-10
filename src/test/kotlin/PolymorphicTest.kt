@@ -1,6 +1,7 @@
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
 import org.junit.jupiter.api.Test
+import serde.Element
 import java.security.PublicKey
 
 @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
@@ -9,7 +10,7 @@ class PolymorphicTest: SerdeTest() {
     @Test
     fun `serialize polymorphic type itself`() {
         val mask = listOf(
-            Pair("serialName", 2 + 2 * serialNameRSAPublicKeyImpl.length),
+            Pair("serialName", 2 + 2 * Element.polySerialNameLength),
             Pair("length", 4),
             Pair("value", 500)
         )

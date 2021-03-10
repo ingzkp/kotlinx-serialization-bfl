@@ -106,12 +106,7 @@ class IndexedDataOutputEncoder(
 
         val startByte = collection.startByte ?:throw SerdeError.CollectionNoStart(collection)
         val collectionActualLength = collection.collectionActualLength ?: throw SerdeError.CollectionNoActualLength(collection)
-        val collectionRequiredLengthWrapped = collection.collectionRequiredLength ?: throw SerdeError.CollectedNoRequiredLength(collection)
-
-        val collectionRequiredLength = when (collectionRequiredLengthWrapped) {
-            is Length.Actual -> return
-            is Length.Fixed -> collectionRequiredLengthWrapped.value
-        }
+        val collectionRequiredLength = collection.collectionRequiredLength ?: throw SerdeError.CollectedNoRequiredLength(collection)
 
         if (collectionRequiredLength == collectionActualLength) {
             // No padding is required.
@@ -161,12 +156,7 @@ class IndexedDataOutputEncoder(
 
         val string = elementStack.pop().expect<Element.Collected>()
 
-        val requiredLength = string.collectionRequiredLength?.let {
-            when (it) {
-                is Length.Actual -> return
-                is Length.Fixed -> it.value
-            }
-        } ?: throw SerdeError.CollectedNoRequiredLength(string)
+        val requiredLength = string.collectionRequiredLength?: throw SerdeError.CollectedNoRequiredLength(string)
 
         if (actualLength > requiredLength)
             throw SerdeError.StringSizingMismatch(actualLength, requiredLength)

@@ -61,12 +61,7 @@ fun getElementSize(
                 // SHORT (string length) + number_of_elements * CHAR = 2 + n * 2
                 check(element is Element.Collected) { "Sizing information on Strings must be present" }
 
-                val n = element.collectionRequiredLength?.let {
-                    when (it) {
-                        is Length.Actual -> error("Evaluating size of a string which size must be defined by the instance")
-                        is Length.Fixed -> it.value
-                    }
-                } ?: error("Sizes of Strings must be known: ${element.name}")
+                val n = element.collectionRequiredLength?: error("Sizes of Strings must be known: ${element.name}")
 
                 2 + n * 2
             }
@@ -84,12 +79,7 @@ fun getElementSize(
                     getElementSize(childDescriptor, childSizingInfo, serializersModule, defaults)
                 }
 
-                val n = element.collectionRequiredLength?.let {
-                    when (it) {
-                        is Length.Actual -> error("Evaluating size of a collection which size must be defined by the instance")
-                        is Length.Fixed -> it.value
-                    }
-                } ?: error("Sizes of List-like structures must be known: ${element.name}")
+                val n = element.collectionRequiredLength?: error("Sizes of List-like structures must be known: ${element.name}")
 
                 4 + n * innerSize
             }

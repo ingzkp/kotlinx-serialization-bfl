@@ -28,6 +28,8 @@ sealed class Element(val name: String) {
 
     @ExperimentalSerializationApi
     companion object {
+        const val polySerialNameLength = 100
+
         fun fromProperty(containerDescriptor: SerialDescriptor, propertyIdx: Int): Element {
             val descriptor = containerDescriptor.getElementDescriptor(propertyIdx)
             val name = "${containerDescriptor.serialName}.${descriptor.serialName}"
@@ -38,7 +40,7 @@ sealed class Element(val name: String) {
                     // Top-level Collection or String must have annotations
                     val lengths = containerDescriptor.getElementAnnotations(propertyIdx)
                         .filterIsInstance<DFLength>()
-                        .firstOrNull()?.lengths?.toMutableList()
+                        .firstOrNull()?.lengths?.toList()?.let { ArrayDeque(it) }
                         ?: throw SerdeError.AbsentAnnotations(containerDescriptor, propertyIdx)
 
                     fromType(containerDescriptor.serialName, descriptor, lengths)
@@ -48,7 +50,7 @@ sealed class Element(val name: String) {
                     // We can infer this by observing an appropriate length annotation.
                     val lengths = containerDescriptor.getElementAnnotations(propertyIdx)
                         .filterIsInstance<DFLength>()
-                        .firstOrNull()?.lengths?.toMutableList()
+                        .firstOrNull()?.lengths?.toList()?.let { ArrayDeque(it) }
                     if (lengths != null) {
                         fromType(containerDescriptor.serialName, descriptor, lengths)
                     } else {
@@ -62,7 +64,7 @@ sealed class Element(val name: String) {
             }
         }
 
-        fun fromType(parentName: String, descriptor: SerialDescriptor, lengths: MutableList<Int> = mutableListOf()): Element {
+        fun fromType(parentName: String, descriptor: SerialDescriptor, lengths: ArrayDeque<Int> = ArrayDeque()): Element {
             val name = "$parentName.${descriptor.serialName}"
 
             return when {
@@ -74,7 +76,7 @@ sealed class Element(val name: String) {
                         fromType(name, it, lengths)
                     }
                     Collected(name,
-                        CollectedSizingInfo(collectionRequiredLength = Length.Fixed(requiredSize), inner = children)
+                        CollectedSizingInfo(collectionRequiredLength = requiredSize, inner = children)
                     )
                 }
                 descriptor.isStructure ->  {
@@ -85,12 +87,8 @@ sealed class Element(val name: String) {
                 }
                 descriptor.isPolymorphic -> {
                     // Polymorphic type consists of a string and a structure.
-                    val children = listOf(
-                        Collected(
-                            "$name.${descriptor.getElementName(0)}",
-                            CollectedSizingInfo(collectionRequiredLength = Length.Actual, inner = listOf())
-                        )) +
-                        descriptor.elementDescriptors.filterIndexed { idx, _ -> idx != 0 }.map {
+                    lengths.addFirst(polySerialNameLength)
+                    val children = descriptor.elementDescriptors.map {
                             fromType(name, it, lengths)
                         }
 
@@ -107,7 +105,7 @@ sealed class Element(val name: String) {
 interface ElementSizingInfo {
     var startByte: Int?
     var collectionActualLength: Int?
-    var collectionRequiredLength: Length?
+    var collectionRequiredLength: Int?
     var inner: List<Element>
 }
 
@@ -115,11 +113,6 @@ interface ElementSizingInfo {
 data class CollectedSizingInfo(
     override var startByte: Int? = null,
     override var collectionActualLength: Int? = null,
-    override var collectionRequiredLength: Length? = null,
+    override var collectionRequiredLength: Int? = null,
     override var inner: List<Element> = mutableListOf(),
 ) : ElementSizingInfo
-
-sealed class Length {
-    object Actual: Length()
-    data class Fixed(val value: Int): Length()
-}

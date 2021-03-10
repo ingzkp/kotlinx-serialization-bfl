@@ -20,8 +20,6 @@ open class SerdeTest {
                 subclass(RSAPublicKeyImpl::class, RSAPublicKeySerializer)
             }
         }
-
-        const val serialNameRSAPublicKeyImpl = "RSAPublicKeyImpl"
     }
 
     inline fun <reified T : Any> checkedSerialize(

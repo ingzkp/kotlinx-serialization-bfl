@@ -59,18 +59,15 @@ fun getElementSize(
             is PrimitiveKind.CHAR -> 2
             is PrimitiveKind.STRING -> {
                 // SHORT (string length) + number_of_elements * CHAR = 2 + n * 2
-                check(element is Element.Collected) { "Sizing information on Strings must be present" }
-
-                val n = element.collectionRequiredLength?: error("Sizes of Strings must be known: ${element.name}")
-
-                2 + n * 2
+                check(element is Element.Strng) { "Sizing information on Strings must be present" }
+                2 + 2 * element.requiredLength
             }
 
             is StructureKind.LIST, StructureKind.MAP -> {
                 // INT (collection length) + number_of_elements * sum_i { size(inner_i) }
                 // = 4 + n * sum_i { size(inner_i) }
 
-                check(element is Element.Collected) { "Sizing information on Collections must be present" }
+                check(element is Element.Collection) { "Sizing information on Collections must be present" }
 
                 check(element.inner.size == descriptor.elementsCount)
                     { "Sizing info does not coincide with descriptors"}
@@ -79,9 +76,7 @@ fun getElementSize(
                     getElementSize(childDescriptor, childSizingInfo, serializersModule, defaults)
                 }
 
-                val n = element.collectionRequiredLength?: error("Sizes of List-like structures must be known: ${element.name}")
-
-                4 + n * innerSize
+                4 + innerSize * element.requiredLength
             }
             //
             else -> {

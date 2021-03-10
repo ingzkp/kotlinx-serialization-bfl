@@ -23,7 +23,8 @@ class DataInputDecoder(
     private var elementIndex = 0
     private var elementsCount: Int = 0
     private var byteIndex: Int = 0
-    private val elementStack: ArrayDeque<Element> = ArrayDeque(listOf(Element.Structure("ROOT", isResolved = false)))
+    private val elementStack: ArrayDeque<Element>
+        = ArrayDeque(listOf(Element.Structure("ROOT", inner= listOf(), isResolved = false)))
 
     override fun beginStructure(descriptor: SerialDescriptor): CompositeDecoder {
         if (!descriptor.isCollection) {
@@ -66,7 +67,7 @@ class DataInputDecoder(
         val structureMeta = elementStack.peek().expect<Element.Structure>()
 
         if (structureMeta.inner.isEmpty()) {
-            elementStack.push(Element.Structure(descriptor.serialName, isResolved = false))
+            elementStack.push(Element.Structure(descriptor.serialName, inner = listOf(), isResolved = false))
         }
 
         // Structure's inner elements need to be unwound on the stack.
@@ -90,22 +91,22 @@ class DataInputDecoder(
     private fun endCollection(descriptor: SerialDescriptor) {
         // it's a crutch, but because of enabled sequential decoding (due to performance reasons),
         // key-value serializers don't call endStructure() on elements of list-like structures
-        while (elementStack.peek() !is Element.Collected) {
+        while (elementStack.peek() !is Element.Collection) {
             elementStack.pop()
         }
-        val collection = elementStack.pop().expect<Element.Collected>()
+        val collection = elementStack.pop().expect<Element.Collection>()
 
         val startByte = collection.startByte ?:throw SerdeError.CollectionNoStart(collection)
-        val collectionActualLength = collection.collectionActualLength ?: throw SerdeError.CollectionNoActualLength(collection)
-        val collectionRequiredLength = collection.collectionRequiredLength ?: throw SerdeError.CollectedNoRequiredLength(collection)
+        val collectionActualLength = collection.actualLength ?: throw SerdeError.CollectionNoActualLength(collection)
+        val collectionRequiredLength = collection.requiredLength
 
         if (collectionRequiredLength == collectionActualLength) {
             // No padding is required.
             return
-        } else if (collectionRequiredLength < collectionActualLength) {
-            throw SerdeError.CollectedTooLarge(collection)
+        } else if (collectionActualLength > collectionRequiredLength) {
+            throw SerdeError.CollectionTooLarge(collection)
         }
-        // Collected is to be padded.
+        // Collection is to be padded.
 
         val elementsStartByteIdx = startByte + 4
 
@@ -130,14 +131,14 @@ class DataInputDecoder(
         // In output.writeUTF, length of the string is stored as short.
         // We do the same for consistency.
         val actualLength = decodeShort()
-        val string = (0 until actualLength).map { decodeChar() }.joinToString("")
+        val value = (0 until actualLength).map { decodeChar() }.joinToString("")
 
-        val sizingInfo = elementStack.pop().expect<Element.Collected>()
+        val string = elementStack.pop().expect<Element.Strng>()
 
-        val requiredLength = sizingInfo.collectionRequiredLength?: throw SerdeError.CollectedNoRequiredLength(sizingInfo)
+        val requiredLength = string.requiredLength
 
         if (actualLength > requiredLength) {
-            throw SerdeError.StringSizingMismatch(actualLength.toInt(), requiredLength)
+            throw SerdeError.StringTooLarge(actualLength.toInt(), string)
         }
 
         val paddingLength = requiredLength - actualLength
@@ -145,7 +146,7 @@ class DataInputDecoder(
         val paddingBytesLength = 2 * paddingLength
         input.skipBytes(paddingBytesLength)
 
-        return string
+        return value
     }
 
     override fun decodeBoolean(): Boolean = input.readBoolean().also { byteIndex++ }
@@ -165,10 +166,10 @@ class DataInputDecoder(
 
     private fun beginCollection(descriptor: SerialDescriptor): CompositeDecoder {
         // Unwind sizing meta information for this collection to the stack.
-        val collectionMeta = elementStack.peek().expect<Element.Collected>()
+        val collectionMeta = elementStack.peek().expect<Element.Collection>()
 
         collectionMeta.startByte = byteIndex
-        collectionMeta.collectionActualLength = elementsCount
+        collectionMeta.actualLength = elementsCount
 
         repeat(elementsCount) {
             collectionMeta.inner

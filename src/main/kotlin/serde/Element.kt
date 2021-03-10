@@ -9,14 +9,18 @@ import kotlinx.serialization.descriptors.elementDescriptors
 sealed class Element(val name: String) {
     class Primitive(name: String): Element(name)
 
-    // To be used to describe Collections (List/Map) and Strings
-    class Collected(name: String, val sizingInfo: CollectedSizingInfo): ElementSizingInfo by sizingInfo, Element(name)
+    class Strng(name: String, val requiredLength: Int): Element(name)
 
-    class Structure(name: String, val inner: List<Element> = listOf(), var isResolved: Boolean): Element(name)
+    // To be used to describe Collections (List/Map)
+    class Collection(name: String, val sizingInfo: CollectionSizingInfo): CollectionElementSizingInfo by sizingInfo, Element(name)
 
+    class Structure(name: String, val inner: List<Element>, var isResolved: Boolean): Element(name)
+
+    // TODO why copy?
     fun copy(): Element  = when (this) {
         is Primitive -> this
-        is Collected -> Collected(name, sizingInfo.copy())
+        is Strng -> this
+        is Collection -> Collection(name, sizingInfo.copy())
         is Structure -> Structure(name, ArrayList(inner), isResolved)
     }
 
@@ -54,7 +58,7 @@ sealed class Element(val name: String) {
                     if (lengths != null) {
                         fromType(containerDescriptor.serialName, descriptor, lengths)
                     } else {
-                        Structure(name, isResolved = false)
+                        Structure(name, inner = listOf(), isResolved = false)
                     }
                 }
                 descriptor.isPolymorphic || descriptor.isContextual -> {
@@ -69,15 +73,18 @@ sealed class Element(val name: String) {
 
             return when {
                 descriptor.isTrulyPrimitive -> Primitive(name)
-                descriptor.isCollection || descriptor.isString -> {
-                    val requiredSize = lengths.removeFirstOrNull()
+                descriptor.isString -> {
+                    val requiredLength = lengths.removeFirstOrNull()
+                        ?: throw SerdeError.InsufficientLengthData(parentName, descriptor)
+                    Strng(name, requiredLength)
+                }
+                descriptor.isCollection -> {
+                    val requiredLength = lengths.removeFirstOrNull()
                         ?: throw SerdeError.InsufficientLengthData(parentName, descriptor)
                     val children = descriptor.elementDescriptors.map {
                         fromType(name, it, lengths)
                     }
-                    Collected(name,
-                        CollectedSizingInfo(collectionRequiredLength = requiredSize, inner = children)
-                    )
+                    Collection(name, CollectionSizingInfo(requiredLength = requiredLength, inner = children))
                 }
                 descriptor.isStructure ->  {
                     val children = descriptor.elementDescriptors.map {
@@ -88,13 +95,11 @@ sealed class Element(val name: String) {
                 descriptor.isPolymorphic -> {
                     // Polymorphic type consists of a string and a structure.
                     lengths.addFirst(polySerialNameLength)
-                    val children = descriptor.elementDescriptors.map {
-                            fromType(name, it, lengths)
-                        }
+                    val children = descriptor.elementDescriptors.map { fromType(name, it, lengths) }
 
                     Structure(name, inner = children, isResolved = true)
                 }
-                descriptor.isContextual -> Structure(name, isResolved = false)
+                descriptor.isContextual -> Structure(name, inner = listOf(), isResolved = false)
                 else -> error("Unreachable code when building element from type ${descriptor.serialName}")
             }
         }
@@ -102,17 +107,17 @@ sealed class Element(val name: String) {
 }
 
 @ExperimentalSerializationApi
-interface ElementSizingInfo {
+interface CollectionElementSizingInfo {
     var startByte: Int?
-    var collectionActualLength: Int?
-    var collectionRequiredLength: Int?
+    var actualLength: Int?
+    var requiredLength: Int
     var inner: List<Element>
 }
 
 @ExperimentalSerializationApi
-data class CollectedSizingInfo(
+data class CollectionSizingInfo(
     override var startByte: Int? = null,
-    override var collectionActualLength: Int? = null,
-    override var collectionRequiredLength: Int? = null,
+    override var actualLength: Int? = null,
+    override var requiredLength: Int,
     override var inner: List<Element> = mutableListOf(),
-) : ElementSizingInfo
+) : CollectionElementSizingInfo

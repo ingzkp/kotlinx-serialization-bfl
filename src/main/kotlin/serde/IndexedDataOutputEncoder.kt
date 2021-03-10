@@ -22,11 +22,8 @@ class IndexedDataOutputEncoder(
     private val defaults: List<Any>
 ) : AbstractEncoder() {
 
-    private val elementStack: ArrayDeque<Element> = ArrayDeque()
-
-    init {
-        elementStack.push(Element.Structure("ROOT", isResolved = false))
-    }
+    private val elementStack: ArrayDeque<Element>
+        = ArrayDeque(listOf(Element.Structure("ROOT", inner = listOf(), isResolved = false)))
 
     override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder {
         // Annotations are only accessible at the properties level.
@@ -61,7 +58,7 @@ class IndexedDataOutputEncoder(
         val structureMeta = elementStack.peek().expect<Element.Structure>()
 
         if (structureMeta.inner.isEmpty()) {
-            elementStack.push(Element.Structure(descriptor.serialName, isResolved = false))
+            elementStack.push(Element.Structure(descriptor.serialName, inner= listOf(), isResolved = false))
         }
 
         // Structure's inner elements need to be unwound on the stack.
@@ -73,10 +70,10 @@ class IndexedDataOutputEncoder(
 
     override fun beginCollection(descriptor: SerialDescriptor, collectionSize: Int): CompositeEncoder {
         // Unwind sizing meta information for this collection to the stack.
-        val collectionMeta = elementStack.peek().expect<Element.Collected>()
+        val collectionMeta = elementStack.peek().expect<Element.Collection>()
 
         collectionMeta.startByte = getCurrentByteIdx()
-        collectionMeta.collectionActualLength = collectionSize
+        collectionMeta.actualLength = collectionSize
 
         repeat(collectionSize) {
             collectionMeta.inner
@@ -102,19 +99,19 @@ class IndexedDataOutputEncoder(
     }
 
     private fun endCollection(descriptor: SerialDescriptor) {
-        val collection = elementStack.pop().expect<Element.Collected>()
+        val collection = elementStack.pop().expect<Element.Collection>()
 
         val startByte = collection.startByte ?:throw SerdeError.CollectionNoStart(collection)
-        val collectionActualLength = collection.collectionActualLength ?: throw SerdeError.CollectionNoActualLength(collection)
-        val collectionRequiredLength = collection.collectionRequiredLength ?: throw SerdeError.CollectedNoRequiredLength(collection)
+        val collectionActualLength = collection.actualLength ?: throw SerdeError.CollectionNoActualLength(collection)
+        val collectionRequiredLength = collection.requiredLength
 
         if (collectionRequiredLength == collectionActualLength) {
             // No padding is required.
             return
         } else if (collectionRequiredLength < collectionActualLength) {
-            throw SerdeError.CollectedTooLarge(collection)
+            throw SerdeError.CollectionTooLarge(collection)
         }
-        // Collected is to be padded.
+        // Collection is to be padded.
 
         val elementsStartByteIdx = startByte + 4
 
@@ -154,9 +151,9 @@ class IndexedDataOutputEncoder(
         encodeShort(value.length.toShort())
         value.forEach { encodeChar(it) }
 
-        val string = elementStack.pop().expect<Element.Collected>()
+        val string = elementStack.pop().expect<Element.Strng>()
 
-        val requiredLength = string.collectionRequiredLength?: throw SerdeError.CollectedNoRequiredLength(string)
+        val requiredLength = string.requiredLength
 
         if (actualLength > requiredLength)
             throw SerdeError.StringSizingMismatch(actualLength, requiredLength)

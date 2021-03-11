@@ -1,3 +1,7 @@
+package serde
+
+import decodeFrom
+import encodeTo
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.modules.SerializersModule

@@ -1,3 +1,6 @@
+package serde
+
+import Own
 import annotations.DFLength
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi

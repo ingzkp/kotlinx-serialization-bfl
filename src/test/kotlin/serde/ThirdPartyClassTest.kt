@@ -1,3 +1,7 @@
+package serde
+
+import DateSerializer
+import DateSurrogate
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import java.text.SimpleDateFormat

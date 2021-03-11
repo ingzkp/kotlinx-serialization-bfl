@@ -1,11 +1,10 @@
+package serde
+
 import annotations.DFLength
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
-import java.security.KeyPairGenerator
-import java.security.PublicKey
-import java.security.SecureRandom
 
 @ExperimentalSerializationApi
 @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")

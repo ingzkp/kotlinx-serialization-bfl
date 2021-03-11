@@ -1,3 +1,6 @@
+package serde
+
+import Own
 import annotations.DFLength
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
@@ -5,33 +8,30 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 
 @ExperimentalSerializationApi
-class ListCompoundTest: SerdeTest() {
+@Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
+class ListOwn: SerdeTest() {
     @Serializable
-    data class Data(@DFLength([2]) val list: List<Pair<Int, Int>>)
+    data class Data(@DFLength([2]) val list: List<Own>)
 
     @Test
-    fun `serialize list of compound type`() {
+    fun `serialize list with own serializable class`() {
         val mask = listOf(
             Pair("list.length", 4),
-            Pair("list[0]", 8),
-            Pair("list[1]", 8),
+            Pair("list[0].value", 4),
+            Pair("list[1].value", 4),
         )
 
-        var data = Data(listOf(Pair(10, 20)))
+        var data = Data(listOf(Own()))
         var bytes = checkedSerialize(data, mask)
-        bytes[3].toInt() shouldBe 1
 
         data = Data(listOf())
-        bytes = checkedSerialize(data, mask)
+        bytes = checkedSerialize(data, mask, Own())
         bytes shouldBe ByteArray(mask.sumBy { it.second }) { 0 }
     }
 
     @Test
-    fun `serialize and deserialize list of compound type`() {
-        @Serializable
-        data class Data(@DFLength([2]) val list: List<Pair<Int, Int>>)
-
-        val data = Data(listOf(Pair(10, 20)))
+    fun `serialize and deserialize list with own serializable class`() {
+        val data = Data(listOf(Own()))
         val bytes = serialize(data)
 
         val deserialized: Data = deserialize(bytes)
@@ -40,9 +40,9 @@ class ListCompoundTest: SerdeTest() {
 
     @Test
     fun `serialization has fixed length`() {
-        val list1 = listOf(Pair(1, 2))
-        val list2 = listOf(Pair(1, 2), Pair(4, 5))
+        val list1 = listOf(Own(1))
+        val list2 = listOf(Own(1), Own(2))
         serialize(Data(list1)).size shouldBe serialize(Data(list2)).size
-        serialize(Data(list2)).size shouldBe serialize(Data(listOf())).size
+        serialize(Data(list1)).size shouldBe serialize(Data(listOf())).size
     }
 }

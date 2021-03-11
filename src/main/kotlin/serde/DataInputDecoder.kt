@@ -7,9 +7,7 @@ import kotlinx.serialization.descriptors.StructureKind
 import kotlinx.serialization.encoding.AbstractDecoder
 import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.modules.SerializersModule
-import pop
 import prepend
-import push
 import java.io.DataInput
 
 @ExperimentalSerializationApi
@@ -18,12 +16,9 @@ class DataInputDecoder(
     override val serializersModule: SerializersModule
 ) : AbstractDecoder() {
     private var elementIndex = 0
-    // private var collectionSize: Int = 0
     private var byteIndex: Int = 0
 
     private var topLevel = true
-    // Although it IS a stack, its use is very inconvenient, because group of elements must be reversed then put on top of stack.
-    // In case of a queue list of elements is just prepended as is to the start of the queue
     private val elementQueue = ArrayDeque<Element>()
 
     override fun beginStructure(descriptor: SerialDescriptor): CompositeDecoder {
@@ -119,9 +114,7 @@ class DataInputDecoder(
         decodeInt().also { beginCollection(it) }
 
     private fun beginCollection(collectionSize: Int): CompositeDecoder {
-        // Unwind sizing meta information for this collection to the stack.
         val collection = elementQueue.first().expect<Element.Collection>()
-
         collection.actualLength = collectionSize
 
         repeat(collectionSize) {

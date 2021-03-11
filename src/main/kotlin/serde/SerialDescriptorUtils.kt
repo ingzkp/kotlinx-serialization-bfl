@@ -4,10 +4,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.PolymorphicKind
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.descriptors.SerialKind
 import kotlinx.serialization.descriptors.StructureKind
-
-// TODO is there a way to use SerApi annotation only once?
 
 @ExperimentalSerializationApi
 val SerialDescriptor.isCollection: Boolean get() = kind is StructureKind.LIST || kind is StructureKind.MAP
@@ -23,6 +20,3 @@ val SerialDescriptor.isStructure: Boolean get() = kind is StructureKind.CLASS
 
 @ExperimentalSerializationApi
 val SerialDescriptor.isPolymorphic: Boolean get() = kind is PolymorphicKind
-
-@ExperimentalSerializationApi
-val SerialDescriptor.isContextual: Boolean get() = kind is SerialKind.CONTEXTUAL

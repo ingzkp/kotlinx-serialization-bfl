@@ -17,9 +17,6 @@ class IndexedDataOutputEncoder(
     override val serializersModule: SerializersModule
 ) : AbstractEncoder() {
     private var topLevel = true
-
-    // Although it IS a stack, its use is very inconvenient, because group of elements must be reversed then put on top of stack.
-    // In case of a queue list of elements is just prepended as is to the start of the queue
     private val elementQueue = ArrayDeque<Element>()
 
     override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder {
@@ -42,8 +39,6 @@ class IndexedDataOutputEncoder(
 
     override fun beginCollection(descriptor: SerialDescriptor, collectionSize: Int): CompositeEncoder {
         val collection = elementQueue.first().expect<Element.Collection>()
-
-        collection.startByte = getCurrentByteIdx()
         collection.actualLength = collectionSize
 
         repeat(collectionSize) {
@@ -105,7 +100,7 @@ class IndexedDataOutputEncoder(
         val requiredLength = string.requiredLength
 
         if (requiredLength < actualLength)
-            throw SerdeError.StringSizingMismatch(actualLength, requiredLength)
+            throw SerdeError.StringTooLarge(actualLength, string)
 
         repeat(2 * (requiredLength - actualLength)) { encodeByte(0) }
     }
@@ -114,6 +109,4 @@ class IndexedDataOutputEncoder(
 
     override fun encodeNull() = encodeBoolean(false)
     override fun encodeNotNullMark() = encodeBoolean(true)
-
-    private fun getCurrentByteIdx(): Int = (output as DataOutputStream).size()
 }

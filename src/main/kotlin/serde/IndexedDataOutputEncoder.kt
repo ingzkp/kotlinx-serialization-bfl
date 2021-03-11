@@ -44,7 +44,7 @@ class IndexedDataOutputEncoder(
                 unwindStructureToStack(descriptor)
             } else {
                 (descriptor.elementsCount - 1 downTo 0).forEach { idx ->
-                    val scheduled = Element.fromProperty(descriptor, idx)
+                    val scheduled = Element.parseProperty(descriptor, idx)
                     elementStack.push(scheduled)
                 }
             }

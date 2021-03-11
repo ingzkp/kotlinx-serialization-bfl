@@ -26,29 +26,25 @@ open class SerdeTest {
         }
     }
 
-    inline fun <reified T : Any> checkedSerialize(
-        data: T,
-        mask: List<Pair<String, Int>>,
-        vararg defaults: Any
-    ): ByteArray {
-        val bytes = serialize(data, *defaults)
+    inline fun <reified T : Any> checkedSerialize(data: T, mask: List<Pair<String, Int>>): ByteArray {
+        val bytes = serialize(data)
         log(bytes, mask)
         bytes.size shouldBe mask.sumBy { it.second }
 
         return bytes
     }
 
-    inline fun <reified T : Any> serialize(data: T, vararg defaults: Any): ByteArray {
+    inline fun <reified T : Any> serialize(data: T): ByteArray {
         val output = ByteArrayOutputStream()
         val stream = DataOutputStream(output)
-        encodeTo(stream, data, serializersModule, *defaults)
+        encodeTo(stream, data, serializersModule)
         return output.toByteArray()
     }
 
-    inline fun <reified T : Any> deserialize(data: ByteArray, vararg defaults: Any): T {
+    inline fun <reified T : Any> deserialize(data: ByteArray): T {
         val input = ByteArrayInputStream(data)
         val stream = DataInputStream(input)
-        return decodeFrom(stream, serializersModule, *defaults)
+        return decodeFrom(stream, serializersModule)
     }
 
     fun log(bytes: ByteArray, splitMask: List<Pair<String, Int>>) {

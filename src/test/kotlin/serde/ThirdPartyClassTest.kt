@@ -19,7 +19,7 @@ class ThirdPartyClassTest: SerdeTest() {
         val mask = listOf(Pair("date", 8))
 
         val data = Data(SimpleDateFormat("yyyy-MM-ddX").parse("2016-02-15+00"))
-        checkedSerialize(data, mask, DateSurrogate(Long.MIN_VALUE))
+        checkedSerialize(data, mask)
     }
 
     @Test

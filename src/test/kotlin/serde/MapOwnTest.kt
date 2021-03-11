@@ -30,7 +30,7 @@ class MapOwnTest: SerdeTest() {
     }
 
     @Test
-    fun `test of tests with deserialization`() {
+    fun `serialize and deserialize of map containing own class`() {
         val data = Data(mapOf("a" to Own(1), "b" to Own(2)))
         val bytes = serialize(data)
 

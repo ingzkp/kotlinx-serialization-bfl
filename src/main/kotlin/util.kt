@@ -12,20 +12,20 @@ import java.io.DataInput
 import java.io.DataOutput
 
 @ExperimentalSerializationApi
-fun <T: Any> encodeTo(output: DataOutput, serializer: SerializationStrategy<T>, value: T, serializersModule: SerializersModule, vararg defaults: Any) =
-    IndexedDataOutputEncoder(output, serializersModule, defaults.toList()).encodeSerializableValue(serializer, value)
+fun <T: Any> encodeTo(output: DataOutput, serializer: SerializationStrategy<T>, value: T, serializersModule: SerializersModule) =
+    IndexedDataOutputEncoder(output, serializersModule).encodeSerializableValue(serializer, value)
 
 @ExperimentalSerializationApi
-inline fun <reified T: Any> encodeTo(output: DataOutput, value: T, serializersModule: SerializersModule, vararg defaults: Any) =
-    encodeTo(output, serializer(), value, serializersModule, *defaults)
+inline fun <reified T: Any> encodeTo(output: DataOutput, value: T, serializersModule: SerializersModule) =
+    encodeTo(output, serializer(), value, serializersModule)
 
 @ExperimentalSerializationApi
-fun <T> decodeFrom(input: DataInput, deserializer: DeserializationStrategy<T>, serializersModule: SerializersModule, vararg defaults: Any): T =
-    DataInputDecoder(input = input, serializersModule = serializersModule, defaults = defaults.toList()).decodeSerializableValue(deserializer)
+fun <T> decodeFrom(input: DataInput, deserializer: DeserializationStrategy<T>, serializersModule: SerializersModule): T =
+    DataInputDecoder(input = input, serializersModule = serializersModule).decodeSerializableValue(deserializer)
 
 @ExperimentalSerializationApi
-inline fun <reified T> decodeFrom(input: DataInput, serializersModule: SerializersModule, vararg defaults: Any): T =
-    decodeFrom(input, serializer(), serializersModule, *defaults)
+inline fun <reified T> decodeFrom(input: DataInput, serializersModule: SerializersModule): T =
+    decodeFrom(input, serializer(), serializersModule)
 
 @ExperimentalUnsignedTypes
 fun ByteArray.toAsciiHexString() = joinToString("") {
@@ -96,3 +96,6 @@ fun getElementSize(
 fun <T> ArrayDeque<T>.push(value: T) = this.addFirst(value)
 fun <T> ArrayDeque<T>.pop(): T = this.removeFirst()
 fun <T> ArrayDeque<T>.peek(): T = this.first()
+
+fun <T> ArrayDeque<T>.prepend(value: T) { addFirst(value) }
+fun <T> ArrayDeque<T>.prepend(list: List<T>) { addAll(0, list) }

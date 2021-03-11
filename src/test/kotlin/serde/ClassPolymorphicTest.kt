@@ -15,7 +15,7 @@ class ClassPolymorphicTest: SerdeTest() {
     @Test
     fun `serialize polymorphic type within structure`() {
         val mask = listOf(
-            Pair("pk.serialName", 2 + 2 * Element.polySerialNameLength),
+            Pair("pk.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
             Pair("pk.value", 4 + 500)
         )
 

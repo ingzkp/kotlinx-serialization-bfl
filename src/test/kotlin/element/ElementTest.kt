@@ -6,6 +6,7 @@ import kotlinx.serialization.SerialInfo
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 import serde.Element
+import serde.ElementFactory
 
 @ExperimentalSerializationApi
 class ElementTest {
@@ -17,7 +18,7 @@ class ElementTest {
             val value: Triple<@Tess String, Int, List<Int>>
             )
 
-        val element = Element.parse(Data.serializer().descriptor)
+        val element = ElementFactory().parse(Data.serializer().descriptor)
         println("hey hey hey you guys are okay")
     }
 
@@ -29,7 +30,7 @@ class ElementTest {
         @Serializable
         data class Data(@DFLength([2]) val value: List<Inner>)
 
-        val element = Element.parse(Data.serializer().descriptor)
+        val element = ElementFactory().parse(Data.serializer().descriptor)
         println("hey hey hey you guys are okay")
     }
 }

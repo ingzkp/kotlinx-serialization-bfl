@@ -24,11 +24,11 @@ class List3rdPartyClassTest: SerdeTest() {
         )
 
         var data = Data(listOf(SimpleDateFormat("yyyy-MM-ddX").parse("2016-02-15+00")))
-        var bytes = checkedSerialize(data, mask, DateSurrogate(Long.MIN_VALUE))
+        var bytes = checkedSerialize(data, mask)
         bytes[3].toInt() shouldBe data.dates.size
 
         data = Data(listOf())
-        bytes = checkedSerialize(data, mask, DateSurrogate(Long.MIN_VALUE))
+        bytes = checkedSerialize(data, mask)
         bytes shouldBe ByteArray(mask.sumBy { it.second }) { 0 }
     }
 

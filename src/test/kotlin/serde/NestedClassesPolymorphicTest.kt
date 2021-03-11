@@ -18,7 +18,7 @@ class NestedClassesPolymorphicTest: SerdeTest() {
     @Test
     fun `serialize polymorphic type within nested compound type`() {
         val mask = listOf(
-            Pair("some.pk.serialName", 2 + 2 * Element.polySerialNameLength),
+            Pair("some.pk.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
             Pair("some.pk.length", 4),
             Pair("some.nested.value", 500)
         )

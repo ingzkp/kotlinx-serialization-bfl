@@ -25,7 +25,7 @@ class ListOwn: SerdeTest() {
         var bytes = checkedSerialize(data, mask)
 
         data = Data(listOf())
-        bytes = checkedSerialize(data, mask, Own())
+        bytes = checkedSerialize(data, mask)
         bytes shouldBe ByteArray(mask.sumBy { it.second }) { 0 }
     }
 

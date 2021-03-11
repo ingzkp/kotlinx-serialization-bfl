@@ -24,7 +24,7 @@ class OwnClassWithListTest: SerdeTest() {
         var bytes = checkedSerialize(data, mask)
         //
         data = Data(OwnList(listOf()))
-        bytes = checkedSerialize(data, mask, OwnList(listOf(1)))
+        bytes = checkedSerialize(data, mask)
         bytes shouldBe ByteArray(mask.sumBy { it.second }) { 0 }
     }
 

@@ -1,0 +1,9 @@
+fn main(input: [u8; 22]) -> u8 {
+    let length: u16 = input[0] as u16 * 256 as u16 + input[1] as u16;
+    dbg!("length: {}", length);
+    for i in 2..22 while i as u16 < length * 2 as u16 + 2 as u16 {
+        dbg!("string[{}]: {}", i - 2, input[i]);
+    }
+
+    0
+}

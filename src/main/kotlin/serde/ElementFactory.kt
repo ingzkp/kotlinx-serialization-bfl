@@ -18,22 +18,29 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
 
     fun parse(descriptor: SerialDescriptor, parentName: String? = null): Element {
         return when {
-            descriptor.isStructure -> {
-                val inner = (0 until descriptor.elementsCount )
-                    .map { idx ->
-                        val lengths = descriptor.getElementAnnotations(idx)
-                            .filterIsInstance<DFLength>()
-                            .firstOrNull()?.lengths?.toList()?.let { ArrayDeque(it) }
-                            ?: listOf()
-                        dfQueue.prepend(lengths)
+                descriptor.isStructure -> {
+                    val inner = (0 until descriptor.elementsCount )
+                        .map { idx ->
+                            val lengths = descriptor.getElementAnnotations(idx)
+                                .filterIsInstance<DFLength>()
+                                .firstOrNull()?.lengths?.toList()?.let { ArrayDeque(it) }
+                                ?: listOf()
+                            dfQueue.prepend(lengths)
 
-                        fromType(descriptor.serialName, descriptor.getElementDescriptor(idx))
-                    }
-                Element.Structure("${parentName ?: ""}${descriptor.serialName}", inner)
+                            try {
+                                fromType(descriptor.serialName, descriptor.getElementDescriptor(idx))
+                            } catch (err: SerdeError.InsufficientLengthData) {
+                                throw SerdeError.CannotParse(
+                                    "Property ${descriptor.serialName}.${descriptor.getElementName(idx)} cannot be parsed",
+                                    err
+                                )
+                            }
+                        }
+                    Element.Structure("${parentName ?: ""}${descriptor.serialName}", inner)
+                }
+                descriptor.isPolymorphic -> fromType("", descriptor)
+                else -> error("${descriptor.serialName} is not supported")
             }
-            descriptor.isPolymorphic -> fromType("", descriptor)
-            else -> error("${descriptor.serialName} is not supported")
-        }
     }
 
     private fun fromType(parentName: String, descriptor: SerialDescriptor): Element {

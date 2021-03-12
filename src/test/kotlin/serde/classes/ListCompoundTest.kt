@@ -1,10 +1,11 @@
-package serde
+package serde.classes
 
 import annotations.DFLength
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
+import serde.SerdeTest
 
 @ExperimentalSerializationApi
 class ListCompoundTest: SerdeTest() {

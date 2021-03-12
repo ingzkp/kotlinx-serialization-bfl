@@ -4,7 +4,10 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.SerialDescriptor
 
 @ExperimentalSerializationApi
-sealed class SerdeError(message: String): IllegalStateException(message) {
+sealed class SerdeError: IllegalStateException {
+    constructor(message: String) : super(message)
+    constructor(message: String, cause: Throwable) : super(message, cause)
+
     class WrongElement(expected: String, actual: Element): SerdeError("Expected $expected, actual ${actual.name}")
 
     class StringTooLarge(actualLength: Int, element: Element.Strng):
@@ -20,4 +23,6 @@ sealed class SerdeError(message: String): IllegalStateException(message) {
 
     class NoPolymorphicSerializers(descriptor: SerialDescriptor):
         SerdeError("Serializers module has no serializers for a polymorphic type ${descriptor.serialName}")
+
+    class CannotParse(message: String, cause: Throwable): SerdeError(message, cause)
 }

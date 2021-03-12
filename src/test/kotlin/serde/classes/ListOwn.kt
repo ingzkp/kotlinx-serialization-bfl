@@ -1,11 +1,12 @@
-package serde
+package serde.classes
 
-import Own
 import annotations.DFLength
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
+import serde.Own
+import serde.SerdeTest
 
 @ExperimentalSerializationApi
 @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")

@@ -1,12 +1,12 @@
-package serde
+package serde.classes
 
 import DateSerializer
-import DateSurrogate
 import annotations.DFLength
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
+import serde.SerdeTest
 import java.text.SimpleDateFormat
 import java.util.Date
 

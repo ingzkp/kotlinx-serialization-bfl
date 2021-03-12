@@ -1,17 +1,13 @@
 package serde
 
-import decodeFrom
-import encodeTo
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
+import serialize
+import deserialize
 import serializers.RSAPublicKeySerializer
 import sun.security.rsa.RSAPublicKeyImpl
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.io.DataInputStream
-import java.io.DataOutputStream
 import java.security.KeyPairGenerator
 import java.security.PublicKey
 import java.security.SecureRandom
@@ -27,25 +23,15 @@ open class SerdeTest {
     }
 
     inline fun <reified T : Any> checkedSerialize(data: T, mask: List<Pair<String, Int>>): ByteArray {
-        val bytes = serialize(data)
+        val bytes = serialize(data, serializersModule)
         log(bytes, mask)
         bytes.size shouldBe mask.sumBy { it.second }
 
         return bytes
     }
 
-    inline fun <reified T : Any> serialize(data: T): ByteArray {
-        val output = ByteArrayOutputStream()
-        val stream = DataOutputStream(output)
-        encodeTo(stream, data, serializersModule)
-        return output.toByteArray()
-    }
-
-    inline fun <reified T : Any> deserialize(data: ByteArray): T {
-        val input = ByteArrayInputStream(data)
-        val stream = DataInputStream(input)
-        return decodeFrom(stream, serializersModule)
-    }
+    inline fun <reified T : Any> serialize(data: T) = serialize(data, serializersModule)
+    inline fun <reified T : Any> deserialize(bytes: ByteArray) = deserialize<T>(bytes, serializersModule)
 
     fun log(bytes: ByteArray, splitMask: List<Pair<String, Int>>) {
         println("Serialized:")

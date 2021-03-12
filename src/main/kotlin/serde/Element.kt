@@ -6,11 +6,14 @@ import kotlinx.serialization.descriptors.SerialKind
 
 @ExperimentalSerializationApi
 sealed class Element(val name: String) {
-    abstract val size: Int
+    abstract val layout: Layout
+    open val size by lazy {
+        layout.mask.sumBy { it.second }
+    }
 
     class Primitive(name: String, private val kind: SerialKind): Element(name) {
-        override val size by lazy {
-            when (kind) {
+        override val layout by lazy {
+            val size = when (kind) {
                 is PrimitiveKind.BOOLEAN -> 1
                 is PrimitiveKind.BYTE -> 1
                 is PrimitiveKind.SHORT -> 2
@@ -21,24 +24,38 @@ sealed class Element(val name: String) {
                 is PrimitiveKind.CHAR -> 2
                 else -> throw IllegalStateException("$name is called primitive while it is not")
             }
+
+            Layout(name, listOf(Pair("value", size)), listOf())
         }
     }
 
     class Strng(name: String, val requiredLength: Int): Element(name) {
-        override val size by lazy {
+        override val layout by lazy {
             // SHORT (string length) + requiredLength * length(CHAR)
-            2 + requiredLength * 2
+            Layout(name,
+                listOf(
+                    Pair("length", 2),
+                    Pair("value", requiredLength * 2)
+                ),
+                listOf()
+            )
         }
     }
 
     // To be used to describe Collections (List/Map)
-    class Collection(name: String, private val sizingInfo: CollectionSizingInfo):
+    class Collection(name: String, val inner: List<Element>, private val sizingInfo: CollectionSizingInfo):
         CollectionElementSizingInfo by sizingInfo, Element(name)
     {
-        override val size by lazy {
+        override val layout by lazy {
             // INT (collection length) + number_of_elements * sum_i { size(inner_i) }
             // = 4 + n * sum_i { size(inner_i) }
-            4 + requiredLength * elementSize
+            Layout(name,
+                listOf(
+                    Pair("length", 4),
+                    Pair("value", requiredLength * elementSize)
+                ),
+                inner.map { it.layout }
+            )
         }
 
         val elementSize by lazy {
@@ -47,8 +64,15 @@ sealed class Element(val name: String) {
     }
 
     class Structure(name: String, val inner: List<Element>) : Element(name) {
+        override val layout by lazy {
+            Layout(name,
+                listOf(Pair("length", size)),
+                inner.map { it.layout }
+            )
+        }
+
         override val size by lazy {
-           inner.sumBy { it.size }
+            inner.sumBy { it.size }
         }
     }
 
@@ -62,13 +86,25 @@ sealed class Element(val name: String) {
 @ExperimentalSerializationApi
 interface CollectionElementSizingInfo {
     var actualLength: Int?
-    var requiredLength: Int
-    var inner: List<Element>
+    val requiredLength: Int
 }
 
 @ExperimentalSerializationApi
 data class CollectionSizingInfo(
     override var actualLength: Int? = null,
-    override var requiredLength: Int,
-    override var inner: List<Element> = mutableListOf(),
+    override val requiredLength: Int,
 ) : CollectionElementSizingInfo
+
+class Layout(
+    val name: String,
+    val mask: List<Pair<String, Int>>,
+    val inner: List<Layout>
+) {
+    fun toString(prefix: String = ""): String {
+        val deepPrefix = "$prefix "
+        return "$prefix$name\n$deepPrefix"+
+            mask.joinToString(separator = "\n$deepPrefix") { "${it.first} - ${it.second}" } +
+            "\n" +
+            if (inner.isNotEmpty()) { inner.joinToString(separator = "") { it.toString(deepPrefix) } } else { "" }
+    }
+}

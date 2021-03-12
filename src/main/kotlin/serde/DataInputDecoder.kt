@@ -15,6 +15,8 @@ class DataInputDecoder(
     private val input: DataInput,
     override val serializersModule: SerializersModule
 ) : AbstractDecoder() {
+    private lateinit var structure: Element
+
     private var elementIndex = 0
     private var byteIndex: Int = 0
 
@@ -32,10 +34,10 @@ class DataInputDecoder(
     private fun beginClass(descriptor: SerialDescriptor): CompositeDecoder {
         val schedulable = if (topLevel) {
             topLevel = false
-            val head = ElementFactory(serializersModule).parse(descriptor)
+            structure = ElementFactory(serializersModule).parse(descriptor)
             // Place the element to the front of the queue.
-            elementQueue.prepend(head)
-            head
+            elementQueue.prepend(structure)
+            structure
         } else {
             // TODO: add check if the struct on the stack coincides with the current descriptor.
             elementQueue.first()

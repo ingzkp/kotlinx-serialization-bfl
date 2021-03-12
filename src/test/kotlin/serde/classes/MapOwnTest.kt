@@ -26,8 +26,12 @@ class MapOwnTest: SerdeTest() {
             Pair("map[2].value", 4),
         )
 
-        val data = Data(mapOf("a" to Own(1), "b" to Own(2)))
+        var data = Data(mapOf("a" to Own(1), "b" to Own(2)))
         checkedSerialize(data, mask)
+
+        data = Data(mapOf())
+        val bytes = checkedSerialize(data, mask)
+        bytes shouldBe ByteArray(mask.sumBy { it.second }) { 0 }
     }
 
     @Test

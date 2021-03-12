@@ -9,23 +9,25 @@ import kotlinx.serialization.encoding.CompositeEncoder
 import kotlinx.serialization.modules.SerializersModule
 import prepend
 import java.io.DataOutput
-import java.io.DataOutputStream
 
 @ExperimentalSerializationApi
 class IndexedDataOutputEncoder(
     private val output: DataOutput,
     override val serializersModule: SerializersModule
 ) : AbstractEncoder() {
+    private lateinit var structure: Element
+    val layout by lazy { structure.layout }
+
     private var topLevel = true
     private val elementQueue = ArrayDeque<Element>()
 
     override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder {
         val schedulable = if (topLevel) {
             topLevel = false
-            val head = ElementFactory(serializersModule).parse(descriptor)
+            structure = ElementFactory(serializersModule).parse(descriptor)
             // Place the element to the front of the queue.
-            elementQueue.prepend(head)
-            head
+            elementQueue.prepend(structure)
+            structure
         } else {
             // TODO: add check if the struct on the stack coincides with the current descriptor.
             elementQueue.first()

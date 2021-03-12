@@ -10,15 +10,18 @@ import serde.ElementFactory
 
 @ExperimentalSerializationApi
 class ElementTest {
+    @Serializable
+    data class Inner(
+        @DFLength([        3,            4])
+        val value: Triple<String, Int, List<Int>>
+    )
+
+    @Serializable
+    data class Outer(@DFLength([2]) val value: List<Inner>)
+
     @Test
     fun `element with types is correct`() {
-        @Serializable
-        data class Data(
-            @DFLength([        2,            3])
-            val value: Triple<String, Int, List<Int>>
-            )
-
-        val element = ElementFactory().parse(Data.serializer().descriptor)
+        val element = ElementFactory().parse(Inner.serializer().descriptor)
 
         assert(element is Element.Structure)
         element as Element.Structure
@@ -32,7 +35,7 @@ class ElementTest {
         val inner11 = inner1.inner[0]
         assert(inner11 is Element.Strng) { "`Triple.first` must be described with Element.Strng" }
         inner11 as Element.Strng
-        inner11.requiredLength shouldBe 2
+        inner11.requiredLength shouldBe 3
 
         val inner12 = inner1.inner[1]
         assert(inner12 is Element.Primitive) { "`Triple.second` must be described with Element.Primitive" }
@@ -40,18 +43,12 @@ class ElementTest {
         val inner13 = inner1.inner[2]
         assert(inner13 is Element.Collection) { "`Triple.third` must be described with Element.Collection" }
         inner13 as Element.Collection
-        inner13.requiredLength shouldBe 3
+        inner13.requiredLength shouldBe 4
     }
 
     @Test
     fun `element with classes is correct`() {
-        @Serializable
-        data class Inner(@DFLength([3, 4]) val value: Triple<String, Int, List<Int>>)
-
-        @Serializable
-        data class Data(@DFLength([2]) val value: List<Inner>)
-
-        val element = ElementFactory().parse(Data.serializer().descriptor)
+        val element = ElementFactory().parse(Outer.serializer().descriptor)
 
         // Top-level structure.
         assert(element is Element.Structure)
@@ -89,5 +86,13 @@ class ElementTest {
         inner33 as Element.Collection
         inner33.requiredLength shouldBe 4
 
+    }
+
+    @Test
+    fun `layout generation`() {
+        val element = ElementFactory().parse(Outer.serializer().descriptor)
+        val layout = element.layout
+
+        println(layout.toString(""))
     }
 }

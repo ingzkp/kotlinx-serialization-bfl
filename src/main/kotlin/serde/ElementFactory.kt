@@ -16,7 +16,7 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
     }
     var dfQueue = ArrayDeque<Int>()
 
-    fun parse(descriptor: SerialDescriptor, parentName: String? = null): Element {
+    fun parse(descriptor: SerialDescriptor): Element {
         return when {
                 descriptor.isStructure -> {
                     val inner = (0 until descriptor.elementsCount )
@@ -28,7 +28,7 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
                             dfQueue.prepend(lengths)
 
                             try {
-                                fromType(descriptor.serialName, descriptor.getElementDescriptor(idx))
+                                fromType("[${descriptor.serialName}]", descriptor.getElementDescriptor(idx))
                             } catch (err: SerdeError.InsufficientLengthData) {
                                 throw SerdeError.CannotParse(
                                     "Property ${descriptor.serialName}.${descriptor.getElementName(idx)} cannot be parsed",
@@ -36,7 +36,7 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
                                 )
                             }
                         }
-                    Element.Structure("${parentName ?: ""}${descriptor.serialName}", inner)
+                    Element.Structure(descriptor.serialName, inner)
                 }
                 descriptor.isPolymorphic -> fromType("", descriptor)
                 else -> error("${descriptor.serialName} is not supported")
@@ -44,7 +44,8 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
     }
 
     private fun fromType(parentName: String, descriptor: SerialDescriptor): Element {
-        val name = "$parentName.${descriptor.serialName}"
+        val name = descriptor.serialName
+        val fullName = "$parentName.$name"
 
         return when {
             descriptor.isTrulyPrimitive -> Element.Primitive(name, descriptor.kind)
@@ -56,17 +57,17 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
             descriptor.isCollection -> {
                 val requiredLength = dfQueue.removeFirstOrNull()
                     ?: throw SerdeError.InsufficientLengthData(parentName, descriptor)
-                val children = descriptor.elementDescriptors.map { fromType(name, it) }
-                Element.Collection(name, CollectionSizingInfo(requiredLength = requiredLength, inner = children))
+                val children = descriptor.elementDescriptors.map { fromType(fullName, it) }
+                Element.Collection(name, inner = children, CollectionSizingInfo(requiredLength = requiredLength))
             }
             descriptor.isStructure ->  {
                 val isAnnotated = (0 until descriptor.elementsCount)
                     .any { idx -> descriptor.getElementAnnotations(idx).isNotEmpty() }
 
                 if (isAnnotated) {
-                    parse(descriptor, parentName)
+                    parse(descriptor)
                 } else {
-                    val children = descriptor.elementDescriptors.map { fromType(name, it) }
+                    val children = descriptor.elementDescriptors.map { fromType(fullName, it) }
                     Element.Structure(name, inner = children)
                 }
             }
@@ -88,7 +89,7 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
                 //  thus any descriptor will do.
                 val value = polyDescriptors.first()
 
-                val children = listOf(type, value).map { fromType(name, it) }
+                val children = listOf(type, value).map { fromType(fullName, it) }
 
                 Element.Structure(name, inner = children)
 

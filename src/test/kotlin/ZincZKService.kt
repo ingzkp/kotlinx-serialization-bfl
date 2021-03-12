@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit
 @ExperimentalSerializationApi
 @ExperimentalUnsignedTypes
 @Suppress("DEPRECATION")
+@ExperimentalUnsignedTypes
 class ZincZKService(
     circuitFolder: String,
     artifactFolder: String,
@@ -106,7 +107,7 @@ class ZincZKService(
 
     fun run(serialized: ByteArray): String {
 
-        val witness = "{\"input\": [${serialized.map { "\"${it.toUByte()}\"" }.joinToString(",")}] }".toByteArray()
+        val witness = "{\"input\": [${serialized.joinToString(",") { "\"${it.toUByte()}\"" } }] }".toByteArray()
 
         val witnessFile = createTempFile()
         witnessFile.writeBytes(witness)

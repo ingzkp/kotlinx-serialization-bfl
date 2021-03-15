@@ -9,7 +9,6 @@ import java.util.concurrent.TimeUnit
 @ExperimentalSerializationApi
 @ExperimentalUnsignedTypes
 @Suppress("DEPRECATION")
-@ExperimentalUnsignedTypes
 class ZincZKService(
     circuitFolder: String,
     artifactFolder: String,

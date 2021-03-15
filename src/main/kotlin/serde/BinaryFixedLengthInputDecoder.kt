@@ -25,9 +25,9 @@ class BinaryFixedLengthInputDecoder(
     }
 
     override fun endStructure(descriptor: SerialDescriptor) {
-        when (descriptor.kind) {
-            is StructureKind.LIST, StructureKind.MAP -> endCollection()
-            is StructureKind.CLASS, is PolymorphicKind -> structureProcessor.removeNextProcessed()
+        when {
+            descriptor.isCollection -> endCollection()
+            descriptor.isStructure || descriptor.isPolymorphic -> structureProcessor.removeNextProcessed()
             else -> TODO("Unknown structure kind `${descriptor.kind}`")
         }
     }
@@ -35,7 +35,9 @@ class BinaryFixedLengthInputDecoder(
     private fun endCollection() {
         // it's a crutch, but because of enabled sequential decoding (due to performance reasons),
         // key-value (aka Pair instances) serializers don't call endStructure() on elements of list-like structures
-        structureProcessor.removeNextNonCollections()
+        while (structureProcessor.getNextProcessed() !is Element.Collection) {
+            structureProcessor.removeNextProcessed()
+        }
 
         // Collection might have been padded.
         input.skipBytes(structureProcessor.collectionPadding)
@@ -68,7 +70,7 @@ class BinaryFixedLengthInputDecoder(
         decodeInt().also { structureProcessor.beginCollection(it) }
 
     override fun decodeElementIndex(descriptor: SerialDescriptor) =
-        if (structureProcessor.isLastElement(elementIndex)) {
+        if (elementIndex == structureProcessor.getNextProcessed().expect<Element.Collection>().actualLength) {
             CompositeDecoder.DECODE_DONE
         } else {
             elementIndex++

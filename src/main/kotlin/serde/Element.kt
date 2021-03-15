@@ -4,6 +4,9 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialKind
 
+/**
+ * The basic abstraction of each object being serialized.
+ */
 @ExperimentalSerializationApi
 sealed class Element(val name: String) {
     abstract val layout: Layout
@@ -11,6 +14,9 @@ sealed class Element(val name: String) {
         layout.mask.sumBy { it.second }
     }
 
+    /**
+     * Primitive case.
+     */
     class Primitive(name: String, private val kind: SerialKind): Element(name) {
         override val layout by lazy {
             val size = when (kind) {
@@ -29,6 +35,9 @@ sealed class Element(val name: String) {
         }
     }
 
+    /**
+     * String case.
+     */
     class Strng(name: String, val requiredLength: Int): Element(name) {
         override val layout by lazy {
             // SHORT (string length) + requiredLength * length(CHAR)
@@ -42,7 +51,9 @@ sealed class Element(val name: String) {
         }
     }
 
-    // To be used to describe Collections (List/Map)
+    /**
+     * Lists and Maps.
+     */
     class Collection(name: String, val inner: List<Element>, private val sizingInfo: CollectionSizingInfo):
         CollectionElementSizingInfo by sizingInfo, Element(name)
     {
@@ -63,6 +74,9 @@ sealed class Element(val name: String) {
         }
     }
 
+    /**
+     * All other cases.
+     */
     class Structure(name: String, val inner: List<Element>) : Element(name) {
         override val layout by lazy {
             Layout(name,

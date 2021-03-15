@@ -28,9 +28,9 @@ class BinaryFixedLengthOutputEncoder(
     }
 
     override fun endStructure(descriptor: SerialDescriptor) {
-        when (descriptor.kind) {
-            is StructureKind.LIST, StructureKind.MAP -> repeat(structureProcessor.collectionPadding) { encodeByte(0) }
-            is StructureKind.CLASS, is PolymorphicKind -> structureProcessor.removeNextProcessed()
+        when {
+            descriptor.isCollection -> repeat(structureProcessor.collectionPadding) { encodeByte(0) }
+            descriptor.isStructure || descriptor.isPolymorphic -> structureProcessor.removeNextProcessed()
             else -> TODO("Unknown structure kind `${descriptor.kind}`")
         }
     }

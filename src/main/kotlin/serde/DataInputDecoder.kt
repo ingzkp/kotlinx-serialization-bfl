@@ -18,7 +18,6 @@ class DataInputDecoder(
     private lateinit var structure: Element
 
     private var elementIndex = 0
-    private var byteIndex: Int = 0
 
     private var topLevel = true
     private val elementQueue = ArrayDeque<Element>()
@@ -100,15 +99,15 @@ class DataInputDecoder(
         return value
     }
 
-    override fun decodeBoolean(): Boolean = input.readBoolean().also { byteIndex++ }
-    override fun decodeByte() = input.readByte().also { byteIndex++ }
-    override fun decodeShort() = input.readShort().also { byteIndex += 2 }
-    override fun decodeInt() = input.readInt().also { byteIndex += 4 }
-    override fun decodeLong() = input.readLong().also { byteIndex += 8 }
-    override fun decodeFloat() = input.readFloat().also { byteIndex += 4 }
-    override fun decodeDouble() = input.readDouble().also { byteIndex += 8 }
-    override fun decodeChar() = input.readChar().also { byteIndex += 2 }
-    override fun decodeEnum(enumDescriptor: SerialDescriptor) = input.readInt().also { byteIndex += 4 }
+    override fun decodeBoolean(): Boolean = input.readBoolean()
+    override fun decodeByte() = input.readByte()
+    override fun decodeShort() = input.readShort()
+    override fun decodeInt() = input.readInt()
+    override fun decodeLong() = input.readLong()
+    override fun decodeFloat() = input.readFloat()
+    override fun decodeDouble() = input.readDouble()
+    override fun decodeChar() = input.readChar()
+    override fun decodeEnum(enumDescriptor: SerialDescriptor) = input.readInt()
 
     override fun decodeSequentially(): Boolean = true
 

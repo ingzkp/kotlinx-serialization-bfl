@@ -16,7 +16,6 @@ class IndexedDataOutputEncoder(
     override val serializersModule: SerializersModule
 ) : AbstractEncoder() {
     private lateinit var structure: Element
-    val layout by lazy { structure.layout }
 
     private var topLevel = true
     private val elementQueue = ArrayDeque<Element>()

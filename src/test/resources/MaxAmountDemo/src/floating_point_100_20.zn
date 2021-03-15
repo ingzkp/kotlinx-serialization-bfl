@@ -382,6 +382,40 @@ impl BigDecimal {
             ]
         }
     }
+
+    fn _extract_integer(input: [u8; INPUT_LENGTH], start_idx: u16) -> [u8; BIG_DECIMAL_INTEGER_LENGTH] {
+        let mut integer: [u8; BIG_DECIMAL_INTEGER_LENGTH]
+            = [0; BIG_DECIMAL_INTEGER_LENGTH];
+        for i in 0..BIG_DECIMAL_INTEGER_LENGTH {
+            integer[i] = input[start_idx + i as u16] as u8;
+        }
+        integer
+    }
+
+    fn _extract_fraction(input: [u8; INPUT_LENGTH], start_idx: u16) -> [u8; BIG_DECIMAL_FRACTION_LENGTH] {
+        let mut fraction: [u8; BIG_DECIMAL_FRACTION_LENGTH]
+            = [0; BIG_DECIMAL_FRACTION_LENGTH];
+        for i in 0..BIG_DECIMAL_FRACTION_LENGTH {
+            fraction[i] = input[start_idx + i as u16];
+        }
+        fraction
+    }
+
+    fn deserialize_big_decimal(input: [u8; INPUT_LENGTH], start_idx: u16) -> BigDecimal {
+        let integer_start_idx = start_idx
+            + BIG_DECIMAL_SIGN_LENGTH as u16
+            + BIG_DECIMAL_INTEGER_LENGTH_LENGTH as u16;
+
+        let fraction_start_idx = integer_start_idx
+            + BIG_DECIMAL_INTEGER_LENGTH as u16
+            + BIG_DECIMAL_FRACTION_LENGTH_LENGTH as u16;
+
+        BigDecimal {
+            sign: input[start_idx] as i8,
+            integer: _extract_integer(input, integer_start_idx),
+            fraction: _extract_fraction(input, fraction_start_idx)
+        }
+    }
 }
 
 const AMOUNT_QUANTITY_LENGTH: u8 = 8;
@@ -459,7 +493,7 @@ impl Amount {
             && BigDecimal::equals(this.display_token_size, that.display_token_size)
     }
 
-    fn get_token_name_hash(input: [u8; INPUT_LENGTH], start_idx: u16) -> [u8; AMOUNT_TOKEN_NAME_HASH_LENGTH] {
+    fn _get_token_name_hash(input: [u8; INPUT_LENGTH], start_idx: u16) -> [u8; AMOUNT_TOKEN_NAME_HASH_LENGTH] {
         let mut token_name_hash: [u8; AMOUNT_TOKEN_NAME_HASH_LENGTH]
             = [0; AMOUNT_TOKEN_NAME_HASH_LENGTH];
         for i in 0..AMOUNT_TOKEN_NAME_HASH_LENGTH {
@@ -468,46 +502,14 @@ impl Amount {
         token_name_hash
     }
 
-    fn get_integer_array(input: [u8; INPUT_LENGTH], start_idx: u16) -> [u8; BIG_DECIMAL_INTEGER_LENGTH] {
-        let mut integer: [u8; BIG_DECIMAL_INTEGER_LENGTH]
-            = [0; BIG_DECIMAL_INTEGER_LENGTH];
-        dbg!("{}", start_idx);
-        for i in 0..BIG_DECIMAL_INTEGER_LENGTH {
-            integer[i] = input[start_idx + i as u16];
-        }
-        integer
-    }
-
-    fn get_fraction_array(input: [u8; INPUT_LENGTH], start_idx: u16) -> [u8; BIG_DECIMAL_FRACTION_LENGTH] {
-        let mut fraction: [u8; BIG_DECIMAL_FRACTION_LENGTH]
-            = [0; BIG_DECIMAL_FRACTION_LENGTH];
-        for i in 0..BIG_DECIMAL_FRACTION_LENGTH {
-            fraction[i] = input[start_idx + i as u16];
-        }
-        fraction
-    }
-
-    fn deserialize_big_decimal(input: [u8; INPUT_LENGTH], start_idx: u16) -> BigDecimal {
-        let integer_start_idx = start_idx
-            + BIG_DECIMAL_SIGN_LENGTH as u16
-            + BIG_DECIMAL_INTEGER_LENGTH_LENGTH as u16;
-        let fraction_start_idx = integer_start_idx
-            + BIG_DECIMAL_FRACTION_LENGTH_LENGTH as u16;
-        BigDecimal {
-            sign: input[start_idx] as i8,
-            integer: get_integer_array(input, integer_start_idx),
-            fraction: get_fraction_array(input, fraction_start_idx)
-        }
-    }
-
     fn deserialize_amount(input: [u8; INPUT_LENGTH], start_idx: u16) -> Amount {
         let quantity = get_long(input, start_idx);
-        let display_token_size = deserialize_big_decimal(input, start_idx + AMOUNT_QUANTITY_LENGTH as u16);
+        let display_token_size = BigDecimal::deserialize_big_decimal(input, start_idx + AMOUNT_QUANTITY_LENGTH as u16);
         let token_name_hash_start_idx = start_idx
             + AMOUNT_QUANTITY_LENGTH as u16
             + BIG_DECIMAL_LENGTH as u16
             + AMOUNT_TOKEN_NAME_HASH_LENGTH_LENGTH as u16;
-        let token_name_hash = get_token_name_hash(input, token_name_hash_start_idx);
+        let token_name_hash = _get_token_name_hash(input, token_name_hash_start_idx);
         Amount {
             quantity: quantity as i64,
             display_token_size: display_token_size,

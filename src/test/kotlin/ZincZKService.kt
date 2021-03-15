@@ -1,10 +1,13 @@
 package com.ing.zknotary.common.zkp
 
+import kotlinx.serialization.ExperimentalSerializationApi
 import java.io.File
 import java.io.IOException
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 
+@ExperimentalSerializationApi
+@ExperimentalUnsignedTypes
 @Suppress("DEPRECATION")
 class ZincZKService(
     circuitFolder: String,

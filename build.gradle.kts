@@ -22,6 +22,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.0.1")
     implementation("net.corda:corda-core:4.7")
     implementation("co.paralleluniverse:quasar-core:0.8.0")
+    implementation(kotlin("reflect"))
 }
 
 tasks.test {

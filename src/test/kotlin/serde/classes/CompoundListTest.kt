@@ -1,6 +1,6 @@
 package serde.classes
 
-import annotations.DFLength
+import annotations.FixedLength
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
@@ -11,7 +11,7 @@ import serde.SerdeTest
 @ExperimentalSerializationApi
 class CompoundListTest: SerdeTest() {
     @Serializable
-    data class Data(@DFLength([2]) val nested: Pair<Int, List<Int>>)
+    data class Data(@FixedLength([2]) val nested: Pair<Int, List<Int>>)
 
     @Test
     fun `serialize list within a compound type`() {
@@ -32,7 +32,7 @@ class CompoundListTest: SerdeTest() {
     @Test
     fun `serialize and deserialize list within a compound type`() {
         @Serializable
-        data class Data(@DFLength([2]) val nested: Pair<Int, List<Int>>)
+        data class Data(@FixedLength([2]) val nested: Pair<Int, List<Int>>)
 
         val data = Data(Pair(10, listOf(20)))
         val bytes = serialize(data)

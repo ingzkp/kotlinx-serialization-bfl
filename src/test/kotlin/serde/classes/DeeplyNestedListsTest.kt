@@ -1,6 +1,6 @@
 package serde.classes
 
-import annotations.DFLength
+import annotations.FixedLength
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
 import org.junit.jupiter.api.Test
@@ -11,7 +11,7 @@ import serde.SerdeTest
 class DeeplyNestedListsTest: SerdeTest() {
     @Serializable
     data class Data(
-        @DFLength([  3,    4,   5])
+        @FixedLength([  3,    4,   5])
         val nested: List<List<List<Int>>>)
 
     @Test

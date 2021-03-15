@@ -13,7 +13,7 @@ import java.io.DataOutputStream
 
 @ExperimentalSerializationApi
 fun <T: Any> encodeTo(output: DataOutput, serializer: SerializationStrategy<T>, value: T, serializersModule: SerializersModule) =
-    IndexedDataOutputEncoder(output, serializersModule).encodeSerializableValue(serializer, value)
+    BinaryFixedLengthOutputEncoder(output, serializersModule).encodeSerializableValue(serializer, value)
 
 @ExperimentalSerializationApi
 inline fun <reified T : Any> serialize(data: T, serializersModule: SerializersModule): ByteArray {
@@ -25,7 +25,7 @@ inline fun <reified T : Any> serialize(data: T, serializersModule: SerializersMo
 
 @ExperimentalSerializationApi
 fun <T> decodeFrom(input: DataInput, deserializer: DeserializationStrategy<T>, serializersModule: SerializersModule): T =
-    DataInputDecoder(input = input, serializersModule = serializersModule).decodeSerializableValue(deserializer)
+    BinaryFixedLengthInputDecoder(input = input, serializersModule = serializersModule).decodeSerializableValue(deserializer)
 
 @ExperimentalSerializationApi
 inline fun <reified T : Any> deserialize(data: ByteArray, serializersModule: SerializersModule): T {

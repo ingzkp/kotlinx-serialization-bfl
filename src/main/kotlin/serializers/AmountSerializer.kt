@@ -1,6 +1,6 @@
 package serializers
 
-import annotations.DFLength
+import annotations.FixedLength
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -35,7 +35,7 @@ data class AmountStringSurrogate(
     val quantity: Long,
     @Serializable(BigDecimalSerializer::class)
     val displayTokenSize: BigDecimal,
-    @DFLength([32])
+    @FixedLength([32])
     val token: ByteArray
 ) {
     companion object {

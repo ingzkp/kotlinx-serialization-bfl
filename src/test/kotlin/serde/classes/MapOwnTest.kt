@@ -1,7 +1,7 @@
 package serde.classes
 
 import serde.Own
-import annotations.DFLength
+import annotations.FixedLength
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
@@ -12,7 +12,7 @@ import serde.SerdeTest
 @ExperimentalSerializationApi
 class MapOwnTest: SerdeTest() {
     @Serializable
-    data class Data(@DFLength([3,   2]) val map: Map<String, Own>)
+    data class Data(@FixedLength([3,   2]) val map: Map<String, Own>)
 
     @Test
     fun `serialization of map containing own class`() {

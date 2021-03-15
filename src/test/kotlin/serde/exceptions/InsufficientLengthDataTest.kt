@@ -1,19 +1,18 @@
 package serde.exceptions
 
-import annotations.DFLength
+import annotations.FixedLength
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import serde.Own
 import serde.SerdeError
 import serde.SerdeTest
 
 @ExperimentalSerializationApi
 class InsufficientLengthDataTest: SerdeTest() {
     @Serializable
-    data class Data(@DFLength([2, 2]) val map: Map<String, List<Int>>)
+    data class Data(@FixedLength([2, 2]) val map: Map<String, List<Int>>)
 
     @Test
     fun `direct property insufficient length`() {
@@ -28,7 +27,7 @@ class InsufficientLengthDataTest: SerdeTest() {
 
 
     @Serializable
-    data class ComplexData(@DFLength([2]) val list: List<Data>)
+    data class ComplexData(@FixedLength([2]) val list: List<Data>)
     @Test
     fun `indirect property insufficient length`() {
         val data = ComplexData(listOf(Data(mapOf("a" to listOf(2)))))

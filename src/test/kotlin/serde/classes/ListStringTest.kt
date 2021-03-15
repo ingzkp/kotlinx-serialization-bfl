@@ -1,6 +1,6 @@
 package serde.classes
 
-import annotations.DFLength
+import annotations.FixedLength
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
@@ -10,7 +10,7 @@ import serde.SerdeTest
 @ExperimentalSerializationApi
 class ListStringTest: SerdeTest() {
     @Serializable
-    data class Data(@DFLength([2, 10]) val list: List<String> = listOf("123456789"))
+    data class Data(@FixedLength([2, 10]) val list: List<String> = listOf("123456789"))
 
     @Test
     fun `serialize list of string`() {

@@ -1,6 +1,7 @@
 package serializers
 
-import annotations.DFLength
+import annotations.FixedLength
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -11,6 +12,7 @@ import java.math.BigDecimal
 const val INTEGER_SIZE: Int = 100
 const val FRACTION_SIZE: Int = 20
 
+@ExperimentalSerializationApi
 object BigDecimalSerializer: KSerializer<BigDecimal> {
     private val strategy = BigDecimalSurrogate.serializer()
     override val descriptor: SerialDescriptor = strategy.descriptor
@@ -66,6 +68,7 @@ object BigDecimalSerializer: KSerializer<BigDecimal> {
     }
 }
 
+@ExperimentalSerializationApi
 @Suppress("ArrayInDataClass")
 @Serializable
-data class BigDecimalSurrogate(val sign: Byte, @DFLength([100]) val integer: ByteArray, @DFLength([20]) val fraction: ByteArray)
+data class BigDecimalSurrogate(val sign: Byte, @FixedLength([100]) val integer: ByteArray, @FixedLength([20]) val fraction: ByteArray)

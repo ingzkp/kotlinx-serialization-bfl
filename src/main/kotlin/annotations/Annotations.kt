@@ -6,4 +6,4 @@ import kotlinx.serialization.SerialInfo
 @SerialInfo
 @ExperimentalSerializationApi
 @Target(AnnotationTarget.PROPERTY, AnnotationTarget.CLASS, AnnotationTarget.TYPE)
-annotation class DFLength(val lengths: IntArray)
+annotation class FixedLength(val lengths: IntArray)

@@ -1,6 +1,6 @@
 package serde
 
-import annotations.DFLength
+import annotations.FixedLength
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 
@@ -11,6 +11,6 @@ data class Own(val int: Int = 100) {
 
 @ExperimentalSerializationApi
 @Serializable
-data class OwnList(@DFLength([2]) val list: List<Int> = listOf(1)) {
+data class OwnList(@FixedLength([2]) val list: List<Int> = listOf(1)) {
     override fun toString() = "OwnList(list= ${list.joinToString()})"
 }

@@ -1,6 +1,6 @@
 package serde.classes
 
-import annotations.DFLength
+import annotations.FixedLength
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -10,7 +10,7 @@ import serde.SerdeTest
 @ExperimentalSerializationApi
 class ListCompoundTest: SerdeTest() {
     @Serializable
-    data class Data(@DFLength([2]) val list: List<Pair<Int, Int>>)
+    data class Data(@FixedLength([2]) val list: List<Pair<Int, Int>>)
 
     @Test
     fun `serialize list of compound type`() {
@@ -32,7 +32,7 @@ class ListCompoundTest: SerdeTest() {
     @Test
     fun `serialize and deserialize list of compound type`() {
         @Serializable
-        data class Data(@DFLength([2]) val list: List<Pair<Int, Int>>)
+        data class Data(@FixedLength([2]) val list: List<Pair<Int, Int>>)
 
         val data = Data(listOf(Pair(10, 20)))
         val bytes = serialize(data)

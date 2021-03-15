@@ -1,6 +1,6 @@
 package serde
 
-import annotations.DFLength
+import annotations.FixedLength
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.elementDescriptors
@@ -22,7 +22,7 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
                     val inner = (0 until descriptor.elementsCount )
                         .map { idx ->
                             val lengths = descriptor.getElementAnnotations(idx)
-                                .filterIsInstance<DFLength>()
+                                .filterIsInstance<FixedLength>()
                                 .firstOrNull()?.lengths?.toList()?.let { ArrayDeque(it) }
                                 ?: listOf()
                             dfQueue.prepend(lengths)

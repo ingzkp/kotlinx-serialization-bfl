@@ -1,6 +1,6 @@
 package serde.classes
 
-import annotations.DFLength
+import annotations.FixedLength
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
@@ -12,7 +12,7 @@ import serde.SerdeTest
 class CompoundComplexMapTest: SerdeTest() {
     @Serializable
     data class Data(
-        @DFLength([          2,          2,   2,     2])
+        @FixedLength([          2,          2,   2,     2])
         val nested: Triple<String, Int, Map<String, List<Int>>>)
 
     @Test

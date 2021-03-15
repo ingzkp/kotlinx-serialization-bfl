@@ -1,5 +1,5 @@
 package zinc
-import annotations.DFLength
+import annotations.FixedLength
 import com.ing.zknotary.common.zkp.ZincZKService
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
@@ -18,7 +18,7 @@ class AmountTest: SerdeTest() {
     fun `get max amount`() {
         @Serializable
         data class Data(
-            @DFLength([4]) val list: List<@Serializable(AmountStringSerializer::class) Amount<String>> = listOf(
+            @FixedLength([4]) val list: List<@Serializable(AmountStringSerializer::class) Amount<String>> = listOf(
                 Amount(100, "some.token"),
                 Amount(250, "some.token"),
                 Amount(220, "some.token"),

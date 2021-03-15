@@ -1,7 +1,7 @@
 package serde.classes
 
 import DateSerializer
-import annotations.DFLength
+import annotations.FixedLength
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
@@ -13,7 +13,7 @@ import java.util.Date
 @ExperimentalSerializationApi
 class List3rdPartyClassTest: SerdeTest() {
     @Serializable
-    data class Data(@DFLength([2]) val dates: List<@Serializable(with = DateSerializer::class) Date>)
+    data class Data(@FixedLength([2]) val dates: List<@Serializable(with = DateSerializer::class) Date>)
 
     @Test
     fun `serialize list of 3rd party class`() {

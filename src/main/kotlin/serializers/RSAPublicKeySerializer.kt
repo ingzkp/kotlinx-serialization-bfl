@@ -1,6 +1,6 @@
 package serializers
 
-import annotations.DFLength
+import annotations.FixedLength
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
@@ -13,7 +13,7 @@ import sun.security.rsa.RSAPublicKeyImpl
 @Suppress("ArrayInDataClass")
 @Serializable
 @SerialName("RSAPublicKeyImpl")
-data class RSAPublicKeySurrogate(@DFLength([500]) val encoded: ByteArray)
+data class RSAPublicKeySurrogate(@FixedLength([500]) val encoded: ByteArray)
 
 @ExperimentalSerializationApi
 object RSAPublicKeySerializer : KSerializer<RSAPublicKeyImpl> {

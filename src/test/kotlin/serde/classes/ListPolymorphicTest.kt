@@ -1,6 +1,6 @@
 package serde.classes
 
-import annotations.DFLength
+import annotations.FixedLength
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
@@ -13,7 +13,7 @@ import java.security.PublicKey
 @ExperimentalSerializationApi
 class ListPolymorphicTest: SerdeTest() {
     @Serializable
-    data class Data(@DFLength([2]) val nested: List<PublicKey>)
+    data class Data(@FixedLength([2]) val nested: List<PublicKey>)
 
     @Test
     fun `serialize polymorphic type within collection`() {

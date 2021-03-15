@@ -1,6 +1,6 @@
 package serde.classes
 
-import annotations.DFLength
+import annotations.FixedLength
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
@@ -11,7 +11,7 @@ import serde.SerdeTest
 @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
 class StringTest: SerdeTest() {
     @Serializable
-    data class Data(@DFLength([10]) val s: String = "123456789")
+    data class Data(@FixedLength([10]) val s: String = "123456789")
 
     @Test
     fun `serialize string`() {

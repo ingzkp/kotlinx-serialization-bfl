@@ -1,6 +1,6 @@
 package element
 
-import annotations.DFLength
+import annotations.FixedLength
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
@@ -12,12 +12,12 @@ import serde.ElementFactory
 class ElementTest {
     @Serializable
     data class Inner(
-        @DFLength([        3,            4])
+        @FixedLength([        3,            4])
         val value: Triple<String, Int, List<Int>>
     )
 
     @Serializable
-    data class Outer(@DFLength([2]) val value: List<Inner>)
+    data class Outer(@FixedLength([2]) val value: List<Inner>)
 
     @Test
     fun `element with types is correct`() {

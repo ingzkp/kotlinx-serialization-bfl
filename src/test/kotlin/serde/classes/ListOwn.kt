@@ -1,6 +1,6 @@
 package serde.classes
 
-import annotations.DFLength
+import annotations.FixedLength
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -12,7 +12,7 @@ import serde.SerdeTest
 @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
 class ListOwn: SerdeTest() {
     @Serializable
-    data class Data(@DFLength([2]) val list: List<Own>)
+    data class Data(@FixedLength([2]) val list: List<Own>)
 
     @Test
     fun `serialize list with own serializable class`() {

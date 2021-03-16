@@ -1,8 +1,8 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm") version "1.4.21"
-    kotlin("plugin.serialization") version "1.4.10"
+    kotlin("jvm")
+    kotlin("plugin.serialization")
 }
 
 group = "me.vic"
@@ -14,14 +14,22 @@ repositories {
 
 dependencies {
     testImplementation(kotlin("test-junit5"))
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.6.0")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.6.0")
-    testImplementation("io.kotest:kotest-assertions-core:4.4.1")
+
+    val junit5Version: String by project
+    val kotlinTestVersion: String by project
+
+    testImplementation("org.junit.jupiter:junit-jupiter-api:$junit5Version")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junit5Version")
+    testImplementation("io.kotest:kotest-assertions-core:$kotlinTestVersion")
+
+    val kotlinSerializationVersion: String by project
+    val cordaVersion: String by project
+    val quasarVersion: String by project
     //
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.0.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.0.1")
-    implementation("net.corda:corda-core:4.7")
-    implementation("co.paralleluniverse:quasar-core:0.8.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:$kotlinSerializationVersion")
+    implementation("net.corda:corda-core:$cordaVersion")
+    implementation("co.paralleluniverse:quasar-core:$quasarVersion")
+
     implementation(kotlin("reflect"))
 }
 

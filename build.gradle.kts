@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
+    id("io.gitlab.arturbosch.detekt") version "1.16.0"
 }
 
 group = "me.vic"
@@ -10,6 +11,7 @@ version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
+    jcenter()
 }
 
 dependencies {
@@ -39,4 +41,18 @@ tasks.test {
 
 tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = "1.8"
+}
+
+tasks.withType<io.gitlab.arturbosch.detekt.Detekt> {
+    // Target version of the generated JVM bytecode. It is used for type resolution.
+    jvmTarget = "1.8"
+    config.setFrom("${rootDir}/config/detekt/detekt.yml")
+
+    parallel = true
+
+    source(files(rootProject.projectDir))
+    include("**/*.kt")
+    exclude("**/*.kts")
+    exclude("**/resources/")
+    exclude("**/build/")
 }

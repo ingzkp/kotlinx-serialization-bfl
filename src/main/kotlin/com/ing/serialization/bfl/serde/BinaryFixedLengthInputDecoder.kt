@@ -44,17 +44,10 @@ class BinaryFixedLengthInputDecoder(
         input.skipBytes(collection.padding)
     }
 
-    override fun decodeString(): String {
-        val string = structureProcessor.removeNextProcessed().expect<Element.Strng>()
-        // In output.writeUTF, length of the string is stored as short.
-        // We do the same for consistency.
-        val actualLength = decodeShort().toInt()
-        val value = (0 until actualLength).map { decodeChar() }.joinToString("")
-
-        input.skipBytes(string.padding(actualLength))
-
-        return value
-    }
+    override fun decodeString() = structureProcessor
+            .removeNextProcessed()
+            .expect<Element.Strng>()
+            .decode(this)
 
     override fun decodeBoolean(): Boolean = input.readBoolean()
     override fun decodeByte() = input.readByte()
@@ -78,5 +71,20 @@ class BinaryFixedLengthInputDecoder(
             elementIndex++
         }
 
-    override fun decodeNotNullMark(): Boolean = decodeBoolean()
+    override fun decodeNotNullMark(): Boolean {
+        val isNull = !decodeBoolean()
+        if (isNull) {
+            // value is read but ignored.
+            when (val element = structureProcessor.removeNextProcessed()) {
+                is Element.Primitive -> TODO()
+                is Element.Strng -> element.decode(this)
+                is Element.Collection -> TODO()
+                is Element.Structure -> TODO()
+            }
+        }
+
+        return !isNull
+    }
+
+    fun skipBytes(n: Int) = input.skipBytes(n)
 }

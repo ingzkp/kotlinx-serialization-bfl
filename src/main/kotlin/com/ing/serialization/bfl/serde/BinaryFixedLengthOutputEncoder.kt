@@ -46,20 +46,23 @@ class BinaryFixedLengthOutputEncoder(
     override fun encodeDouble(value: Double) = output.writeDouble(value)
     override fun encodeChar(value: Char) = output.writeChar(value.toInt())
 
-    override fun encodeString(value: String) {
-        val string = structureProcessor.removeNextProcessed().expect<Element.Strng>()
-        val actualLength = value.length
-
-        // In output.writeUTF, length of the string is stored as short.
-        // We do the same for consistency.
-        encodeShort(value.length.toShort())
-        value.forEach { encodeChar(it) }
-
-        repeat(string.padding(actualLength)) { encodeByte(0) }
-    }
+    override fun encodeString(value: String) =
+        structureProcessor
+            .removeNextProcessed()
+            .expect<Element.Strng>()
+            .encode(value, this)
 
     override fun encodeEnum(enumDescriptor: SerialDescriptor, index: Int) = output.writeInt(index)
 
-    override fun encodeNull() = encodeBoolean(false)
+    override fun encodeNull(){
+        encodeBoolean(false)
+
+        when (val element = structureProcessor.removeNextProcessed()) {
+            is Element.Primitive -> TODO("")
+            is Element.Strng -> element.encode(null, this)
+            is Element.Collection -> TODO()
+            is Element.Structure -> TODO()
+        }
+    }
     override fun encodeNotNullMark() = encodeBoolean(true)
 }

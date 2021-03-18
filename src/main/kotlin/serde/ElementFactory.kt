@@ -19,7 +19,7 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
     fun parse(descriptor: SerialDescriptor): Element {
         return when {
                 descriptor.isStructure -> {
-                    val inner = (0 until descriptor.elementsCount )
+                    val children = (0 until descriptor.elementsCount )
                         .map { idx ->
                             val lengths = descriptor.getElementAnnotations(idx)
                                 .filterIsInstance<FixedLength>()

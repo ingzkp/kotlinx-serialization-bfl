@@ -49,6 +49,18 @@ sealed class Element(val name: String) {
                 listOf()
             )
         }
+
+        /**
+         * Returns the number of bytes the string to be padded.
+         *
+         * @throws SerdeError.StringTooLarge exception when string doesn't fit its given limit
+         */
+        fun padding(actualLength: Int): Int {
+            if (requiredLength < actualLength)
+                throw SerdeError.StringTooLarge(actualLength, this)
+
+            return 2 * (requiredLength - actualLength)
+        }
     }
 
     /**
@@ -72,6 +84,22 @@ sealed class Element(val name: String) {
         val elementSize by lazy {
             inner.sumBy { it.size }
         }
+
+        /**
+         * The number of bytes the collection to be padded. It is always different and depends on the state.
+         *
+         * @throws SerdeError.CollectionNoActualLength exception when length of a collection is not specified.
+         * @throws SerdeError.CollectionTooLarge exception when collection doesn't fit into the given limit
+         */
+        val padding: Int
+            get() {
+                val actualLength = actualLength ?: throw SerdeError.CollectionNoActualLength(this)
+
+                if (requiredLength < actualLength) {
+                    throw SerdeError.CollectionTooLarge(this)
+                }
+                return elementSize * (requiredLength - actualLength)
+            }
     }
 
     /**

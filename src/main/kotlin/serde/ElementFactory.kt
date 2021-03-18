@@ -14,12 +14,12 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
     companion object {
         const val polySerialNameLength = 100
     }
-    var dfQueue = ArrayDeque<Int>()
+    private var dfQueue = ArrayDeque<Int>()
 
     fun parse(descriptor: SerialDescriptor): Element {
         return when {
                 descriptor.isStructure -> {
-                    val inner = (0 until descriptor.elementsCount )
+                    val children = (0 until descriptor.elementsCount )
                         .map { idx ->
                             val lengths = descriptor.getElementAnnotations(idx)
                                 .filterIsInstance<FixedLength>()
@@ -36,7 +36,7 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
                                 )
                             }
                         }
-                    Element.Structure(descriptor.serialName, inner)
+                    Element.Structure(descriptor.serialName, children)
                 }
                 descriptor.isPolymorphic -> fromType("", descriptor)
                 else -> error("${descriptor.serialName} is not supported")

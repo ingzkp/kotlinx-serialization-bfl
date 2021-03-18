@@ -27,7 +27,10 @@ class BinaryFixedLengthOutputEncoder(
 
     override fun endStructure(descriptor: SerialDescriptor) {
         when {
-            descriptor.isCollection -> repeat(structureProcessor.collectionPadding) { encodeByte(0) }
+            descriptor.isCollection -> {
+                val collection = structureProcessor.removeNextProcessed().expect<Element.Collection>()
+                repeat(collection.padding) { encodeByte(0) }
+            }
             descriptor.isStructure || descriptor.isPolymorphic -> structureProcessor.removeNextProcessed()
             else -> TODO("Unknown structure kind `${descriptor.kind}`")
         }
@@ -43,6 +46,7 @@ class BinaryFixedLengthOutputEncoder(
     override fun encodeChar(value: Char) = output.writeChar(value.toInt())
 
     override fun encodeString(value: String) {
+        val string = structureProcessor.removeNextProcessed().expect<Element.Strng>()
         val actualLength = value.length
 
         // In output.writeUTF, length of the string is stored as short.
@@ -50,7 +54,7 @@ class BinaryFixedLengthOutputEncoder(
         encodeShort(value.length.toShort())
         value.forEach { encodeChar(it) }
 
-        repeat(structureProcessor.stringPadding(actualLength)) { encodeByte(0) }
+        repeat(string.padding(actualLength)) { encodeByte(0) }
     }
 
     override fun encodeEnum(enumDescriptor: SerialDescriptor, index: Int) = output.writeInt(index)

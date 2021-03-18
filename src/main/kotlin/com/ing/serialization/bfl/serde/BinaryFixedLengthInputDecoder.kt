@@ -79,7 +79,7 @@ class BinaryFixedLengthInputDecoder(
                 is Element.Primitive -> TODO()
                 is Element.Strng -> element.decode(this)
                 is Element.Collection -> TODO()
-                is Element.Structure -> TODO()
+                is Element.Structure -> input.skipBytes(element.size)
             }
         }
 

@@ -37,9 +37,6 @@ class CompoundListTest : SerdeTest() {
 
     @Test
     fun `serialize and deserialize list within a compound type`() {
-        @Serializable
-        data class Data(@FixedLength([2]) val nested: Pair<Int, List<Int>>)
-
         val data = Data(Pair(10, listOf(20)))
         val bytes = serialize(data)
 

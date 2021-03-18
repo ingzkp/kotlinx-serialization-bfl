@@ -61,7 +61,7 @@ class BinaryFixedLengthOutputEncoder(
             is Element.Primitive -> TODO("")
             is Element.Strng -> element.encode(null, this)
             is Element.Collection -> TODO()
-            is Element.Structure -> TODO()
+            is Element.Structure -> repeat(element.size) { encodeByte(0) }
         }
     }
     override fun encodeNotNullMark() = encodeBoolean(true)

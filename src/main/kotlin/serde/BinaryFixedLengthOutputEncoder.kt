@@ -7,6 +7,7 @@ import kotlinx.serialization.encoding.CompositeEncoder
 import kotlinx.serialization.modules.SerializersModule
 import java.io.DataOutput
 
+@Suppress("TooManyFunctions")
 @ExperimentalSerializationApi
 class BinaryFixedLengthOutputEncoder(
     private val output: DataOutput,

@@ -7,6 +7,7 @@ import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.modules.SerializersModule
 import java.io.DataInput
 
+@Suppress("TooManyFunctions")
 @ExperimentalSerializationApi
 class BinaryFixedLengthInputDecoder(
     private val input: DataInput,

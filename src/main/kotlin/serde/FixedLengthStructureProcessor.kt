@@ -56,41 +56,4 @@ class FixedLengthStructureProcessor(private val serializersModule: SerializersMo
             elementQueue.prepend(collection.inner.filter { it !is Element.Primitive })
         }
     }
-
-    /**
-     * The number of bytes the collection to be padded. It is always different and depends on the state.
-     *
-     * @throws SerdeError.WrongElement exception when first element in queue is not a collection
-     */
-    val collectionPadding: Int
-        get() {
-            val collection = elementQueue.removeFirst().expect<Element.Collection>()
-
-            val collectionActualLength =
-                collection.actualLength ?: throw SerdeError.CollectionNoActualLength(collection)
-            val collectionRequiredLength = collection.requiredLength
-
-            if (collectionRequiredLength < collectionActualLength) {
-                throw SerdeError.CollectionTooLarge(collection)
-            }
-
-            return collection.elementSize * (collectionRequiredLength - collectionActualLength)
-        }
-
-    /**
-     * Returns the number of bytes the string to be padded.
-     *
-     * @throws SerdeError.WrongElement exception when first element in queue is not a string
-     * @throws SerdeError.StringTooLarge exception when string doesn't fit its given limit
-     */
-    fun stringPadding(actualLength: Int): Int {
-        val string = elementQueue.removeFirst().expect<Element.Strng>()
-
-        val requiredLength = string.requiredLength
-
-        if (requiredLength < actualLength)
-            throw SerdeError.StringTooLarge(actualLength, string)
-
-        return 2 * (requiredLength - actualLength)
-    }
 }

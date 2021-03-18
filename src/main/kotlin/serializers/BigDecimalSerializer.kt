@@ -13,12 +13,13 @@ const val INTEGER_SIZE: Int = 100
 const val FRACTION_SIZE: Int = 20
 
 @ExperimentalSerializationApi
-object BigDecimalSerializer: KSerializer<BigDecimal> {
+object BigDecimalSerializer : KSerializer<BigDecimal> {
     private val strategy = BigDecimalSurrogate.serializer()
     override val descriptor: SerialDescriptor = strategy.descriptor
     override fun serialize(encoder: Encoder, value: BigDecimal) {
         encoder.encodeSerializableValue(strategy, value.toSurrogate())
     }
+
     override fun deserialize(decoder: Decoder): BigDecimal {
         val surrogate = decoder.decodeSerializableValue(strategy)
         return surrogate.toOriginal()
@@ -36,16 +37,14 @@ object BigDecimalSerializer: KSerializer<BigDecimal> {
         val sign = this.signum().toByte()
         val integer = copyStringToDigits(integerFractionPair[0], paddedIntegerOffset)
 
-        val fraction
-                = if (hasFraction(integerFractionPair)) copyStringToDigits(integerFractionPair[1], 0)
+        val fraction = if (hasFraction(integerFractionPair)) copyStringToDigits(integerFractionPair[1], 0)
         else ByteArray(FRACTION_SIZE)
 
         return BigDecimalSurrogate(sign, integer, fraction)
     }
 
-    private fun fits(integerFractionPair: List<String>)
-            = integerFractionPair[0].length <= INTEGER_SIZE
-            || (hasFraction(integerFractionPair) && integerFractionPair[1].length <= FRACTION_SIZE)
+    private fun fits(integerFractionPair: List<String>) = integerFractionPair[0].length <= INTEGER_SIZE ||
+        (hasFraction(integerFractionPair) && integerFractionPair[1].length <= FRACTION_SIZE)
 
     private fun hasFraction(integerFractionPair: List<String>) = integerFractionPair.size == 2
 
@@ -71,4 +70,8 @@ object BigDecimalSerializer: KSerializer<BigDecimal> {
 @ExperimentalSerializationApi
 @Suppress("ArrayInDataClass")
 @Serializable
-data class BigDecimalSurrogate(val sign: Byte, @FixedLength([100]) val integer: ByteArray, @FixedLength([20]) val fraction: ByteArray)
+data class BigDecimalSurrogate(
+    val sign: Byte,
+    @FixedLength([100]) val integer: ByteArray,
+    @FixedLength([20]) val fraction: ByteArray
+)

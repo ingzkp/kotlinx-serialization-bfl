@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test
 import serde.SerdeTest
 
 @ExperimentalSerializationApi
-class CompoundTypeTest: SerdeTest() {
+class CompoundTypeTest : SerdeTest() {
     @Serializable
     data class Data(val pair: Pair<Int, Int>)
 

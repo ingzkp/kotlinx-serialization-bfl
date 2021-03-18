@@ -9,7 +9,7 @@ import java.security.PublicKey
 
 @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
 @ExperimentalSerializationApi
-class PolymorphicTest: SerdeTest() {
+class PolymorphicTest : SerdeTest() {
     @Test
     fun `serialize polymorphic type itself`() {
         val mask = listOf(

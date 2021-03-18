@@ -10,7 +10,7 @@ import java.security.PublicKey
 
 @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
 @ExperimentalSerializationApi
-class ClassPolymorphicTest: SerdeTest() {
+class ClassPolymorphicTest : SerdeTest() {
     @Serializable
     data class Data(val pk: PublicKey)
 

@@ -11,7 +11,7 @@ import java.security.PublicKey
 
 @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
 @ExperimentalSerializationApi
-class ListPolymorphicTest: SerdeTest() {
+class ListPolymorphicTest : SerdeTest() {
     @Serializable
     data class Data(@FixedLength([2]) val nested: List<PublicKey>)
 

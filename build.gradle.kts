@@ -3,7 +3,8 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
-    id("io.gitlab.arturbosch.detekt") version "1.16.0"
+    id("io.gitlab.arturbosch.detekt")
+    id("com.diffplug.gradle.spotless") apply true
 }
 
 group = "me.vic"
@@ -46,7 +47,7 @@ tasks.withType<KotlinCompile> {
 tasks.withType<io.gitlab.arturbosch.detekt.Detekt> {
     // Target version of the generated JVM bytecode. It is used for type resolution.
     jvmTarget = "1.8"
-    config.setFrom("${rootDir}/config/detekt/detekt.yml")
+    config.setFrom("$rootDir/config/detekt/detekt.yml")
 
     parallel = true
 
@@ -55,4 +56,17 @@ tasks.withType<io.gitlab.arturbosch.detekt.Detekt> {
     exclude("**/*.kts")
     exclude("**/resources/")
     exclude("**/build/")
+}
+
+configure<com.diffplug.gradle.spotless.SpotlessExtension> {
+    kotlin {
+        target("**/*.kt")
+        targetExclude("${buildDir.relativeTo(rootDir).path}/generated/**")
+        val ktlintVersion: String by project
+        ktlint(ktlintVersion)
+    }
+    kotlinGradle {
+        target("*.gradle.kts") // default target for kotlinGradle
+        ktlint() // or ktfmt() or prettier()
+    }
 }

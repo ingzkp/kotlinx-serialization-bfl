@@ -1,17 +1,17 @@
 package serde.classes
 
-import serializers.DateSerializer
 import annotations.FixedLength
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 import serde.SerdeTest
+import serializers.DateSerializer
 import java.text.SimpleDateFormat
 import java.util.Date
 
 @ExperimentalSerializationApi
-class List3rdPartyClassTest: SerdeTest() {
+class List3rdPartyClassTest : SerdeTest() {
     @Serializable
     data class Data(@FixedLength([2]) val dates: List<@Serializable(with = DateSerializer::class) Date>)
 

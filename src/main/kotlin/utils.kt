@@ -3,7 +3,8 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.serializer
-import serde.*
+import serde.BinaryFixedLengthInputDecoder
+import serde.BinaryFixedLengthOutputEncoder
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.DataInput
@@ -12,7 +13,12 @@ import java.io.DataOutput
 import java.io.DataOutputStream
 
 @ExperimentalSerializationApi
-fun <T: Any> encodeTo(output: DataOutput, serializer: SerializationStrategy<T>, value: T, serializersModule: SerializersModule) =
+fun <T : Any> encodeTo(
+    output: DataOutput,
+    serializer: SerializationStrategy<T>,
+    value: T,
+    serializersModule: SerializersModule
+) =
     BinaryFixedLengthOutputEncoder(output, serializersModule).encodeSerializableValue(serializer, value)
 
 @ExperimentalSerializationApi
@@ -24,8 +30,14 @@ inline fun <reified T : Any> serialize(data: T, serializersModule: SerializersMo
 }
 
 @ExperimentalSerializationApi
-fun <T> decodeFrom(input: DataInput, deserializer: DeserializationStrategy<T>, serializersModule: SerializersModule): T =
-    BinaryFixedLengthInputDecoder(input = input, serializersModule = serializersModule).decodeSerializableValue(deserializer)
+fun <T> decodeFrom(
+    input: DataInput,
+    deserializer: DeserializationStrategy<T>,
+    serializersModule: SerializersModule
+): T =
+    BinaryFixedLengthInputDecoder(input = input, serializersModule = serializersModule).decodeSerializableValue(
+        deserializer
+    )
 
 @ExperimentalSerializationApi
 inline fun <reified T : Any> deserialize(data: ByteArray, serializersModule: SerializersModule): T {
@@ -34,5 +46,10 @@ inline fun <reified T : Any> deserialize(data: ByteArray, serializersModule: Ser
     return decodeFrom(stream, serializer(), serializersModule)
 }
 
-fun <T> ArrayDeque<T>.prepend(value: T) { addFirst(value) }
-fun <T> ArrayDeque<T>.prepend(list: List<T>) { addAll(0, list) }
+fun <T> ArrayDeque<T>.prepend(value: T) {
+    addFirst(value)
+}
+
+fun <T> ArrayDeque<T>.prepend(list: List<T>) {
+    addAll(0, list)
+}

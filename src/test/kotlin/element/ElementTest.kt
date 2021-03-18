@@ -12,7 +12,7 @@ import serde.ElementFactory
 class ElementTest {
     @Serializable
     data class Inner(
-        @FixedLength([        3,            4])
+        @FixedLength([3, 4])
         val value: Triple<String, Int, List<Int>>
     )
 
@@ -85,7 +85,6 @@ class ElementTest {
         assert(inner33 is Element.Collection) { "`Triple.third` must be described with Element.Collection" }
         inner33 as Element.Collection
         inner33.requiredLength shouldBe 4
-
     }
 
     @Test

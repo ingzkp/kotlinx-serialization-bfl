@@ -18,6 +18,7 @@ object DateSerializer : KSerializer<Date> {
     override fun serialize(encoder: Encoder, value: Date) {
         encoder.encodeSerializableValue(strategy, DateSurrogate(value.time))
     }
+
     override fun deserialize(decoder: Decoder): Date {
         val surrogate = decoder.decodeSerializableValue(strategy)
         return Date(surrogate.l)

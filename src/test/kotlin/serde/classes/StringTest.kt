@@ -9,7 +9,7 @@ import serde.SerdeTest
 
 @ExperimentalSerializationApi
 @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
-class StringTest: SerdeTest() {
+class StringTest : SerdeTest() {
     @Serializable
     data class Data(@FixedLength([10]) val s: String = "123456789")
 

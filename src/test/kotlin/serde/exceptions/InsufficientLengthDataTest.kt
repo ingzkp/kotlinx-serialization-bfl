@@ -10,7 +10,7 @@ import serde.SerdeError
 import serde.SerdeTest
 
 @ExperimentalSerializationApi
-class InsufficientLengthDataTest: SerdeTest() {
+class InsufficientLengthDataTest : SerdeTest() {
     @Serializable
     data class Data(@FixedLength([2, 2]) val map: Map<String, List<Int>>)
 
@@ -25,9 +25,9 @@ class InsufficientLengthDataTest: SerdeTest() {
         exception.message shouldBe "Property ${Data::class.qualifiedName}.map cannot be parsed"
     }
 
-
     @Serializable
     data class ComplexData(@FixedLength([2]) val list: List<Data>)
+
     @Test
     fun `indirect property insufficient length`() {
         val data = ComplexData(listOf(Data(mapOf("a" to listOf(2)))))
@@ -38,5 +38,4 @@ class InsufficientLengthDataTest: SerdeTest() {
 
         exception.message shouldBe "Property ${Data::class.qualifiedName}.map cannot be parsed"
     }
-
 }

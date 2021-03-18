@@ -9,11 +9,12 @@ import serde.SerdeTest
 
 @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
 @ExperimentalSerializationApi
-class CompoundComplexMapTest: SerdeTest() {
+class CompoundComplexMapTest : SerdeTest() {
     @Serializable
     data class Data(
-        @FixedLength([          2,          2,   2,     2])
-        val nested: Triple<String, Int, Map<String, List<Int>>>)
+        @FixedLength([2, 2, 2, 2])
+        val nested: Triple<String, Int, Map<String, List<Int>>>
+    )
 
     @Test
     fun `serialize complex map within a compound type`() {

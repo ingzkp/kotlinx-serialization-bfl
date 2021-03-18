@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test
 import serde.SerdeTest
 
 @ExperimentalSerializationApi
-class ListStringTest: SerdeTest() {
+class ListStringTest : SerdeTest() {
     @Serializable
     data class Data(@FixedLength([2, 10]) val list: List<String> = listOf("123456789"))
 

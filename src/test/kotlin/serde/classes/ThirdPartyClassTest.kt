@@ -1,16 +1,16 @@
 package serde.classes
 
-import serializers.DateSerializer
 import io.kotest.matchers.shouldBe
-import org.junit.jupiter.api.Test
-import java.text.SimpleDateFormat
-import java.util.Date
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
+import org.junit.jupiter.api.Test
 import serde.SerdeTest
+import serializers.DateSerializer
+import java.text.SimpleDateFormat
+import java.util.Date
 
 @ExperimentalSerializationApi
-class ThirdPartyClassTest: SerdeTest() {
+class ThirdPartyClassTest : SerdeTest() {
     @Serializable
     data class Data(val date: @Serializable(with = DateSerializer::class) Date)
 

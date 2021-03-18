@@ -9,7 +9,7 @@ import serde.SerdeTest
 
 @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
 @ExperimentalSerializationApi
-class CompoundListTest: SerdeTest() {
+class CompoundListTest : SerdeTest() {
     @Serializable
     data class Data(@FixedLength([2]) val nested: Pair<Int, List<Int>>)
 
@@ -26,7 +26,13 @@ class CompoundListTest: SerdeTest() {
 
         data = Data(Pair(10, listOf()))
         bytes = checkedSerialize(data, mask)
-        bytes shouldBe ByteArray(mask.sumBy { it.second }) { if (it == 3) { 10 } else { 0 } }
+        bytes shouldBe ByteArray(mask.sumBy { it.second }) {
+            if (it == 3) {
+                10
+            } else {
+                0
+            }
+        }
     }
 
     @Test

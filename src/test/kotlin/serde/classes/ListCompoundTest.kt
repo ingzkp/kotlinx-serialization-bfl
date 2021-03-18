@@ -2,13 +2,13 @@ package serde.classes
 
 import annotations.FixedLength
 import io.kotest.matchers.shouldBe
-import org.junit.jupiter.api.Test
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
+import org.junit.jupiter.api.Test
 import serde.SerdeTest
 
 @ExperimentalSerializationApi
-class ListCompoundTest: SerdeTest() {
+class ListCompoundTest : SerdeTest() {
     @Serializable
     data class Data(@FixedLength([2]) val list: List<Pair<Int, Int>>)
 

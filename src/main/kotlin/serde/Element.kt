@@ -17,7 +17,7 @@ sealed class Element(val name: String) {
     /**
      * Primitive case.
      */
-    class Primitive(name: String, private val kind: SerialKind): Element(name) {
+    class Primitive(name: String, private val kind: SerialKind) : Element(name) {
         override val layout by lazy {
             val size = when (kind) {
                 is PrimitiveKind.BOOLEAN -> 1
@@ -38,10 +38,11 @@ sealed class Element(val name: String) {
     /**
      * String case.
      */
-    class Strng(name: String, val requiredLength: Int): Element(name) {
+    class Strng(name: String, val requiredLength: Int) : Element(name) {
         override val layout by lazy {
             // SHORT (string length) + requiredLength * length(CHAR)
-            Layout(name,
+            Layout(
+                name,
                 listOf(
                     Pair("length", 2),
                     Pair("value", requiredLength * 2)
@@ -66,13 +67,13 @@ sealed class Element(val name: String) {
     /**
      * Lists and Maps.
      */
-    class Collection(name: String, val inner: List<Element>, private val sizingInfo: CollectionSizingInfo):
-        CollectionElementSizingInfo by sizingInfo, Element(name)
-    {
+    class Collection(name: String, val inner: List<Element>, private val sizingInfo: CollectionSizingInfo) :
+        CollectionElementSizingInfo by sizingInfo, Element(name) {
         override val layout by lazy {
             // INT (collection length) + number_of_elements * sum_i { size(inner_i) }
             // = 4 + n * sum_i { size(inner_i) }
-            Layout(name,
+            Layout(
+                name,
                 listOf(
                     Pair("length", 4),
                     Pair("value", requiredLength * elementSize)
@@ -107,7 +108,8 @@ sealed class Element(val name: String) {
      */
     class Structure(name: String, val inner: List<Element>) : Element(name) {
         override val layout by lazy {
-            Layout(name,
+            Layout(
+                name,
                 listOf(Pair("length", size)),
                 inner.map { it.layout }
             )
@@ -118,7 +120,7 @@ sealed class Element(val name: String) {
         }
     }
 
-    inline fun <reified T: Element> expect(): T {
+    inline fun <reified T : Element> expect(): T {
         // Non-null assertion is fine because T is bound to Element.
         (this as? T) ?: throw SerdeError.WrongElement(T::class.simpleName!!, this)
         return this
@@ -144,9 +146,13 @@ class Layout(
 ) {
     fun toString(prefix: String = ""): String {
         val deepPrefix = "$prefix "
-        return "$prefix$name\n$deepPrefix"+
+        return "$prefix$name\n$deepPrefix" +
             mask.joinToString(separator = "\n$deepPrefix") { "${it.first} - ${it.second}" } +
             "\n" +
-            if (inner.isNotEmpty()) { inner.joinToString(separator = "") { it.toString(deepPrefix) } } else { "" }
+            if (inner.isNotEmpty()) {
+                inner.joinToString(separator = "") { it.toString(deepPrefix) }
+            } else {
+                ""
+            }
     }
 }

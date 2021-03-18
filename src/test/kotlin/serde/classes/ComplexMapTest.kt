@@ -9,7 +9,7 @@ import serde.SerdeTest
 
 @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
 @ExperimentalSerializationApi
-class ComplexMapTest: SerdeTest() {
+class ComplexMapTest : SerdeTest() {
     @Serializable
     data class Data(@FixedLength([2, 2, 2]) val map: Map<String, List<Int>>)
 

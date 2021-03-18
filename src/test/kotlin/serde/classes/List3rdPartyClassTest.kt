@@ -1,6 +1,6 @@
 package serde.classes
 
-import DateSerializer
+import serializers.DateSerializer
 import annotations.FixedLength
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi

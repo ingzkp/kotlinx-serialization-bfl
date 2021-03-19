@@ -5,6 +5,7 @@ plugins {
     kotlin("plugin.serialization")
     id("io.gitlab.arturbosch.detekt")
     id("com.diffplug.gradle.spotless") apply true
+    id("maven-publish")
 }
 
 group = "me.vic"
@@ -68,5 +69,24 @@ configure<com.diffplug.gradle.spotless.SpotlessExtension> {
     kotlinGradle {
         target("*.gradle.kts") // default target for kotlinGradle
         ktlint() // or ktfmt() or prettier()
+    }
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            from(components["java"])
+        }
+    }
+
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/ingzkp/kotlinx-serialization-bfl")
+            credentials {
+                username = System.getenv("GITHUB_USERNAME")
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
     }
 }

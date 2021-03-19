@@ -15,6 +15,9 @@ pluginManagement {
 
         val detektPluginVersion: String by settings
         id("io.gitlab.arturbosch.detekt") version detektPluginVersion apply false
+
+        val owaspDependencyCheckPluginVersion: String by settings
+        id("org.owasp.dependencycheck") version owaspDependencyCheckPluginVersion apply false
     }
 
     repositories { // Only for these plugins. Repos for other dependencies should be defined in build.gradle.kts
@@ -25,5 +28,3 @@ pluginManagement {
         maven("https://software.r3.com/artifactory/corda")
     }
 }
-
-rootProject.name = "serde"

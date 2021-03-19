@@ -1,15 +1,11 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
-    id("io.gitlab.arturbosch.detekt")
+    id("io.gitlab.arturbosch.detekt") apply true
     id("com.diffplug.gradle.spotless") apply true
     id("maven-publish")
+    id("org.owasp.dependencycheck") apply true
 }
-
-group = "me.vic"
-version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -41,8 +37,32 @@ tasks.test {
     useJUnitPlatform()
 }
 
-tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "1.8"
+task("checkJavaVersion") {
+    if (!JavaVersion.current().isJava8) {
+        throw IllegalStateException(
+                "ERROR: Java 1.8 required but " + JavaVersion.current() + " found. Change your JAVA_HOME environment variable."
+        )
+    }
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+    dependsOn(":checkJavaVersion")
+    dependsOn("spotlessApply") // Autofix before check
+    dependsOn("spotlessCheck") // Fail on remaining non-autofixable issues
+
+    kotlinOptions {
+        languageVersion = "1.4"
+        apiVersion = "1.4"
+        jvmTarget = "1.8"
+        javaParameters = true // Useful for reflection.
+        freeCompilerArgs = listOf("-Xjvm-default=compatibility")
+    }
+}
+
+tasks.withType<Jar> {
+    // This makes the JAR's SHA-256 hash repeatable.
+    isPreserveFileTimestamps = false
+    isReproducibleFileOrder = true
 }
 
 tasks.withType<io.gitlab.arturbosch.detekt.Detekt> {

@@ -1,3 +1,5 @@
+package com.ing.serialization.bfl
+
 import com.ing.serialization.bfl.serde.BinaryFixedLengthInputDecoder
 import com.ing.serialization.bfl.serde.BinaryFixedLengthOutputEncoder
 import kotlinx.serialization.DeserializationStrategy

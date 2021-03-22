@@ -1,12 +1,12 @@
 package com.ing.serialization.bfl.serde
 
+import com.ing.serialization.bfl.deserialize
+import com.ing.serialization.bfl.serialize
 import com.ing.serialization.bfl.serializers.RSAPublicKeySerializer
-import deserialize
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
-import serialize
 import sun.security.rsa.RSAPublicKeyImpl
 import java.security.KeyPairGenerator
 import java.security.PublicKey

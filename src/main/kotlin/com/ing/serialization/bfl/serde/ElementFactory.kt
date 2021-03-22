@@ -1,13 +1,13 @@
 package com.ing.serialization.bfl.serde
 
 import com.ing.serialization.bfl.annotations.FixedLength
+import com.ing.serialization.bfl.prepend
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.elementDescriptors
 import kotlinx.serialization.descriptors.getPolymorphicDescriptors
 import kotlinx.serialization.modules.EmptySerializersModule
 import kotlinx.serialization.modules.SerializersModule
-import prepend
 
 @ExperimentalSerializationApi
 class ElementFactory(private val serializersModule: SerializersModule = EmptySerializersModule) {

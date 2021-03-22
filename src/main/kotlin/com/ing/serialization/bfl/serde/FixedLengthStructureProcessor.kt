@@ -1,9 +1,9 @@
 package com.ing.serialization.bfl.serde
 
+import com.ing.serialization.bfl.prepend
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.modules.SerializersModule
-import prepend
 
 @ExperimentalSerializationApi
 class FixedLengthStructureProcessor(private val serializersModule: SerializersModule) {

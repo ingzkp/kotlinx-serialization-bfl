@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+    <suppress>
+        <notes><![CDATA[
+        Suppresses any vulnerability less than HIGH or CRITICAL
+      ]]></notes>
+        <cvssBelow>7</cvssBelow>
+    </suppress>
+
+    <suppress>
+        <notes><![CDATA[
+   file name: detekt-report-sarif-1.15.0.jar
+   We exclude detekt, since it is only used for testing
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/io\.gitlab\.arturbosch\.detekt/detekt.*@.*$</packageUrl>
+        <vulnerabilityName regex="true">^.*$</vulnerabilityName>
+    </suppress>
+</suppressions>

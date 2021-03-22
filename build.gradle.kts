@@ -40,6 +40,16 @@ task("checkJavaVersion") {
     }
 }
 
+dependencyCheck {
+    suppressionFile = projectDir.resolve("config/owasp/suppressions.xml").absolutePath
+    analyzers.apply {
+        assemblyEnabled = false
+        nodeEnabled = false
+        retirejs.enabled = false
+    }
+    failBuildOnCVSS = 6.9F
+}
+
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     dependsOn(":checkJavaVersion")
     dependsOn("spotlessApply") // Autofix before check

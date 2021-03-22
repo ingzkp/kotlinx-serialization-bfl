@@ -1,6 +1,7 @@
 plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
+    jacoco
     id("io.gitlab.arturbosch.detekt") apply true
     id("com.diffplug.spotless") apply true
     id("maven-publish")

@@ -39,7 +39,7 @@ jobs:
           key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}
 
       - name: Build with Gradle
-        run: ./gradlew build dependencyCheckAggregate
+        run: ./gradlew build jacocoTestReport dependencyCheckAggregate
 
       - name: Upload JUnit test report
         if: always()
@@ -61,3 +61,10 @@ jobs:
         with:
           name: OWASP Dependency-Check Report
           path: build/reports/dependency-check-report.html
+
+      - name: Upload Jacoco coverage report
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: Jacoco Coverage Report
+          path: build/reports/jacoco/test/html

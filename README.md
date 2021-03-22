@@ -1,12 +1,12 @@
-BFLS format for [kotlinx.serialization](https://github.com/Kotlin/kotlinx.serialization).
+# Binary Fixed Length Serialization
 
 ![build status](https://github.com/ingzkp/kotlinx-serialization-bfl/actions/workflows/gradle.yml/badge.svg)
 
-# BFLS
+Binary Fixed Length (BFL) serialization format for [kotlinx.serialization](https://github.com/Kotlin/kotlinx.serialization).
 
-Binary fixed length serialization (BFLS) protocol is dedicated to provide to particular data type the binary
-representation of fixed length. It is achieved by specifying the max length of each structure of variable length (i.e.
-List, Map, String, etc) and padding bytes in the end.
+Binary fixed length protocol is dedicated to provide to particular data type the binary representation of fixed
+length. It is achieved by specifying the max length of each structure of variable length (i.e.  List, Map, String, etc)
+and padding bytes in the end.
 
 Protocol supports the following data types:
 

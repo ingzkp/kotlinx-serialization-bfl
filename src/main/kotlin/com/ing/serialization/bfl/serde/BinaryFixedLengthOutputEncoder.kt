@@ -1,6 +1,7 @@
 package com.ing.serialization.bfl.serde
 
 import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.AbstractEncoder
 import kotlinx.serialization.encoding.CompositeEncoder
@@ -29,12 +30,28 @@ class BinaryFixedLengthOutputEncoder(
     override fun endStructure(descriptor: SerialDescriptor) {
         when {
             descriptor.isCollection -> {
-                val collection = structureProcessor.removeNextProcessed().expect<Element.Collection>()
+                val collection = structureProcessor
+                    .removeNext()
+                    .expect<Element.Collection>()
                 repeat(collection.padding) { encodeByte(0) }
             }
-            descriptor.isStructure || descriptor.isPolymorphic -> structureProcessor.removeNextProcessed()
+            descriptor.isStructure || descriptor.isPolymorphic -> {
+                structureProcessor.removeNext()
+            }
             else -> TODO("Unknown structure kind `${descriptor.kind}`")
         }
+    }
+
+    override fun <T : Any?> encodeSerializableValue(serializer: SerializationStrategy<T>, value: T) {
+        with(serializer.descriptor) {
+            if (isTrulyPrimitive && value == null) {
+                // Primitive elements, unlike collections and structures, are not scheduled to the queue.
+                // To streamline null encoding, we exceptionally schedule a primitive element on stack.
+                structureProcessor.schedulePriorityElement(Element.Primitive(serialName, kind, isNullable))
+            }
+        }
+
+        super.encodeSerializableValue(serializer, value)
     }
 
     override fun encodeBoolean(value: Boolean) = output.writeByte(if (value) 1 else 0)
@@ -42,26 +59,28 @@ class BinaryFixedLengthOutputEncoder(
     override fun encodeShort(value: Short) = output.writeShort(value.toInt())
     override fun encodeInt(value: Int) = output.writeInt(value)
     override fun encodeLong(value: Long) = output.writeLong(value)
-    override fun encodeFloat(value: Float) = output.writeFloat(value)
-    override fun encodeDouble(value: Double) = output.writeDouble(value)
+    override fun encodeFloat(value: Float) = throw IllegalStateException("Floats are not yet supported")
+    override fun encodeDouble(value: Double) = throw IllegalStateException("Doubles are not yet supported")
     override fun encodeChar(value: Char) = output.writeChar(value.toInt())
 
     override fun encodeString(value: String) =
         structureProcessor
-            .removeNextProcessed()
+            .removeNext()
             .expect<Element.Strng>()
             .encode(value, this)
 
     override fun encodeEnum(enumDescriptor: SerialDescriptor, index: Int) = output.writeInt(index)
 
-    override fun encodeNull(){
+    override fun encodeNull() {
         encodeBoolean(false)
 
-        when (val element = structureProcessor.removeNextProcessed()) {
-            is Element.Primitive -> TODO("")
-            is Element.Strng -> element.encode(null, this)
+        when (val element = structureProcessor.removeNext()) {
+            is Element.Primitive -> element.encodeNull(this)
+            is Element.Strng -> element.encodeNull(this)
             is Element.Collection -> TODO()
-            is Element.Structure -> repeat(element.size) { encodeByte(0) }
+            is Element.Structure -> {
+                repeat(element.size) { encodeByte(0) }
+            }
         }
     }
     override fun encodeNotNullMark() = encodeBoolean(true)

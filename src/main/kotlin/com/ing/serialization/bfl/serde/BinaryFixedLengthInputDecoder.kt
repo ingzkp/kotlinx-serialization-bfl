@@ -1,5 +1,6 @@
 package com.ing.serialization.bfl.serde
 
+import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.AbstractDecoder
@@ -26,7 +27,7 @@ class BinaryFixedLengthInputDecoder(
     override fun endStructure(descriptor: SerialDescriptor) {
         when {
             descriptor.isCollection -> endCollection()
-            descriptor.isStructure || descriptor.isPolymorphic -> structureProcessor.removeNextProcessed()
+            descriptor.isStructure || descriptor.isPolymorphic -> structureProcessor.removeNext()
             else -> TODO("Unknown structure kind `${descriptor.kind}`")
         }
     }
@@ -34,20 +35,34 @@ class BinaryFixedLengthInputDecoder(
     private fun endCollection() {
         // it's a crutch, but because of enabled sequential decoding (due to performance reasons),
         // key-value (aka Pair instances) serializers don't call endStructure() on elements of list-like structures
-        while (structureProcessor.getNextProcessed() !is Element.Collection) {
-            structureProcessor.removeNextProcessed()
+        while (structureProcessor.peekNext() !is Element.Collection) {
+            structureProcessor.removeNext()
         }
 
-        val collection = structureProcessor.removeNextProcessed().expect<Element.Collection>()
+        val collection = structureProcessor
+            .removeNext()
+            .expect<Element.Collection>()
 
         // Collection might have been padded.
         input.skipBytes(collection.padding)
     }
 
+    override fun <T> decodeSerializableValue(deserializer: DeserializationStrategy<T>): T {
+        with(deserializer.descriptor) {
+            if (isTrulyPrimitive && isNullable) {
+                // Primitive elements, unlike collections and structures, are not scheduled to the queue.
+                // To streamline null encoding, we exceptionally schedule a primitive element on stack.
+                structureProcessor.schedulePriorityElement(Element.Primitive(serialName, kind, isNullable))
+            }
+        }
+
+        return super.decodeSerializableValue(deserializer)
+    }
+
     override fun decodeString() = structureProcessor
-            .removeNextProcessed()
-            .expect<Element.Strng>()
-            .decode(this)
+        .removeNext()
+        .expect<Element.Strng>()
+        .decode(this)
 
     override fun decodeBoolean(): Boolean = input.readBoolean()
     override fun decodeByte() = input.readByte()
@@ -65,25 +80,26 @@ class BinaryFixedLengthInputDecoder(
         decodeInt().also { structureProcessor.beginCollection(it) }
 
     override fun decodeElementIndex(descriptor: SerialDescriptor) =
-        if (elementIndex == structureProcessor.getNextProcessed().expect<Element.Collection>().actualLength) {
+        if (elementIndex == structureProcessor.peekNext().expect<Element.Collection>().actualLength) {
             CompositeDecoder.DECODE_DONE
         } else {
             elementIndex++
         }
 
     override fun decodeNotNullMark(): Boolean {
-        val isNull = !decodeBoolean()
-        if (isNull) {
-            // value is read but ignored.
-            when (val element = structureProcessor.removeNextProcessed()) {
-                is Element.Primitive -> TODO()
-                is Element.Strng -> element.decode(this)
-                is Element.Collection -> TODO()
-                is Element.Structure -> input.skipBytes(element.size)
-            }
+        val isNotNull = decodeBoolean()
+        if (isNotNull) {
+            structureProcessor.removeNext()
         }
 
-        return !isNull
+        return isNotNull
+    }
+
+    override fun decodeNull(): Nothing? {
+        val element = structureProcessor.removeNext()
+        skipBytes(element.size)
+
+        return null
     }
 
     fun skipBytes(n: Int) = input.skipBytes(n)

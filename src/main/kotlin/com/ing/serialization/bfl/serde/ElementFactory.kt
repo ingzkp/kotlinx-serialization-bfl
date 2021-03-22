@@ -28,20 +28,20 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
                             ?: listOf()
                         dfQueue.prepend(lengths)
 
-                            try {
-                                fromType("[${descriptor.serialName}]", descriptor.getElementDescriptor(idx))
-                            } catch (err: SerdeError.InsufficientLengthData) {
-                                throw SerdeError.CannotParse(
-                                    "Property ${descriptor.serialName}.${descriptor.getElementName(idx)} cannot be parsed",
-                                    err
-                                )
-                            }
+                        try {
+                            fromType("[${descriptor.serialName}]", descriptor.getElementDescriptor(idx))
+                        } catch (err: SerdeError.InsufficientLengthData) {
+                            throw SerdeError.CannotParse(
+                                "Property ${descriptor.serialName}.${descriptor.getElementName(idx)} cannot be parsed",
+                                err
+                            )
                         }
-                    Element.Structure(descriptor.serialName, children, descriptor.isNullable)
-                }
-                descriptor.isPolymorphic -> fromType("", descriptor)
-                else -> error("${descriptor.serialName} is not supported")
+                    }
+                Element.Structure(descriptor.serialName, children, descriptor.isNullable)
             }
+            descriptor.isPolymorphic -> fromType("", descriptor)
+            else -> error("${descriptor.serialName} is not supported")
+        }
     }
 
     private fun fromType(parentName: String, descriptor: SerialDescriptor): Element {
@@ -61,7 +61,7 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
                 val children = descriptor.elementDescriptors.map { fromType(fullName, it) }
                 Element.Collection(name, children, CollectionSizingInfo(requiredLength = requiredLength), descriptor.isNullable)
             }
-            descriptor.isStructure ->  {
+            descriptor.isStructure -> {
                 val isAnnotated = (0 until descriptor.elementsCount)
                     .any { idx -> descriptor.getElementAnnotations(idx).isNotEmpty() }
 
@@ -93,7 +93,6 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
                 val children = listOf(type, value).map { fromType(fullName, it) }
 
                 Element.Structure(name, children, descriptor.isNullable)
-
             }
             else -> error("Unreachable code when building element from type ${descriptor.serialName}")
         }

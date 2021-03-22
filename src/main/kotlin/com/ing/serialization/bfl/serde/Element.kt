@@ -4,7 +4,6 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialKind
 import kotlinx.serialization.encoding.AbstractEncoder
-import java.io.DataOutput
 
 /**
  * The basic abstraction of each object being serialized.
@@ -50,26 +49,26 @@ sealed class Element(val name: String) {
                     is PrimitiveKind.LONG -> encodeLong(0)
                     is PrimitiveKind.FLOAT -> throw IllegalStateException("Floats are not yet supported")
                     is PrimitiveKind.DOUBLE -> throw IllegalStateException("Double are not yet supported")
-                    is PrimitiveKind.CHAR -> encodeChar('\u0000')
+                    is PrimitiveKind.CHAR -> encodeChar('0')
                     else -> throw IllegalStateException("$name is called primitive while it is not")
                 }
             }
-    }
-
-    /**
-     * String case.
-     */
-    class Strng(name: String, val requiredLength: Int, override val isNullable: Boolean) : Element(name) {
-        override val layout by lazy {
-            // BOOLEAN (if nullable; value present -> 1) + SHORT (string length) + requiredLength * length(CHAR)
-
-            val layout = listOf(
-                Pair("length", 2),
-                Pair("value", requiredLength * 2)
-            )
-
-            Layout(name, nullLayout + layout, listOf())
         }
+
+        /**
+         * String case.
+         */
+         class Strng(name: String, val requiredLength: Int, override val isNullable: Boolean): Element(name) {
+            override val layout by lazy {
+                // BOOLEAN (if nullable; value present -> 1) + SHORT (string length) + requiredLength * length(CHAR)
+
+                val layout = listOf(
+                    Pair("length", 2),
+                    Pair("value", requiredLength * 2)
+                )
+
+                Layout(name, nullLayout + layout, listOf())
+            }
 
         /**
          * Returns the number of bytes the string to be padded.
@@ -80,17 +79,17 @@ sealed class Element(val name: String) {
             if (requiredLength < actualLength)
                 throw SerdeError.StringTooLarge(actualLength, this)
 
-            return 2 * (requiredLength - actualLength)
-        }
+                return 2 * (requiredLength - actualLength)
+            }
 
-        fun encode(string: String?, encoder: AbstractEncoder) {
-            val actualLength = string?.length ?: 0
+            fun encode(string: String?, encoder: AbstractEncoder) {
+                val actualLength = string?.length ?: 0
 
-                // In output.writeUTF, length of the string is stored as short.
-                // We do the same for consistency.
-                encoder.encodeShort(actualLength.toShort())
-                string?.forEach { encoder.encodeChar(it) }
-                repeat(padding(actualLength)) { encoder.encodeByte(0) }
+            // In output.writeUTF, length of the string is stored as short.
+            // We do the same for consistency.
+            encoder.encodeShort(actualLength.toShort())
+            string?.forEach { encoder.encodeChar(it) }
+            repeat(padding(actualLength)) { encoder.encodeByte(0) }
             }
 
         fun encodeNull(encoder: AbstractEncoder) = encode(null, encoder)
@@ -102,9 +101,9 @@ sealed class Element(val name: String) {
             val string = (0 until actualLength).map { decoder.decodeChar() }.joinToString("")
             decoder.skipBytes(padding(actualLength))
 
-            return string
+                return string
+            }
         }
-    }
 
     /**
      * Lists and Maps.

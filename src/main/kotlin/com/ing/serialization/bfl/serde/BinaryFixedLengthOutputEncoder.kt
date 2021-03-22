@@ -73,15 +73,8 @@ class BinaryFixedLengthOutputEncoder(
 
     override fun encodeNull() {
         encodeBoolean(false)
-
-        when (val element = structureProcessor.removeNext()) {
-            is Element.Primitive -> element.encodeNull(this)
-            is Element.Strng -> element.encodeNull(this)
-            is Element.Collection -> TODO()
-            is Element.Structure -> {
-                repeat(element.size) { encodeByte(0) }
-            }
-        }
+        structureProcessor.removeNext().encodeNull(this)
     }
+
     override fun encodeNotNullMark() = encodeBoolean(true)
 }

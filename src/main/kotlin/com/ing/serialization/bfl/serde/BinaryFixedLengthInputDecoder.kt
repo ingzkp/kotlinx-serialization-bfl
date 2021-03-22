@@ -51,7 +51,9 @@ class BinaryFixedLengthInputDecoder(
         with(deserializer.descriptor) {
             if (isTrulyPrimitive && isNullable) {
                 // Primitive elements, unlike collections and structures, are not scheduled to the queue.
-                // To streamline null encoding, we exceptionally schedule a primitive element on stack.
+                // If it will be read that the some following data represents a null,
+                // we need to know what element this is to skip an appropriate number of bytes in `decodeNull`.
+                // Thus an extra element is scheduled to the front of the queue.
                 structureProcessor.schedulePriorityElement(Element.Primitive(serialName, kind, isNullable))
             }
         }
@@ -89,7 +91,9 @@ class BinaryFixedLengthInputDecoder(
     override fun decodeNotNullMark(): Boolean {
         val isNotNull = decodeBoolean()
         if (isNotNull) {
-            structureProcessor.removeNext()
+            if (structureProcessor.peekNext() is Element.Primitive) {
+                structureProcessor.removeNext()
+            }
         }
 
         return isNotNull

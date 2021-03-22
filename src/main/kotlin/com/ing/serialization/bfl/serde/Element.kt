@@ -11,35 +11,43 @@ import kotlinx.serialization.encoding.AbstractEncoder
 @ExperimentalSerializationApi
 sealed class Element(val name: String) {
     abstract val layout: Layout
+
     open val size by lazy {
         layout.mask.sumBy { it.second }
     }
+
     abstract val isNullable: Boolean
     val nullLayout by lazy {
-        if (isNullable) { listOf(Pair("nonNull", 1)) } else { listOf() }
+        if (isNullable) {
+            listOf(Pair("nonNull", 1))
+        } else {
+            listOf()
+        }
     }
 
-        /**
-         * Primitive case.
-         */
-         class Primitive(name: String, private val kind: SerialKind, override val isNullable: Boolean): Element(name) {
-            override val layout by lazy {
-                val size = when (kind) {
-                    is PrimitiveKind.BOOLEAN -> 1
-                    is PrimitiveKind.BYTE -> 1
-                    is PrimitiveKind.SHORT -> 2
-                    is PrimitiveKind.INT -> 4
-                    is PrimitiveKind.LONG -> 8
-                    is PrimitiveKind.FLOAT -> throw IllegalStateException("Floats are not yet supported")
-                    is PrimitiveKind.DOUBLE -> throw IllegalStateException("Double are not yet supported")
-                    is PrimitiveKind.CHAR -> 2
-                    else -> throw IllegalStateException("$name is called primitive while it is not")
-                }
+    abstract fun encodeNull(encoder: AbstractEncoder)
+
+    /**
+     * Primitive case.
+     */
+    class Primitive(name: String, val kind: SerialKind, override val isNullable: Boolean) : Element(name) {
+        override val layout by lazy {
+            val size = when (kind) {
+                is PrimitiveKind.BOOLEAN -> 1
+                is PrimitiveKind.BYTE -> 1
+                is PrimitiveKind.SHORT -> 2
+                is PrimitiveKind.INT -> 4
+                is PrimitiveKind.LONG -> 8
+                is PrimitiveKind.FLOAT -> throw IllegalStateException("Floats are not yet supported")
+                is PrimitiveKind.DOUBLE -> throw IllegalStateException("Double are not yet supported")
+                is PrimitiveKind.CHAR -> 2
+                else -> throw IllegalStateException("$name is called primitive while it is not")
+            }
 
             Layout(name, nullLayout + listOf(Pair("value", size)), listOf())
         }
 
-        fun encodeNull(encoder: AbstractEncoder) =
+        override fun encodeNull(encoder: AbstractEncoder) =
             with(encoder) {
                 when (kind) {
                     is PrimitiveKind.BOOLEAN -> encodeBoolean(false)
@@ -49,26 +57,26 @@ sealed class Element(val name: String) {
                     is PrimitiveKind.LONG -> encodeLong(0)
                     is PrimitiveKind.FLOAT -> throw IllegalStateException("Floats are not yet supported")
                     is PrimitiveKind.DOUBLE -> throw IllegalStateException("Double are not yet supported")
-                    is PrimitiveKind.CHAR -> encodeChar('0')
+                    is PrimitiveKind.CHAR -> encodeChar('\u0000')
                     else -> throw IllegalStateException("$name is called primitive while it is not")
                 }
             }
+    }
+
+    /**
+     * String case.
+     */
+    class Strng(name: String, val requiredLength: Int, override val isNullable: Boolean) : Element(name) {
+        override val layout by lazy {
+            // BOOLEAN (if nullable; value present -> 1) + SHORT (string length) + requiredLength * length(CHAR)
+
+            val layout = listOf(
+                Pair("length", 2),
+                Pair("value", requiredLength * 2)
+            )
+
+            Layout(name, nullLayout + layout, listOf())
         }
-
-        /**
-         * String case.
-         */
-         class Strng(name: String, val requiredLength: Int, override val isNullable: Boolean): Element(name) {
-            override val layout by lazy {
-                // BOOLEAN (if nullable; value present -> 1) + SHORT (string length) + requiredLength * length(CHAR)
-
-                val layout = listOf(
-                    Pair("length", 2),
-                    Pair("value", requiredLength * 2)
-                )
-
-                Layout(name, nullLayout + layout, listOf())
-            }
 
         /**
          * Returns the number of bytes the string to be padded.
@@ -79,20 +87,20 @@ sealed class Element(val name: String) {
             if (requiredLength < actualLength)
                 throw SerdeError.StringTooLarge(actualLength, this)
 
-                return 2 * (requiredLength - actualLength)
-            }
+            return 2 * (requiredLength - actualLength)
+        }
 
-            fun encode(string: String?, encoder: AbstractEncoder) {
-                val actualLength = string?.length ?: 0
+        fun encode(string: String?, encoder: AbstractEncoder) {
+            val actualLength = string?.length ?: 0
 
             // In output.writeUTF, length of the string is stored as short.
             // We do the same for consistency.
             encoder.encodeShort(actualLength.toShort())
             string?.forEach { encoder.encodeChar(it) }
             repeat(padding(actualLength)) { encoder.encodeByte(0) }
-            }
+        }
 
-        fun encodeNull(encoder: AbstractEncoder) = encode(null, encoder)
+        override fun encodeNull(encoder: AbstractEncoder) = encode(null, encoder)
 
         fun decode(decoder: BinaryFixedLengthInputDecoder): String {
             // In output.writeUTF, length of the string is stored as short.
@@ -101,9 +109,9 @@ sealed class Element(val name: String) {
             val string = (0 until actualLength).map { decoder.decodeChar() }.joinToString("")
             decoder.skipBytes(padding(actualLength))
 
-                return string
-            }
+            return string
         }
+    }
 
     /**
      * Lists and Maps.
@@ -144,6 +152,9 @@ sealed class Element(val name: String) {
                 }
                 return elementSize * (requiredLength - actualLength)
             }
+
+        override fun encodeNull(encoder: AbstractEncoder) =
+            repeat(4 + requiredLength * elementSize) { encoder.encodeByte(0) }
     }
 
     /**
@@ -151,13 +162,15 @@ sealed class Element(val name: String) {
      */
     class Structure(name: String, val inner: List<Element>, override val isNullable: Boolean) : Element(name) {
         override val layout by lazy {
-            val layout = listOf(Pair("length", size))
+            val layout = listOf(Pair("length", constituentsSize))
             Layout(name, nullLayout + layout, inner.map { it.layout })
         }
 
-        override val size by lazy {
+        private val constituentsSize by lazy {
             inner.sumBy { it.size }
         }
+
+        override fun encodeNull(encoder: AbstractEncoder) = repeat(constituentsSize) { encoder.encodeByte(0) }
     }
 
     inline fun <reified T : Element> expect(): T {

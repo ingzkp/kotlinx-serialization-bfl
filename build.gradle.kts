@@ -2,7 +2,7 @@ plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
     id("io.gitlab.arturbosch.detekt") apply true
-    id("com.diffplug.gradle.spotless") apply true
+    id("com.diffplug.spotless") apply true
     id("maven-publish")
     id("org.owasp.dependencycheck") apply true
 }

@@ -11,7 +11,7 @@ pluginManagement {
         kotlin("plugin.serialization") version kotlinVersion
 
         val spotlessPluginVersion: String by settings
-        id("com.diffplug.gradle.spotless") version spotlessPluginVersion apply false
+        id("com.diffplug.spotless") version spotlessPluginVersion apply false
 
         val detektPluginVersion: String by settings
         id("io.gitlab.arturbosch.detekt") version detektPluginVersion apply false

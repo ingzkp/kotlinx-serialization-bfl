@@ -101,6 +101,11 @@ publishing {
     publications {
         create<MavenPublication>("maven") {
             from(components["java"])
+            System.getenv("GIT_RELEASE_VERSION")?.let {
+                if (it.isNotBlank()) {
+                    version = it
+                }
+            }
         }
     }
 

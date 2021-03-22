@@ -27,13 +27,13 @@ class ListPolymorphicTest : SerdeTest() {
             Pair("nested[1].value", 500)
         )
 
-        val data = Data(listOf(getRSA()))
+        val data = Data(listOf(generatePublicKey()))
         checkedSerialize(data, mask)
     }
 
     @Test
     fun `serialize and deserialize polymorphic type within collection`() {
-        val data = Data(listOf(getRSA()))
+        val data = Data(listOf(generatePublicKey()))
         val bytes = serialize(data)
 
         val deserialized: Data = deserialize(bytes)
@@ -43,8 +43,8 @@ class ListPolymorphicTest : SerdeTest() {
     @Test
     fun `serialization has fixed length`() {
         val empty = Data(listOf())
-        val data1 = Data(listOf(getRSA()))
-        val data2 = Data(listOf(getRSA()))
+        val data1 = Data(listOf(generatePublicKey()))
+        val data2 = Data(listOf(generatePublicKey()))
 
         serialize(data1).size shouldBe serialize(data2).size
         serialize(empty).size shouldBe serialize(data2).size

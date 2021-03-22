@@ -20,6 +20,11 @@ open class SerdeTest {
                 subclass(RSAPublicKeyImpl::class, RSAPublicKeySerializer)
             }
         }
+        private val generator: KeyPairGenerator = KeyPairGenerator.getInstance("RSA")
+
+        init {
+            generator.initialize(2048, SecureRandom())
+        }
     }
 
     inline fun <reified T : Any> checkedSerialize(data: T, mask: List<Pair<String, Int>>): ByteArray {
@@ -45,9 +50,7 @@ open class SerdeTest {
         }
     }
 
-    fun getRSA(): PublicKey {
-        val generator = KeyPairGenerator.getInstance("RSA")
-        generator.initialize(2048, SecureRandom())
+    protected fun generatePublicKey(): PublicKey {
         return generator.genKeyPair().public
     }
 }

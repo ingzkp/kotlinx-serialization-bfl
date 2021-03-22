@@ -21,7 +21,7 @@ class ClassPolymorphicTest : SerdeTest() {
             Pair("pk.value", 4 + 500)
         )
 
-        val data = Data(getRSA())
+        val data = Data(generatePublicKey())
         checkedSerialize(data, mask)
     }
 
@@ -30,7 +30,7 @@ class ClassPolymorphicTest : SerdeTest() {
         @Serializable
         data class Data(val pk: PublicKey)
 
-        val data = Data(getRSA())
+        val data = Data(generatePublicKey())
         val bytes = serialize(data)
 
         val deserialized: Data = deserialize(bytes)
@@ -39,8 +39,8 @@ class ClassPolymorphicTest : SerdeTest() {
 
     @Test
     fun `serialization has fixed length`() {
-        val data1 = Data(getRSA())
-        val data2 = Data(getRSA())
+        val data1 = Data(generatePublicKey())
+        val data2 = Data(generatePublicKey())
 
         serialize(data1).size shouldBe serialize(data2).size
     }

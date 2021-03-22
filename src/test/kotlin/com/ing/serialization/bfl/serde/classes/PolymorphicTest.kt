@@ -18,13 +18,13 @@ class PolymorphicTest : SerdeTest() {
             Pair("value", 500)
         )
 
-        val data = getRSA()
+        val data = generatePublicKey()
         checkedSerialize(data, mask)
     }
 
     @Test
     fun `serialize and deserialize polymorphic type itself`() {
-        val data = getRSA()
+        val data = generatePublicKey()
         val bytes = serialize(data)
 
         val deserialized: PublicKey = deserialize(bytes)

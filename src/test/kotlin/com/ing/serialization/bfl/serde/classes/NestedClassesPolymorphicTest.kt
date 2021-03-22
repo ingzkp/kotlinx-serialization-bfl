@@ -25,13 +25,13 @@ class NestedClassesPolymorphicTest : SerdeTest() {
             Pair("some.nested.value", 500)
         )
 
-        val data = Data(Some(getRSA()))
+        val data = Data(Some(generatePublicKey()))
         checkedSerialize(data, mask)
     }
 
     @Test
     fun `serialize and deserialize polymorphic type within nested compound type`() {
-        val data = Data(Some(getRSA()))
+        val data = Data(Some(generatePublicKey()))
         val bytes = serialize(data)
 
         val deserialized: Data = deserialize(bytes)
@@ -40,8 +40,8 @@ class NestedClassesPolymorphicTest : SerdeTest() {
 
     @Test
     fun `serialization has fixed length`() {
-        val data1 = Data(Some(getRSA()))
-        val data2 = Data(Some(getRSA()))
+        val data1 = Data(Some(generatePublicKey()))
+        val data2 = Data(Some(generatePublicKey()))
 
         serialize(data1).size shouldBe serialize(data2).size
     }

@@ -42,7 +42,7 @@ jobs:
           key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}
 
       - name: Build with Gradle
-        run: ./gradlew build
+        run: ./gradlew build dependencyCheckAggregate
 
       - name: Upload JUnit test report
         if: always()
@@ -57,3 +57,10 @@ jobs:
         with:
           name: Detekt Report
           path: build/reports/detekt
+
+      - name: Upload OWASP dependency-check report
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: OWASP Dependency-Check Report
+          path: build/reports/dependency-check-report.html

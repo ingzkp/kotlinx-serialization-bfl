@@ -6,5 +6,5 @@ jar file to the github maven repository, with version `VERSION`.
 
 For more information checkout the following files
 
-- [build.gradle.yml](build.gradle.yml)
+- [build.gradle.kts](build.gradle.kts)
 - [on-tag-publish.yml](.github/workflows/on-tag-publish.yml)

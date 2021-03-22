@@ -1,6 +1,6 @@
 BFLS format for [kotlinx.serialization](https://github.com/Kotlin/kotlinx.serialization).
 
-![build status](https://github.com/ingzkp/kotlinx-serialization-bfl/actions/workflows/build/badge.svg)
+![build status](https://github.com/ingzkp/kotlinx-serialization-bfl/actions/workflows/gradle.yml/badge.svg)
 
 # BFLS
 

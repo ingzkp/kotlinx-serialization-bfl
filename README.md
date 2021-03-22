@@ -1,6 +1,6 @@
 # Binary Fixed Length Serialization
 
-![build status](https://github.com/ingzkp/kotlinx-serialization-bfl/actions/workflows/gradle.yml/badge.svg)
+![build status](https://github.com/ingzkp/kotlinx-serialization-bfl/actions/workflows/on-push.yml/badge.svg)
 
 Binary Fixed Length (BFL) serialization format for [kotlinx.serialization](https://github.com/Kotlin/kotlinx.serialization).
 

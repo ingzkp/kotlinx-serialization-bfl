@@ -44,6 +44,13 @@ jobs:
     - name: Build with Gradle
       run: ./gradlew build
 
+    - name: Upload JUnit test report
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: Junit Test Report
+        path: build/reports/tests/test
+
     - name: Upload detekt report
       if: always()
       uses: actions/upload-artifact@v2

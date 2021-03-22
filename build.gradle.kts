@@ -13,24 +13,19 @@ repositories {
 }
 
 dependencies {
+    implementation(kotlin("reflect"))
+
+    val kotlinSerializationVersion: String by project
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:$kotlinSerializationVersion")
+
     testImplementation(kotlin("test-junit5"))
 
     val junit5Version: String by project
-    val kotlinTestVersion: String by project
-
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junit5Version")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junit5Version")
+
+    val kotlinTestVersion: String by project
     testImplementation("io.kotest:kotest-assertions-core:$kotlinTestVersion")
-
-    val kotlinSerializationVersion: String by project
-    val cordaVersion: String by project
-    val quasarVersion: String by project
-    //
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:$kotlinSerializationVersion")
-    implementation("net.corda:corda-core:$cordaVersion")
-    implementation("co.paralleluniverse:quasar-core:$quasarVersion")
-
-    implementation(kotlin("reflect"))
 }
 
 tasks.test {

@@ -82,7 +82,7 @@ sealed class Element(val name: String) {
             )
         }
 
-        val elementSize by lazy {
+        private val elementSize by lazy {
             inner.sumBy { it.size }
         }
 

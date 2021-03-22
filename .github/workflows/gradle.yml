@@ -43,3 +43,10 @@ jobs:
 
     - name: Build with Gradle
       run: ./gradlew build
+
+    - name: Upload detekt report
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: Detekt Report
+        path: build/reports/detekt

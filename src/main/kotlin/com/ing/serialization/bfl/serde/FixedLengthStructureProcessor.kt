@@ -10,11 +10,11 @@ class FixedLengthStructureProcessor(private val serializersModule: SerializersMo
     private lateinit var structure: Element
 
     private var topLevel = true
-    private val elementQueue = ArrayDeque<Element>()
+    private val queue = ArrayDeque<Element>()
 
-    fun removeNextProcessed() = elementQueue.removeFirst()
+    fun removeNext() = queue.removeFirst()
 
-    fun getNextProcessed() = elementQueue.first()
+    fun peekNext() = queue.first()
 
     /**
      * Processes structure descriptor and stores it in queue.
@@ -29,15 +29,15 @@ class FixedLengthStructureProcessor(private val serializersModule: SerializersMo
             topLevel = false
             structure = ElementFactory(serializersModule).parse(descriptor)
             // Place the element to the front of the queue.
-            elementQueue.prepend(structure)
+            queue.prepend(structure)
             structure
         } else {
             // TODO: add check if the struct on the stack coincides with the current descriptor.
-            elementQueue.first()
+            queue.first()
         }.expect<Element.Structure>()
 
         // Unwind structure's inner elements to the queue.
-        elementQueue.prepend(schedulable.inner.filter { it !is Element.Primitive })
+        queue.prepend(schedulable.inner.filter { it !is Element.Primitive })
     }
 
     /**
@@ -49,11 +49,16 @@ class FixedLengthStructureProcessor(private val serializersModule: SerializersMo
      * @throws SerdeError.WrongElement exception when first element in queue is not a collection
      */
     fun beginCollection(collectionSize: Int) {
-        val collection = elementQueue.first().expect<Element.Collection>()
+        val collection = queue.first().expect<Element.Collection>()
         collection.actualLength = collectionSize
 
         repeat(collectionSize) {
-            elementQueue.prepend(collection.inner.filter { it !is Element.Primitive })
+            queue.prepend(collection.inner.filter { it !is Element.Primitive })
         }
     }
+
+    /**
+     * Schedules element with high priority to the front of the queue.
+     */
+    fun schedulePriorityElement(element: Element) = queue.addFirst(element)
 }

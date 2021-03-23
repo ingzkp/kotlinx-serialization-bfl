@@ -1,5 +1,6 @@
 package com.ing.serialization.bfl.serde
 
+import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.AbstractDecoder
@@ -26,7 +27,7 @@ class BinaryFixedLengthInputDecoder(
     override fun endStructure(descriptor: SerialDescriptor) {
         when {
             descriptor.isCollection -> endCollection()
-            descriptor.isStructure || descriptor.isPolymorphic -> structureProcessor.removeNextProcessed()
+            descriptor.isStructure || descriptor.isPolymorphic -> structureProcessor.removeNext()
             else -> TODO("Unknown structure kind `${descriptor.kind}`")
         }
     }
@@ -34,27 +35,36 @@ class BinaryFixedLengthInputDecoder(
     private fun endCollection() {
         // it's a crutch, but because of enabled sequential decoding (due to performance reasons),
         // key-value (aka Pair instances) serializers don't call endStructure() on elements of list-like structures
-        while (structureProcessor.getNextProcessed() !is Element.Collection) {
-            structureProcessor.removeNextProcessed()
+        while (structureProcessor.peekNext() !is Element.Collection) {
+            structureProcessor.removeNext()
         }
 
-        val collection = structureProcessor.removeNextProcessed().expect<Element.Collection>()
+        val collection = structureProcessor
+            .removeNext()
+            .expect<Element.Collection>()
 
         // Collection might have been padded.
         input.skipBytes(collection.padding)
     }
 
-    override fun decodeString(): String {
-        val string = structureProcessor.removeNextProcessed().expect<Element.Strng>()
-        // In output.writeUTF, length of the string is stored as short.
-        // We do the same for consistency.
-        val actualLength = decodeShort().toInt()
-        val value = (0 until actualLength).map { decodeChar() }.joinToString("")
+    override fun <T> decodeSerializableValue(deserializer: DeserializationStrategy<T>): T {
+        with(deserializer.descriptor) {
+            if (isTrulyPrimitive && isNullable) {
+                // Primitive elements, unlike collections and structures, are not scheduled to the queue.
+                // If it will be read that the some following data represents a null,
+                // we need to know what element this is to skip an appropriate number of bytes in `decodeNull`.
+                // Thus an extra element is scheduled to the front of the queue.
+                structureProcessor.schedulePriorityElement(Element.Primitive(serialName, kind, isNullable))
+            }
+        }
 
-        input.skipBytes(string.padding(actualLength))
-
-        return value
+        return super.decodeSerializableValue(deserializer)
     }
+
+    override fun decodeString() = structureProcessor
+        .removeNext()
+        .expect<Element.Strng>()
+        .decode(this)
 
     override fun decodeBoolean(): Boolean = input.readBoolean()
     override fun decodeByte() = input.readByte()
@@ -72,11 +82,29 @@ class BinaryFixedLengthInputDecoder(
         decodeInt().also { structureProcessor.beginCollection(it) }
 
     override fun decodeElementIndex(descriptor: SerialDescriptor) =
-        if (elementIndex == structureProcessor.getNextProcessed().expect<Element.Collection>().actualLength) {
+        if (elementIndex == structureProcessor.peekNext().expect<Element.Collection>().actualLength) {
             CompositeDecoder.DECODE_DONE
         } else {
             elementIndex++
         }
 
-    override fun decodeNotNullMark(): Boolean = decodeBoolean()
+    override fun decodeNotNullMark(): Boolean {
+        val isNotNull = decodeBoolean()
+        if (isNotNull) {
+            if (structureProcessor.peekNext() is Element.Primitive) {
+                structureProcessor.removeNext()
+            }
+        }
+
+        return isNotNull
+    }
+
+    override fun decodeNull(): Nothing? {
+        val element = structureProcessor.removeNext()
+        skipBytes(element.size)
+
+        return null
+    }
+
+    fun skipBytes(n: Int) = input.skipBytes(n)
 }

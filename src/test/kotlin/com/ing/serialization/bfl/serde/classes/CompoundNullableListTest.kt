@@ -9,38 +9,32 @@ import org.junit.jupiter.api.Test
 
 @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
 @ExperimentalSerializationApi
-class CompoundListTest : SerdeTest() {
+class CompoundNullableListTest : SerdeTest() {
     @Serializable
-    data class Data(@FixedLength([2]) val nested: Pair<Int, List<Int>>)
+    data class NullableData(@FixedLength([2]) val nested: Pair<Int, List<Int>?>)
 
     @Test
     fun `serialize list within a compound type`() {
         val mask = listOf(
             Pair("pair.first", 4),
+            Pair("pair.second.isNull", 1),
             Pair("pair.second.length", 4),
             Pair("pair.second.value", 8),
         )
 
-        var data = Data(Pair(10, listOf(20)))
-        var bytes = checkedSerialize(data, mask)
+        var data = NullableData(Pair(10, listOf(20)))
+        checkedSerialize(data, mask)
 
-        data = Data(Pair(10, listOf()))
-        bytes = checkedSerialize(data, mask)
-        bytes shouldBe ByteArray(mask.sumBy { it.second }) {
-            if (it == 3) {
-                10
-            } else {
-                0
-            }
-        }
+        data = NullableData(Pair(10, null))
+        checkedSerialize(data, mask)
     }
 
     @Test
     fun `serialize and deserialize list within a compound type`() {
-        val data = Data(Pair(10, listOf(20)))
+        val data = NullableData(Pair(10, null))
         val bytes = serialize(data)
 
-        val deserialized: Data = deserialize(bytes)
+        val deserialized: NullableData = deserialize(bytes)
         data shouldBe deserialized
     }
 
@@ -49,7 +43,9 @@ class CompoundListTest : SerdeTest() {
         val empty = Pair(0, listOf<Int>())
         val pair1 = Pair(1, listOf(1))
         val pair2 = Pair(2, listOf(1, 2))
-        serialize(Data(pair1)).size shouldBe serialize(Data(pair2)).size
-        serialize(Data(pair2)).size shouldBe serialize(Data(empty)).size
+        val pair3 = Pair(2, null)
+        serialize(NullableData(pair1)).size shouldBe serialize(NullableData(pair2)).size
+        serialize(NullableData(pair2)).size shouldBe serialize(NullableData(empty)).size
+        serialize(NullableData(pair1)).size shouldBe serialize(NullableData(pair3)).size
     }
 }

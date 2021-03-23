@@ -37,7 +37,7 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
                             )
                         }
                     }
-                Element.Structure(descriptor.serialName, children)
+                Element.Structure(descriptor.serialName, children, descriptor.isNullable)
             }
             descriptor.isPolymorphic -> fromType("", descriptor)
             else -> error("${descriptor.serialName} is not supported")
@@ -49,17 +49,17 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
         val fullName = "$parentName.$name"
 
         return when {
-            descriptor.isTrulyPrimitive -> Element.Primitive(name, descriptor.kind)
+            descriptor.isTrulyPrimitive -> Element.Primitive(name, descriptor.kind, descriptor.isNullable)
             descriptor.isString -> {
                 val requiredLength = dfQueue.removeFirstOrNull()
                     ?: throw SerdeError.InsufficientLengthData(parentName, descriptor)
-                Element.Strng(name, requiredLength)
+                Element.Strng(name, requiredLength, descriptor.isNullable)
             }
             descriptor.isCollection -> {
                 val requiredLength = dfQueue.removeFirstOrNull()
                     ?: throw SerdeError.InsufficientLengthData(parentName, descriptor)
                 val children = descriptor.elementDescriptors.map { fromType(fullName, it) }
-                Element.Collection(name, inner = children, CollectionSizingInfo(requiredLength = requiredLength))
+                Element.Collection(name, children, CollectionSizingInfo(requiredLength = requiredLength), descriptor.isNullable)
             }
             descriptor.isStructure -> {
                 val isAnnotated = (0 until descriptor.elementsCount)
@@ -69,7 +69,7 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
                     parse(descriptor)
                 } else {
                     val children = descriptor.elementDescriptors.map { fromType(fullName, it) }
-                    Element.Structure(name, inner = children)
+                    Element.Structure(name, children, descriptor.isNullable)
                 }
             }
             descriptor.isPolymorphic -> {
@@ -92,7 +92,7 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
 
                 val children = listOf(type, value).map { fromType(fullName, it) }
 
-                Element.Structure(name, inner = children)
+                Element.Structure(name, children, descriptor.isNullable)
             }
             else -> error("Unreachable code when building element from type ${descriptor.serialName}")
         }

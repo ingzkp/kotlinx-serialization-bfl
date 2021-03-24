@@ -1,8 +1,8 @@
 package com.ing.serialization.bfl.serde.classes
 
 import com.ing.serialization.bfl.annotations.FixedLength
-import com.ing.serialization.bfl.serde.ElementFactory
 import com.ing.serialization.bfl.serde.SerdeTest
+import com.ing.serialization.bfl.serde.element.ElementFactory
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable

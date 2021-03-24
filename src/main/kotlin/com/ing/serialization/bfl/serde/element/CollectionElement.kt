@@ -1,0 +1,64 @@
+package com.ing.serialization.bfl.serde.element
+
+import com.ing.serialization.bfl.serde.Element
+import com.ing.serialization.bfl.serde.SerdeError
+import kotlinx.serialization.ExperimentalSerializationApi
+import java.io.DataOutput
+
+/**
+ * The basic abstraction of each object being serialized.
+ */
+@ExperimentalSerializationApi
+class CollectionElement(
+    name: String,
+    val inner: List<Element>,
+    private val sizingInfo: CollectionSizingInfo,
+    override val isNullable: Boolean
+) : CollectionElementSizingInfo by sizingInfo, Element(name) {
+
+    override val layout by lazy {
+        // INT (collection length) + number_of_elements * sum_i { size(inner_i) }
+        // = 4 + n * sum_i { size(inner_i) }
+        val layout = listOf(
+            Pair("length", 4),
+            Pair("value", requiredLength * elementSize)
+        )
+
+        Layout(name, nullLayout + layout, inner.map { it.layout })
+    }
+
+    private val elementSize by lazy {
+        inner.sumBy { it.size }
+    }
+
+    /**
+     * The number of bytes the collection to be padded. It is always different and depends on the state.
+     *
+     * @throws SerdeError.CollectionNoActualLength exception when length of a collection is not specified.
+     * @throws SerdeError.CollectionTooLarge exception when collection doesn't fit into the given limit
+     */
+    val padding: Int
+        get() {
+            val actualLength = actualLength ?: throw SerdeError.CollectionNoActualLength(this)
+
+            if (requiredLength < actualLength) {
+                throw SerdeError.CollectionTooLarge(this)
+            }
+            return elementSize * (requiredLength - actualLength)
+        }
+
+    override fun encodeNull(stream: DataOutput) =
+        repeat(4 + requiredLength * elementSize) { stream.writeByte(0) }
+}
+
+@ExperimentalSerializationApi
+interface CollectionElementSizingInfo {
+    var actualLength: Int?
+    val requiredLength: Int
+}
+
+@ExperimentalSerializationApi
+data class CollectionSizingInfo(
+    override var actualLength: Int? = null,
+    override val requiredLength: Int,
+) : CollectionElementSizingInfo

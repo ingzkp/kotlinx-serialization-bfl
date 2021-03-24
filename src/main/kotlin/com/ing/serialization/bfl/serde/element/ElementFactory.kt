@@ -1,7 +1,15 @@
-package com.ing.serialization.bfl.serde
+package com.ing.serialization.bfl.serde.element
 
 import com.ing.serialization.bfl.annotations.FixedLength
 import com.ing.serialization.bfl.prepend
+import com.ing.serialization.bfl.serde.Element
+import com.ing.serialization.bfl.serde.SerdeError
+import com.ing.serialization.bfl.serde.StringElement
+import com.ing.serialization.bfl.serde.isCollection
+import com.ing.serialization.bfl.serde.isPolymorphic
+import com.ing.serialization.bfl.serde.isString
+import com.ing.serialization.bfl.serde.isStructure
+import com.ing.serialization.bfl.serde.isTrulyPrimitive
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.elementDescriptors
@@ -37,7 +45,7 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
                             )
                         }
                     }
-                Element.Structure(descriptor.serialName, children, descriptor.isNullable)
+                StructureElement(descriptor.serialName, children, descriptor.isNullable)
             }
             descriptor.isPolymorphic -> fromType("", descriptor)
             else -> error("${descriptor.serialName} is not supported")
@@ -49,17 +57,22 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
         val fullName = "$parentName.$name"
 
         return when {
-            descriptor.isTrulyPrimitive -> Element.Primitive(name, descriptor.kind, descriptor.isNullable)
+            descriptor.isTrulyPrimitive -> PrimitiveElement(name, descriptor.kind, descriptor.isNullable)
             descriptor.isString -> {
                 val requiredLength = dfQueue.removeFirstOrNull()
                     ?: throw SerdeError.InsufficientLengthData(parentName, descriptor)
-                Element.Strng(name, requiredLength, descriptor.isNullable)
+                StringElement(name, requiredLength, descriptor.isNullable)
             }
             descriptor.isCollection -> {
                 val requiredLength = dfQueue.removeFirstOrNull()
                     ?: throw SerdeError.InsufficientLengthData(parentName, descriptor)
                 val children = descriptor.elementDescriptors.map { fromType(fullName, it) }
-                Element.Collection(name, children, CollectionSizingInfo(requiredLength = requiredLength), descriptor.isNullable)
+                CollectionElement(
+                    name,
+                    children,
+                    CollectionSizingInfo(requiredLength = requiredLength),
+                    descriptor.isNullable
+                )
             }
             descriptor.isStructure -> {
                 val isAnnotated = (0 until descriptor.elementsCount)
@@ -69,7 +82,7 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
                     parse(descriptor)
                 } else {
                     val children = descriptor.elementDescriptors.map { fromType(fullName, it) }
-                    Element.Structure(name, children, descriptor.isNullable)
+                    StructureElement(name, children, descriptor.isNullable)
                 }
             }
             descriptor.isPolymorphic -> {
@@ -92,7 +105,7 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
 
                 val children = listOf(type, value).map { fromType(fullName, it) }
 
-                Element.Structure(name, children, descriptor.isNullable)
+                StructureElement(name, children, descriptor.isNullable)
             }
             else -> error("Unreachable code when building element from type ${descriptor.serialName}")
         }

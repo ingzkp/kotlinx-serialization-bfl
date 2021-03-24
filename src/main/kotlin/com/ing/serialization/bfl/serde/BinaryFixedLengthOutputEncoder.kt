@@ -1,7 +1,9 @@
 package com.ing.serialization.bfl.serde
 
+import com.ing.serialization.bfl.serde.element.CollectionElement
+import com.ing.serialization.bfl.serde.element.PrimitiveElement
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.SerializationStrategy
+import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.AbstractEncoder
 import kotlinx.serialization.encoding.CompositeEncoder
@@ -24,7 +26,7 @@ class BinaryFixedLengthOutputEncoder(
 
     override fun beginCollection(descriptor: SerialDescriptor, collectionSize: Int): CompositeEncoder {
         structureProcessor.beginCollection(collectionSize)
-        encodeInt(collectionSize)
+        output.writeInt(collectionSize)
         return this
     }
 
@@ -33,8 +35,8 @@ class BinaryFixedLengthOutputEncoder(
             descriptor.isCollection -> {
                 val collection = structureProcessor
                     .removeNext()
-                    .expect<Element.Collection>()
-                repeat(collection.padding) { encodeByte(0) }
+                    .expect<CollectionElement>()
+                repeat(collection.padding) { output.writeByte(0) }
             }
             descriptor.isStructure || descriptor.isPolymorphic -> {
                 structureProcessor.removeNext()
@@ -43,39 +45,22 @@ class BinaryFixedLengthOutputEncoder(
         }
     }
 
-    override fun <T : Any?> encodeSerializableValue(serializer: SerializationStrategy<T>, value: T) {
-        with(serializer.descriptor) {
-            if (isTrulyPrimitive && value == null) {
-                // Primitive elements, unlike collections and structures, are not scheduled to the queue.
-                // To streamline null encoding, we exceptionally schedule a primitive element on stack.
-                structureProcessor.schedulePriorityElement(Element.Primitive(serialName, kind, isNullable))
-            }
-        }
-
-        super.encodeSerializableValue(serializer, value)
-    }
-
-    override fun encodeBoolean(value: Boolean) = output.writeByte(if (value) 1 else 0)
-    override fun encodeByte(value: Byte) = output.writeByte(value.toInt())
-    override fun encodeShort(value: Short) = output.writeShort(value.toInt())
-    override fun encodeInt(value: Int) = output.writeInt(value)
-    override fun encodeLong(value: Long) = output.writeLong(value)
-    override fun encodeFloat(value: Float) = throw IllegalStateException("Floats are not yet supported")
-    override fun encodeDouble(value: Double) = throw IllegalStateException("Doubles are not yet supported")
-    override fun encodeChar(value: Char) = output.writeChar(value.toInt())
-
-    override fun encodeString(value: String) =
-        structureProcessor
-            .removeNext()
-            .expect<Element.Strng>()
-            .encode(value, this)
-
+    override fun encodeBoolean(value: Boolean) = structureProcessor.removeNext().expect<PrimitiveElement>().encode(output, value)
+    override fun encodeByte(value: Byte) = structureProcessor.removeNext().expect<PrimitiveElement>().encode(output, value)
+    override fun encodeShort(value: Short) = structureProcessor.removeNext().expect<PrimitiveElement>().encode(output, value)
+    override fun encodeInt(value: Int) = structureProcessor.removeNext().expect<PrimitiveElement>().encode(output, value)
+    override fun encodeLong(value: Long) = structureProcessor.removeNext().expect<PrimitiveElement>().encode(output, value)
+    override fun encodeChar(value: Char) = structureProcessor.removeNext().expect<PrimitiveElement>().encode(output, value)
+    override fun encodeString(value: String) = structureProcessor.removeNext().expect<StringElement>().encode(value, output)
     override fun encodeEnum(enumDescriptor: SerialDescriptor, index: Int) = output.writeInt(index)
 
+    override fun encodeFloat(value: Float) = throw SerdeError.UnsupportedPrimitive(PrimitiveKind.FLOAT)
+    override fun encodeDouble(value: Double) = throw SerdeError.UnsupportedPrimitive(PrimitiveKind.DOUBLE)
+
     override fun encodeNull() {
-        encodeBoolean(false)
-        structureProcessor.removeNext().encodeNull(this)
+        output.writeBoolean(false)
+        structureProcessor.removeNext().encodeNull(output)
     }
 
-    override fun encodeNotNullMark() = encodeBoolean(true)
+    override fun encodeNotNullMark() = output.writeBoolean(true)
 }

@@ -15,6 +15,7 @@ class BinaryFixedLengthOutputEncoder(
     override val serializersModule: SerializersModule
 ) : AbstractEncoder() {
     private val structureProcessor = FixedLengthStructureProcessor(serializersModule)
+    val layout by lazy { structureProcessor.structure.layout }
 
     override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder {
         structureProcessor.beginStructure(descriptor)

@@ -7,7 +7,7 @@ import kotlinx.serialization.modules.SerializersModule
 
 @ExperimentalSerializationApi
 class FixedLengthStructureProcessor(private val serializersModule: SerializersModule) {
-    private lateinit var structure: Element
+    internal lateinit var structure: Element
 
     private var topLevel = true
     private val queue = ArrayDeque<Element>()

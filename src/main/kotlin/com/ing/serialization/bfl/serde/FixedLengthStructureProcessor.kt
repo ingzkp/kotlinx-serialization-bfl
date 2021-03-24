@@ -1,6 +1,9 @@
 package com.ing.serialization.bfl.serde
 
 import com.ing.serialization.bfl.prepend
+import com.ing.serialization.bfl.serde.element.CollectionElement
+import com.ing.serialization.bfl.serde.element.ElementFactory
+import com.ing.serialization.bfl.serde.element.StructureElement
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.modules.SerializersModule
@@ -34,10 +37,10 @@ class FixedLengthStructureProcessor(private val serializersModule: SerializersMo
         } else {
             // TODO: add check if the struct on the stack coincides with the current descriptor.
             queue.first()
-        }.expect<Element.Structure>()
+        }.expect<StructureElement>()
 
         // Unwind structure's inner elements to the queue.
-        queue.prepend(schedulable.inner.filter { it !is Element.Primitive })
+        queue.prepend(schedulable.inner)
     }
 
     /**
@@ -49,11 +52,11 @@ class FixedLengthStructureProcessor(private val serializersModule: SerializersMo
      * @throws SerdeError.WrongElement exception when first element in queue is not a collection
      */
     fun beginCollection(collectionSize: Int) {
-        val collection = queue.first().expect<Element.Collection>()
+        val collection = queue.first().expect<CollectionElement>()
         collection.actualLength = collectionSize
 
         repeat(collectionSize) {
-            queue.prepend(collection.inner.filter { it !is Element.Primitive })
+            queue.prepend(collection.inner)
         }
     }
 

@@ -15,6 +15,6 @@ class SerializationLayoutTest : SerdeTest() {
 
     @Test
     fun `layout is accessible`() {
-        println(serializeX(Data(), EmptySerializersModule).second.toString(""))
+        println(serializeX(Data(), EmptySerializersModule).second)
     }
 }

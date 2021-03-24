@@ -1,6 +1,7 @@
 package com.ing.serialization.bfl.serde
 
-import kotlinx.serialization.DeserializationStrategy
+import com.ing.serialization.bfl.serde.element.CollectionElement
+import com.ing.serialization.bfl.serde.element.PrimitiveElement
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.AbstractDecoder
@@ -35,41 +36,62 @@ class BinaryFixedLengthInputDecoder(
     private fun endCollection() {
         // it's a crutch, but because of enabled sequential decoding (due to performance reasons),
         // key-value (aka Pair instances) serializers don't call endStructure() on elements of list-like structures
-        while (structureProcessor.peekNext() !is Element.Collection) {
+        while (structureProcessor.peekNext() !is CollectionElement) {
             structureProcessor.removeNext()
         }
 
         val collection = structureProcessor
             .removeNext()
-            .expect<Element.Collection>()
+            .expect<CollectionElement>()
 
         // Collection might have been padded.
         input.skipBytes(collection.padding)
     }
 
-    override fun <T> decodeSerializableValue(deserializer: DeserializationStrategy<T>): T {
-        with(deserializer.descriptor) {
-            if (isTrulyPrimitive && isNullable) {
-                // Primitive elements, unlike collections and structures, are not scheduled to the queue.
-                // If it will be read that the some following data represents a null,
-                // we need to know what element this is to skip an appropriate number of bytes in `decodeNull`.
-                // Thus an extra element is scheduled to the front of the queue.
-                structureProcessor.schedulePriorityElement(Element.Primitive(serialName, kind, isNullable))
-            }
-        }
+    // override fun <T> decodeSerializableValue(deserializer: DeserializationStrategy<T>): T {
+    //     with(deserializer.descriptor) {
+    //         if (isTrulyPrimitive && isNullable) {
+    //             // Primitive elements, unlike collections and structures, are not scheduled to the queue.
+    //             // If it will be read that the some following data represents a null,
+    //             // we need to know what element this is to skip an appropriate number of bytes in `decodeNull`.
+    //             // Thus an extra element is scheduled to the front of the queue.
+    //             structureProcessor.schedulePriorityElement(Element.Primitive(serialName, kind, isNullable))
+    //         }
+    //     }
+    //
+    //     return super.decodeSerializableValue(deserializer)
+    // }
+    //
+    // override fun <T : Any> decodeNullableSerializableValue(deserializer: DeserializationStrategy<T?>): T? {
+    //     with(deserializer.descriptor) {
+    //         if (isTrulyPrimitive && isNullable) {
+    //             // Primitive elements, unlike collections and structures, are not scheduled to the queue.
+    //             // If it will be read that the some following data represents a null,
+    //             // we need to know what element this is to skip an appropriate number of bytes in `decodeNull`.
+    //             // Thus an extra element is scheduled to the front of the queue.
+    //             structureProcessor.schedulePriorityElement(Element.Primitive(serialName, kind, isNullable))
+    //         }
+    //     }
+    //
+    //     return super.decodeNullableSerializableValue(deserializer)
+    // }
 
-        return super.decodeSerializableValue(deserializer)
-    }
+    internal fun rawDecodeInt(): Int = input.readInt()
+    internal fun rawDecodeBoolean(): Boolean = input.readBoolean()
 
     override fun decodeString() = structureProcessor
         .removeNext()
-        .expect<Element.Strng>()
+        .expect<StringElement>()
         .decode(this)
 
     override fun decodeBoolean(): Boolean = input.readBoolean()
     override fun decodeByte() = input.readByte()
     override fun decodeShort() = input.readShort()
-    override fun decodeInt() = input.readInt()
+    override fun decodeInt(): Int {
+        structureProcessor.removeNext().expect<PrimitiveElement>()
+        return input.readInt()
+    }
+
     override fun decodeLong() = input.readLong()
     override fun decodeFloat() = input.readFloat()
     override fun decodeDouble() = input.readDouble()
@@ -79,32 +101,32 @@ class BinaryFixedLengthInputDecoder(
     override fun decodeSequentially(): Boolean = true
 
     override fun decodeCollectionSize(descriptor: SerialDescriptor) =
-        decodeInt().also { structureProcessor.beginCollection(it) }
+        rawDecodeInt().also { structureProcessor.beginCollection(it) }
 
     override fun decodeElementIndex(descriptor: SerialDescriptor) =
-        if (elementIndex == structureProcessor.peekNext().expect<Element.Collection>().actualLength) {
+        if (elementIndex == structureProcessor.peekNext().expect<CollectionElement>().actualLength) {
             CompositeDecoder.DECODE_DONE
         } else {
             elementIndex++
         }
 
     override fun decodeNotNullMark(): Boolean {
-        val isNotNull = decodeBoolean()
-        if (isNotNull) {
-            if (structureProcessor.peekNext() is Element.Primitive) {
-                structureProcessor.removeNext()
-            }
-        }
-
-        return isNotNull
+        // val isNotNull = decodeBoolean()
+        // if (isNotNull) {
+        //     if (structureProcessor.peekNext() is Element.Primitive) {
+        //         structureProcessor.removeNext()
+        //     }
+        // }
+        // return isNotNull
+        return rawDecodeBoolean()
     }
 
-    override fun decodeNull(): Nothing? {
-        val element = structureProcessor.removeNext()
-        skipBytes(element.size)
-
-        return null
-    }
+    // override fun decodeNull(): Nothing? {
+    //     val element = structureProcessor.removeNext()
+    //     skipBytes(element.size)
+    //
+    //     return null
+    // }
 
     fun skipBytes(n: Int) = input.skipBytes(n)
 }

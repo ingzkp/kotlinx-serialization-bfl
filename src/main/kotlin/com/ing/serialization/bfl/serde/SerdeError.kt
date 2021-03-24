@@ -1,5 +1,6 @@
 package com.ing.serialization.bfl.serde
 
+import com.ing.serialization.bfl.serde.element.CollectionElement
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.SerialDescriptor
 
@@ -10,13 +11,13 @@ sealed class SerdeError : IllegalStateException {
 
     class WrongElement(expected: String, actual: Element) : SerdeError("Expected $expected, actual ${actual.name}")
 
-    class StringTooLarge(actualLength: Int, element: Element.Strng) :
+    class StringTooLarge(actualLength: Int, element: StringElement) :
         SerdeError("Size of ${element.name} ($actualLength) is larger than required (${element.requiredLength})")
 
-    class CollectionNoActualLength(element: Element.Collection) :
-        SerdeError("Structure `${element.name}` does not specify its actual length")
+    class CollectionNoActualLength(element: CollectionElement) :
+        SerdeError("StructureElement `${element.name}` does not specify its actual length")
 
-    class CollectionTooLarge(element: Element.Collection) :
+    class CollectionTooLarge(element: CollectionElement) :
         SerdeError("Size of ${element.name} (${element.actualLength}) is larger than required (${element.requiredLength})")
 
     class InsufficientLengthData(parentName: String, descriptor: SerialDescriptor) :

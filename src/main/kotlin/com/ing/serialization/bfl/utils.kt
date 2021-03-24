@@ -2,7 +2,7 @@ package com.ing.serialization.bfl
 
 import com.ing.serialization.bfl.serde.BinaryFixedLengthInputDecoder
 import com.ing.serialization.bfl.serde.BinaryFixedLengthOutputEncoder
-import com.ing.serialization.bfl.serde.Layout
+import com.ing.serialization.bfl.serde.element.Layout
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.modules.EmptySerializersModule
 import kotlinx.serialization.modules.SerializersModule

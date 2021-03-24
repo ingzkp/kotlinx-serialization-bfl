@@ -2,6 +2,7 @@ package com.ing.serialization.bfl.serde
 
 import com.ing.serialization.bfl.serde.element.Layout
 import kotlinx.serialization.ExperimentalSerializationApi
+import java.io.DataInput
 import java.io.DataOutput
 
 /**
@@ -44,12 +45,13 @@ class StringElement(name: String, val requiredLength: Int, override val isNullab
 
     override fun encodeNull(stream: DataOutput) = encode(null, stream)
 
-    fun decode(decoder: BinaryFixedLengthInputDecoder): String {
+    fun decode(stream: DataInput): String {
         // In output.writeUTF, length of the string is stored as short.
         // We do the same for consistency.
-        val actualLength = decoder.decodeShort().toInt()
-        val string = (0 until actualLength).map { decoder.decodeChar() }.joinToString("")
-        decoder.skipBytes(padding(actualLength))
+        val actualLength = stream.readShort().toInt()
+        val string = (0 until actualLength).map { stream.readChar() }.joinToString("")
+
+        stream.skipBytes(padding(actualLength))
 
         return string
     }

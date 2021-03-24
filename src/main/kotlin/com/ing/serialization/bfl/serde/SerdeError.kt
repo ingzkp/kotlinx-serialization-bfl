@@ -3,13 +3,19 @@ package com.ing.serialization.bfl.serde
 import com.ing.serialization.bfl.serde.element.CollectionElement
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.SerialKind
 
 @ExperimentalSerializationApi
 sealed class SerdeError : IllegalStateException {
     constructor(message: String) : super(message)
     constructor(message: String, cause: Throwable) : super(message, cause)
 
-    class WrongElement(expected: String, actual: Element) : SerdeError("Expected $expected, actual ${actual.name}")
+    object Unreachable : SerdeError("Panic. Unreachable code.")
+
+    class UnsupportedPrimitive(kind: SerialKind) : SerdeError("$kind is not supported")
+    class NonPrimitive(kind: SerialKind) : SerdeError("$kind is not a primitive type")
+
+    class UnexpectedElement(expected: String, actual: Element) : SerdeError("Expected $expected, actual ${actual.name}")
 
     class StringTooLarge(actualLength: Int, element: StringElement) :
         SerdeError("Size of ${element.name} ($actualLength) is larger than required (${element.requiredLength})")

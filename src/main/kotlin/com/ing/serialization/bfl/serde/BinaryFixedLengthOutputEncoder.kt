@@ -3,6 +3,7 @@ package com.ing.serialization.bfl.serde
 import com.ing.serialization.bfl.serde.element.CollectionElement
 import com.ing.serialization.bfl.serde.element.PrimitiveElement
 import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.AbstractEncoder
 import kotlinx.serialization.encoding.CompositeEncoder
@@ -44,33 +45,17 @@ class BinaryFixedLengthOutputEncoder(
         }
     }
 
-    override fun encodeBoolean(value: Boolean) =
-        structureProcessor.removeNext().expect<PrimitiveElement>().encode(output, value)
-
-    override fun encodeByte(value: Byte) =
-        structureProcessor.removeNext().expect<PrimitiveElement>().encode(output, value)
-
-    override fun encodeShort(value: Short) =
-        structureProcessor.removeNext().expect<PrimitiveElement>().encode(output, value)
-
-    override fun encodeInt(value: Int) =
-        structureProcessor.removeNext().expect<PrimitiveElement>().encode(output, value)
-
-    override fun encodeLong(value: Long) =
-        structureProcessor.removeNext().expect<PrimitiveElement>().encode(output, value)
-
-    override fun encodeFloat(value: Float) = throw IllegalStateException("Floats are not yet supported")
-    override fun encodeDouble(value: Double) = throw IllegalStateException("Doubles are not yet supported")
-    override fun encodeChar(value: Char) =
-        structureProcessor.removeNext().expect<PrimitiveElement>().encode(output, value)
-
-    override fun encodeString(value: String) =
-        structureProcessor
-            .removeNext()
-            .expect<StringElement>()
-            .encode(value, output)
-
+    override fun encodeBoolean(value: Boolean) = structureProcessor.removeNext().expect<PrimitiveElement>().encode(output, value)
+    override fun encodeByte(value: Byte) = structureProcessor.removeNext().expect<PrimitiveElement>().encode(output, value)
+    override fun encodeShort(value: Short) = structureProcessor.removeNext().expect<PrimitiveElement>().encode(output, value)
+    override fun encodeInt(value: Int) = structureProcessor.removeNext().expect<PrimitiveElement>().encode(output, value)
+    override fun encodeLong(value: Long) = structureProcessor.removeNext().expect<PrimitiveElement>().encode(output, value)
+    override fun encodeChar(value: Char) = structureProcessor.removeNext().expect<PrimitiveElement>().encode(output, value)
+    override fun encodeString(value: String) = structureProcessor.removeNext().expect<StringElement>().encode(value, output)
     override fun encodeEnum(enumDescriptor: SerialDescriptor, index: Int) = output.writeInt(index)
+
+    override fun encodeFloat(value: Float) = throw SerdeError.UnsupportedPrimitive(PrimitiveKind.FLOAT)
+    override fun encodeDouble(value: Double) = throw SerdeError.UnsupportedPrimitive(PrimitiveKind.DOUBLE)
 
     override fun encodeNull() {
         output.writeBoolean(false)

@@ -28,7 +28,7 @@ abstract class Element(val name: String) {
 
     inline fun <reified T : Element> expect(): T {
         // Non-null assertion is fine because T is bound to Element.
-        (this as? T) ?: throw SerdeError.WrongElement(T::class.simpleName!!, this)
+        (this as? T) ?: throw SerdeError.UnexpectedElement(T::class.simpleName!!, this)
         return this
     }
 }

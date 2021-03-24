@@ -25,7 +25,7 @@ class FixedLengthStructureProcessor(private val serializersModule: SerializersMo
      * of the structure.
      *
      * @param descriptor structure descriptor
-     * @throws SerdeError.WrongElement exception when first element in queue is not a structure
+     * @throws SerdeError.UnexpectedElement exception when first element in queue is not a structure
      */
     fun beginStructure(descriptor: SerialDescriptor) {
         val schedulable = if (topLevel) {
@@ -49,7 +49,7 @@ class FixedLengthStructureProcessor(private val serializersModule: SerializersMo
      * Throws an exception if the first element of the queue is not a collection.
      *
      * @param collectionSize size of collection
-     * @throws SerdeError.WrongElement exception when first element in queue is not a collection
+     * @throws SerdeError.UnexpectedElement exception when first element in queue is not a collection
      */
     fun beginCollection(collectionSize: Int) {
         val collection = queue.first().expect<CollectionElement>()

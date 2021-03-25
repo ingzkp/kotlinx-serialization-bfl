@@ -1,15 +1,16 @@
 package com.ing.serialization.bfl.serde.classes
 
+import com.ing.serialization.bfl.deserialize
 import com.ing.serialization.bfl.serde.OwnList
-import com.ing.serialization.bfl.serde.SerdeTest
+import com.ing.serialization.bfl.serde.checkedSerialize
+import com.ing.serialization.bfl.serialize
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
-
 @ExperimentalSerializationApi
 @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
-class OwnClassWithListTest : SerdeTest() {
+class OwnClassWithListTest {
     @Serializable
     data class Data(val own: OwnList)
 

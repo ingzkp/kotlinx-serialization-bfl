@@ -10,7 +10,7 @@ sealed class SerdeError : IllegalStateException {
     constructor(message: String) : super(message)
     constructor(message: String, cause: Throwable) : super(message, cause)
 
-    object Unreachable : SerdeError("Panic. Unreachable code.")
+    class Unreachable(message: String) : SerdeError("Panic. Unreachable code. $message")
 
     class UnsupportedPrimitive(kind: SerialKind) : SerdeError("$kind is not supported")
     class NonPrimitive(kind: SerialKind) : SerdeError("$kind is not a primitive type")
@@ -31,6 +31,9 @@ sealed class SerdeError : IllegalStateException {
 
     class NoPolymorphicSerializers(descriptor: SerialDescriptor) :
         SerdeError("Serializers module has no serializers for a polymorphic type ${descriptor.serialName}")
+
+    class NoContextualSerializer(descriptor: SerialDescriptor) :
+        SerdeError("Serializers module has no serializers for a context type ${descriptor.serialName}")
 
     class CannotParse(message: String, cause: Throwable) : SerdeError(message, cause)
 }

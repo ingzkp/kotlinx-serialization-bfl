@@ -1,7 +1,10 @@
 package com.ing.serialization.bfl.serde.classes
 
-import com.ing.serialization.bfl.serde.SerdeTest
+import com.ing.serialization.bfl.deserialize
+import com.ing.serialization.bfl.serde.checkedSerialize
 import com.ing.serialization.bfl.serde.element.ElementFactory
+import com.ing.serialization.bfl.serde.generateRSAPubKey
+import com.ing.serialization.bfl.serialize
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
 import org.junit.jupiter.api.Test
@@ -9,7 +12,7 @@ import java.security.PublicKey
 
 @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
 @ExperimentalSerializationApi
-class PolymorphicTest : SerdeTest() {
+class PolymorphicTest {
     @Test
     fun `serialize polymorphic type itself`() {
         val mask = listOf(
@@ -18,13 +21,13 @@ class PolymorphicTest : SerdeTest() {
             Pair("value", 500)
         )
 
-        val data = generatePublicKey()
+        val data = generateRSAPubKey()
         checkedSerialize(data, mask)
     }
 
     @Test
     fun `serialize and deserialize polymorphic type itself`() {
-        val data = generatePublicKey()
+        val data = generateRSAPubKey()
         val bytes = serialize(data)
 
         val deserialized: PublicKey = deserialize(bytes)

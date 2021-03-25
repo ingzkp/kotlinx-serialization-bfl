@@ -4,6 +4,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.PolymorphicKind
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.SerialKind
 import kotlinx.serialization.descriptors.StructureKind
 
 @ExperimentalSerializationApi
@@ -25,3 +26,7 @@ val SerialDescriptor.isStructure: Boolean
 @ExperimentalSerializationApi
 val SerialDescriptor.isPolymorphic: Boolean
     get() = kind is PolymorphicKind
+
+@ExperimentalSerializationApi
+val SerialDescriptor.isContextual: Boolean
+    get() = kind is SerialKind.CONTEXTUAL

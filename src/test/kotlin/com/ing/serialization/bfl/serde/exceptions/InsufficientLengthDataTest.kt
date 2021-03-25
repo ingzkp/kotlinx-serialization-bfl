@@ -2,15 +2,14 @@ package com.ing.serialization.bfl.serde.exceptions
 
 import com.ing.serialization.bfl.annotations.FixedLength
 import com.ing.serialization.bfl.serde.SerdeError
-import com.ing.serialization.bfl.serde.SerdeTest
+import com.ing.serialization.bfl.serialize
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-
 @ExperimentalSerializationApi
-class InsufficientLengthDataTest : SerdeTest() {
+class InsufficientLengthDataTest {
     @Serializable
     data class Data(@FixedLength([2, 2]) val map: Map<String, List<Int>>)
 

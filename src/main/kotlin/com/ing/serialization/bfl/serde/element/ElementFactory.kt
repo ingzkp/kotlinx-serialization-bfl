@@ -6,6 +6,7 @@ import com.ing.serialization.bfl.serde.Element
 import com.ing.serialization.bfl.serde.SerdeError
 import com.ing.serialization.bfl.serde.StringElement
 import com.ing.serialization.bfl.serde.isCollection
+import com.ing.serialization.bfl.serde.isContextual
 import com.ing.serialization.bfl.serde.isPolymorphic
 import com.ing.serialization.bfl.serde.isString
 import com.ing.serialization.bfl.serde.isStructure
@@ -13,6 +14,7 @@ import com.ing.serialization.bfl.serde.isTrulyPrimitive
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.elementDescriptors
+import kotlinx.serialization.descriptors.getContextualDescriptor
 import kotlinx.serialization.descriptors.getPolymorphicDescriptors
 import kotlinx.serialization.modules.EmptySerializersModule
 import kotlinx.serialization.modules.SerializersModule
@@ -107,7 +109,13 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
 
                 StructureElement(name, children, descriptor.isNullable)
             }
-            else -> error("Unreachable code when building element from type ${descriptor.serialName}")
+            descriptor.isContextual -> {
+                val contextDescriptor = serializersModule.getContextualDescriptor(descriptor)
+                    ?: throw SerdeError.NoContextualSerializer(descriptor)
+
+                fromType(fullName, contextDescriptor)
+            }
+            else -> throw SerdeError.Unreachable("Building element from type ${descriptor.serialName}")
         }
     }
 }

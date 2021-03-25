@@ -1,15 +1,16 @@
 package com.ing.serialization.bfl.serde.classes
 
 import com.ing.serialization.bfl.annotations.FixedLength
-import com.ing.serialization.bfl.serde.SerdeTest
+import com.ing.serialization.bfl.deserialize
+import com.ing.serialization.bfl.serde.checkedSerialize
+import com.ing.serialization.bfl.serialize
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
-
 @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
 @ExperimentalSerializationApi
-class ListNullable : SerdeTest() {
+class ListNullable {
     @Serializable
     data class NullableData(@FixedLength([3]) val list: List<Int?>)
 

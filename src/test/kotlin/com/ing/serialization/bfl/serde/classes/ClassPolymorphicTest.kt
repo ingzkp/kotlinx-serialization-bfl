@@ -1,7 +1,10 @@
 package com.ing.serialization.bfl.serde.classes
 
-import com.ing.serialization.bfl.serde.SerdeTest
+import com.ing.serialization.bfl.deserialize
+import com.ing.serialization.bfl.serde.checkedSerialize
 import com.ing.serialization.bfl.serde.element.ElementFactory
+import com.ing.serialization.bfl.serde.generateRSAPubKey
+import com.ing.serialization.bfl.serialize
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
@@ -10,7 +13,7 @@ import java.security.PublicKey
 
 @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
 @ExperimentalSerializationApi
-class ClassPolymorphicTest : SerdeTest() {
+class ClassPolymorphicTest {
     @Serializable
     data class Data(val pk: PublicKey)
 
@@ -21,7 +24,7 @@ class ClassPolymorphicTest : SerdeTest() {
             Pair("pk.value", 4 + 500)
         )
 
-        val data = Data(generatePublicKey())
+        val data = Data(generateRSAPubKey())
         checkedSerialize(data, mask)
     }
 
@@ -30,7 +33,7 @@ class ClassPolymorphicTest : SerdeTest() {
         @Serializable
         data class Data(val pk: PublicKey)
 
-        val data = Data(generatePublicKey())
+        val data = Data(generateRSAPubKey())
         val bytes = serialize(data)
 
         val deserialized: Data = deserialize(bytes)
@@ -39,8 +42,8 @@ class ClassPolymorphicTest : SerdeTest() {
 
     @Test
     fun `serialization has fixed length`() {
-        val data1 = Data(generatePublicKey())
-        val data2 = Data(generatePublicKey())
+        val data1 = Data(generateRSAPubKey())
+        val data2 = Data(generateRSAPubKey())
 
         serialize(data1).size shouldBe serialize(data2).size
     }

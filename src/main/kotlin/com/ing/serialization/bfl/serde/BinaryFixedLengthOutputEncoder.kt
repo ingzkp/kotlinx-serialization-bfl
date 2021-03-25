@@ -2,20 +2,24 @@ package com.ing.serialization.bfl.serde
 
 import com.ing.serialization.bfl.serde.element.CollectionElement
 import com.ing.serialization.bfl.serde.element.PrimitiveElement
+import com.ing.serialization.bfl.serializers.serdeModule
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.AbstractEncoder
 import kotlinx.serialization.encoding.CompositeEncoder
 import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.plus
 import java.io.DataOutput
 
 @Suppress("TooManyFunctions")
 @ExperimentalSerializationApi
 class BinaryFixedLengthOutputEncoder(
     private val output: DataOutput,
-    override val serializersModule: SerializersModule
+    userSerializersModule: SerializersModule
 ) : AbstractEncoder() {
+    override val serializersModule = serdeModule + userSerializersModule
+
     private val structureProcessor = FixedLengthStructureProcessor(serializersModule)
     val layout by lazy { structureProcessor.structure.layout }
 

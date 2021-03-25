@@ -1,14 +1,16 @@
 package com.ing.serialization.bfl.serde.classes
 
 import com.ing.serialization.bfl.annotations.FixedLength
-import com.ing.serialization.bfl.serde.SerdeTest
+import com.ing.serialization.bfl.deserialize
+import com.ing.serialization.bfl.serde.checkedSerialize
+import com.ing.serialization.bfl.serialize
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 
 @ExperimentalSerializationApi
-class ListStringTest : SerdeTest() {
+class ListStringTest {
     @Serializable
     data class Data(@FixedLength([2, 10]) val list: List<String> = listOf("123456789"))
 

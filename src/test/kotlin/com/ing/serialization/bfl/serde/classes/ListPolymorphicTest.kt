@@ -1,17 +1,19 @@
 package com.ing.serialization.bfl.serde.classes
 
 import com.ing.serialization.bfl.annotations.FixedLength
-import com.ing.serialization.bfl.serde.SerdeTest
+import com.ing.serialization.bfl.deserialize
+import com.ing.serialization.bfl.serde.checkedSerialize
 import com.ing.serialization.bfl.serde.element.ElementFactory
+import com.ing.serialization.bfl.serde.generateRSAPubKey
+import com.ing.serialization.bfl.serialize
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 import java.security.PublicKey
-
 @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
 @ExperimentalSerializationApi
-class ListPolymorphicTest : SerdeTest() {
+class ListPolymorphicTest {
     @Serializable
     data class Data(@FixedLength([2]) val nested: List<PublicKey>)
 
@@ -27,13 +29,13 @@ class ListPolymorphicTest : SerdeTest() {
             Pair("nested[1].value", 500)
         )
 
-        val data = Data(listOf(generatePublicKey()))
+        val data = Data(listOf(generateRSAPubKey()))
         checkedSerialize(data, mask)
     }
 
     @Test
     fun `serialize and deserialize polymorphic type within collection`() {
-        val data = Data(listOf(generatePublicKey()))
+        val data = Data(listOf(generateRSAPubKey()))
         val bytes = serialize(data)
 
         val deserialized: Data = deserialize(bytes)
@@ -43,8 +45,8 @@ class ListPolymorphicTest : SerdeTest() {
     @Test
     fun `serialization has fixed length`() {
         val empty = Data(listOf())
-        val data1 = Data(listOf(generatePublicKey()))
-        val data2 = Data(listOf(generatePublicKey()))
+        val data1 = Data(listOf(generateRSAPubKey()))
+        val data2 = Data(listOf(generateRSAPubKey()))
 
         serialize(data1).size shouldBe serialize(data2).size
         serialize(empty).size shouldBe serialize(data2).size

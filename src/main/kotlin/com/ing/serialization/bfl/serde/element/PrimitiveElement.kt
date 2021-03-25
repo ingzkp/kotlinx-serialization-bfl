@@ -38,7 +38,7 @@ class PrimitiveElement(name: String, private val kind: SerialKind, override val 
             is PrimitiveKind.LONG -> 8
             is PrimitiveKind.CHAR -> 2
             is PrimitiveKind.FLOAT, PrimitiveKind.DOUBLE -> throw SerdeError.UnsupportedPrimitive(kind)
-            else -> throw SerdeError.Unreachable
+            else -> throw SerdeError.Unreachable("Computing layout for primitive $kind")
         }
 
         Layout(name, nullLayout + listOf(Pair("value", size)), listOf())
@@ -70,7 +70,7 @@ class PrimitiveElement(name: String, private val kind: SerialKind, override val 
                 is PrimitiveKind.LONG -> writeLong(0)
                 is PrimitiveKind.CHAR -> writeChar('\u0000'.toInt())
                 is PrimitiveKind.FLOAT, PrimitiveKind.DOUBLE -> throw SerdeError.UnsupportedPrimitive(kind)
-                else -> throw SerdeError.Unreachable
+                else -> throw SerdeError.Unreachable("Encoding null for primitive $kind.")
             }
         }
 
@@ -85,7 +85,7 @@ class PrimitiveElement(name: String, private val kind: SerialKind, override val 
                 is PrimitiveKind.LONG -> readLong()
                 is PrimitiveKind.CHAR -> readChar()
                 is PrimitiveKind.FLOAT, PrimitiveKind.DOUBLE -> throw SerdeError.UnsupportedPrimitive(kind)
-                else -> throw SerdeError.Unreachable
+                else -> throw SerdeError.Unreachable("Decoding a primitive $kind")
             } as? T ?: throw IllegalStateException("$name cannot decode required type")
         }
 }

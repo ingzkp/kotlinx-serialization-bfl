@@ -2,7 +2,7 @@ package com.ing.serialization.bfl.serde
 
 import com.ing.serialization.bfl.serde.element.CollectionElement
 import com.ing.serialization.bfl.serde.element.PrimitiveElement
-import com.ing.serialization.bfl.serializers.serdeModule
+import com.ing.serialization.bfl.serializers.BFLSerializers
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -18,7 +18,7 @@ class BinaryFixedLengthOutputEncoder(
     private val output: DataOutput,
     userSerializersModule: SerializersModule
 ) : AbstractEncoder() {
-    override val serializersModule = serdeModule + userSerializersModule
+    override val serializersModule = BFLSerializers + userSerializersModule
 
     private val structureProcessor = FixedLengthStructureProcessor(serializersModule)
     val layout by lazy { structureProcessor.structure.layout }

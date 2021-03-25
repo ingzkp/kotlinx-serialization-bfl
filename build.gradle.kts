@@ -18,7 +18,7 @@ dependencies {
     implementation(kotlin("reflect"))
 
     val kotlinSerializationVersion: String by project
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:$kotlinSerializationVersion")
+    api("org.jetbrains.kotlinx:kotlinx-serialization-core:$kotlinSerializationVersion")
 
     testImplementation(kotlin("test-junit5"))
 

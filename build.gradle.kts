@@ -2,6 +2,7 @@ plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
     jacoco
+    `java-library`
     id("io.gitlab.arturbosch.detekt") apply true
     id("com.diffplug.spotless") apply true
     id("maven-publish")
@@ -65,10 +66,20 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     }
 }
 
+java {
+    withSourcesJar()
+}
+
 tasks.withType<Jar> {
     // This makes the JAR's SHA-256 hash repeatable.
     isPreserveFileTimestamps = false
     isReproducibleFileOrder = true
+    manifest {
+        attributes(mapOf(
+                "Implementation-Title" to project.name,
+                "Implementation-Version" to project.version
+        ))
+    }
 }
 
 tasks.withType<io.gitlab.arturbosch.detekt.Detekt> {

@@ -8,7 +8,7 @@ import sun.security.rsa.RSAPublicKeyImpl
 import java.security.PublicKey
 
 @ExperimentalSerializationApi
-val serdeModule = SerializersModule {
+val BFLSerializers = SerializersModule {
     // Polymorphic types.
     polymorphic(PublicKey::class) {
         subclass(RSAPublicKeyImpl::class, RSAPublicKeySerializer)

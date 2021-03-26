@@ -1,4 +1,4 @@
-package com.ing.serialization.bfl.serde.classes
+package com.ing.serialization.bfl.serde.serializers.builtin
 
 import com.ing.serialization.bfl.annotations.FixedLength
 import com.ing.serialization.bfl.deserialize
@@ -8,25 +8,22 @@ import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
-
 @ExperimentalSerializationApi
-class ListStringTest {
+class ListCompoundTest {
     @Serializable
-    data class Data(@FixedLength([2, 10]) val list: List<String> = listOf("123456789"))
+    data class Data(@FixedLength([2]) val list: List<Pair<Int, Int>>)
 
     @Test
-    fun `serialize list of string`() {
+    fun `serialize list of compound type`() {
         val mask = listOf(
             Pair("list.length", 4),
-            Pair("string.length", 2),
-            Pair("string.value", 2 * 10),
-            Pair("string.length", 2),
-            Pair("string.value", 2 * 10)
+            Pair("list[0]", 8),
+            Pair("list[1]", 8),
         )
 
-        var data = Data()
+        var data = Data(listOf(Pair(10, 20)))
         var bytes = checkedSerialize(data, mask)
-        bytes[3].toInt() shouldBe data.list.size
+        bytes[3].toInt() shouldBe 1
 
         data = Data(listOf())
         bytes = checkedSerialize(data, mask)
@@ -34,8 +31,11 @@ class ListStringTest {
     }
 
     @Test
-    fun `serialize and deserialize list of string`() {
-        val data = Data()
+    fun `serialize and deserialize list of compound type`() {
+        @Serializable
+        data class Data(@FixedLength([2]) val list: List<Pair<Int, Int>>)
+
+        val data = Data(listOf(Pair(10, 20)))
         val bytes = serialize(data)
 
         val deserialized: Data = deserialize(bytes)
@@ -44,7 +44,9 @@ class ListStringTest {
 
     @Test
     fun `serialization has fixed length`() {
-        serialize(Data(listOf("1"))).size shouldBe serialize(Data(listOf("12", "3"))).size
-        serialize(Data(listOf("1"))).size shouldBe serialize(Data(listOf())).size
+        val list1 = listOf(Pair(1, 2))
+        val list2 = listOf(Pair(1, 2), Pair(4, 5))
+        serialize(Data(list1)).size shouldBe serialize(Data(list2)).size
+        serialize(Data(list2)).size shouldBe serialize(Data(listOf())).size
     }
 }

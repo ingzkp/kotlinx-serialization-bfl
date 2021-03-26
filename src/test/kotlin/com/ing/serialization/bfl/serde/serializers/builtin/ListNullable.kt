@@ -1,4 +1,4 @@
-package com.ing.serialization.bfl.serde.classes
+package com.ing.serialization.bfl.serde.serializers.builtin
 
 import com.ing.serialization.bfl.annotations.FixedLength
 import com.ing.serialization.bfl.deserialize

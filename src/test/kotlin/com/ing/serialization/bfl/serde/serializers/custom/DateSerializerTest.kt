@@ -1,4 +1,4 @@
-package com.ing.serialization.bfl.serde.classes
+package com.ing.serialization.bfl.serde.serializers.custom
 
 import com.ing.serialization.bfl.deserialize
 import com.ing.serialization.bfl.serde.checkedSerialize
@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test
 import java.text.SimpleDateFormat
 import java.util.Date
 @ExperimentalSerializationApi
-class ThirdPartyClassTest {
+class DateSerializerTest {
     @Serializable
     data class Data(val date: @Serializable(with = DateSerializer::class) Date)
 

@@ -42,7 +42,7 @@ jobs:
           key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}
 
       - name: Publish to GitHub Packages (should never fail)
-        run: ./gradlew publish --continue --build-cache --parallel
+        run: ./gradlew -Pversion=$GIT_RELEASE_VERSION publish --continue --build-cache --parallel
         env:
           GIT_RELEASE_VERSION: ${{ steps.git_info.outputs.RELEASE_VERSION }}
           GITHUB_USERNAME: ${{ github.actor }}

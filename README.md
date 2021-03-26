@@ -55,3 +55,15 @@ stored in it. Second - `10` - is a length of string key. Basically, you should d
 serialization. Map will be serialized firstly (obviously), then its first key, then its first value, etc.
 
 Map can store any types, their length will be computed recursively and used to calculate the number of padding bytes.
+
+# How to release
+
+A release can be made by creating a tag with the pattern `release/VERSION`. This will trigger a github action that will publish the jar file to the github maven repository, with version `VERSION`.
+
+## How it works
+
+In the github workflow `on-tag-publish.yml`, the version is parsed from the git tag, by removing the prefix `release/`. This version is set in the environment variable `GIT_RELEASE_VERSION`, and passed to gradle using the `-Pversion=$GIT_RELEASE_VERSION`.
+
+For more information checkout the following files
+
+- [on-tag-publish.yml](.github/workflows/on-tag-publish.yml)

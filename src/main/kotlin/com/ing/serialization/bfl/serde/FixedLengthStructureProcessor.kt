@@ -2,6 +2,7 @@ package com.ing.serialization.bfl.serde
 
 import com.ing.serialization.bfl.prepend
 import com.ing.serialization.bfl.serde.element.CollectionElement
+import com.ing.serialization.bfl.serde.element.Element
 import com.ing.serialization.bfl.serde.element.ElementFactory
 import com.ing.serialization.bfl.serde.element.StructureElement
 import kotlinx.serialization.ExperimentalSerializationApi

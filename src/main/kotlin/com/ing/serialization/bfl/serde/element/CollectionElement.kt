@@ -1,6 +1,5 @@
 package com.ing.serialization.bfl.serde.element
 
-import com.ing.serialization.bfl.serde.Element
 import com.ing.serialization.bfl.serde.SerdeError
 import kotlinx.serialization.ExperimentalSerializationApi
 import java.io.DataOutput
@@ -11,20 +10,19 @@ import java.io.DataOutput
 @ExperimentalSerializationApi
 class CollectionElement(
     name: String,
-    val inner: List<Element>,
+    inner: List<Element>,
     private val sizingInfo: CollectionSizingInfo,
     override val isNullable: Boolean
-) : CollectionElementSizingInfo by sizingInfo, Element(name) {
-
-    override val layout by lazy {
-        // INT (collection length) + number_of_elements * sum_i { size(inner_i) }
-        // = 4 + n * sum_i { size(inner_i) }
-        val layout = listOf(
+) : CollectionElementSizingInfo by sizingInfo, Element(name, inner) {
+    /**
+     * INT (collection length) + number_of_elements * sum_i { size(inner_i) }
+     * = 4 + n * sum_i { size(inner_i) }
+     */
+    override val inherentLayout by lazy {
+        listOf(
             Pair("length", 4),
             Pair("value", requiredLength * elementSize)
         )
-
-        Layout(name, nullLayout + layout, inner.map { it.layout })
     }
 
     private val elementSize by lazy {
@@ -47,8 +45,8 @@ class CollectionElement(
             return elementSize * (requiredLength - actualLength)
         }
 
-    override fun encodeNull(stream: DataOutput) =
-        repeat(4 + requiredLength * elementSize) { stream.writeByte(0) }
+    override fun encodeNull(output: DataOutput) =
+        repeat(4 + requiredLength * elementSize) { output.writeByte(0) }
 }
 
 @ExperimentalSerializationApi

@@ -4,6 +4,7 @@ import com.ing.serialization.bfl.annotations.FixedLength
 import com.ing.serialization.bfl.serde.element.CollectionElement
 import com.ing.serialization.bfl.serde.element.ElementFactory
 import com.ing.serialization.bfl.serde.element.PrimitiveElement
+import com.ing.serialization.bfl.serde.element.StringElement
 import com.ing.serialization.bfl.serde.element.StructureElement
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi

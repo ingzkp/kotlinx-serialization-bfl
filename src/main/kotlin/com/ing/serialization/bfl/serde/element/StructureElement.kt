@@ -1,20 +1,17 @@
 package com.ing.serialization.bfl.serde.element
 
-import com.ing.serialization.bfl.serde.Element
 import kotlinx.serialization.ExperimentalSerializationApi
 import java.io.DataOutput
 
 @ExperimentalSerializationApi
-class StructureElement(name: String, val inner: List<Element>, override val isNullable: Boolean) : Element(name) {
-
-    override val layout by lazy {
-        val layout = listOf(Pair("length", constituentsSize))
-        Layout(name, nullLayout + layout, inner.map { it.layout })
+class StructureElement(name: String, inner: List<Element>, override val isNullable: Boolean) : Element(name, inner) {
+    override val inherentLayout by lazy {
+        listOf(Pair("length", constituentsSize))
     }
 
     private val constituentsSize by lazy {
         inner.sumBy { it.size }
     }
 
-    override fun encodeNull(stream: DataOutput) = repeat(constituentsSize) { stream.writeByte(0) }
+    override fun encodeNull(output: DataOutput) = repeat(constituentsSize) { output.writeByte(0) }
 }

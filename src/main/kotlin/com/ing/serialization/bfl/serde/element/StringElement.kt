@@ -1,6 +1,6 @@
-package com.ing.serialization.bfl.serde
+package com.ing.serialization.bfl.serde.element
 
-import com.ing.serialization.bfl.serde.element.Layout
+import com.ing.serialization.bfl.serde.SerdeError
 import kotlinx.serialization.ExperimentalSerializationApi
 import java.io.DataInput
 import java.io.DataOutput
@@ -10,16 +10,14 @@ import java.io.DataOutput
  */
 @ExperimentalSerializationApi
 class StringElement(name: String, val requiredLength: Int, override val isNullable: Boolean) : Element(name) {
-    override val layout by lazy {
-        // BOOLEAN (if nullable; value present -> 1) + SHORT (string length) + requiredLength * length(CHAR)
-
-        val layout = listOf(
-            Pair("length", 2),
-            Pair("value", requiredLength * 2)
-        )
-
-        Layout(name, nullLayout + layout, listOf())
-    }
+    /**
+     * Layout of a sequence of bytes describing a string.
+     * SHORT (string length) + requiredLength * length(CHAR)
+     */
+    override val inherentLayout = listOf(
+        Pair("length", 2),
+        Pair("value", requiredLength * 2)
+    )
 
     /**
      * Returns the number of bytes the string to be padded.
@@ -43,7 +41,7 @@ class StringElement(name: String, val requiredLength: Int, override val isNullab
         repeat(padding(actualLength)) { stream.writeByte(0) }
     }
 
-    override fun encodeNull(stream: DataOutput) = encode(null, stream)
+    override fun encodeNull(output: DataOutput) = encode(null, output)
 
     fun decode(stream: DataInput): String {
         // In output.writeUTF, length of the string is stored as short.

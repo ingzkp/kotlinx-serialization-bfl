@@ -2,9 +2,7 @@ package com.ing.serialization.bfl.serde.element
 
 import com.ing.serialization.bfl.annotations.FixedLength
 import com.ing.serialization.bfl.prepend
-import com.ing.serialization.bfl.serde.Element
 import com.ing.serialization.bfl.serde.SerdeError
-import com.ing.serialization.bfl.serde.StringElement
 import com.ing.serialization.bfl.serde.isCollection
 import com.ing.serialization.bfl.serde.isContextual
 import com.ing.serialization.bfl.serde.isPolymorphic

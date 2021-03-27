@@ -1,6 +1,8 @@
 package com.ing.serialization.bfl.serde
 
 import com.ing.serialization.bfl.serde.element.CollectionElement
+import com.ing.serialization.bfl.serde.element.Element
+import com.ing.serialization.bfl.serde.element.StringElement
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.SerialKind

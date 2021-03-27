@@ -1,6 +1,5 @@
 package com.ing.serialization.bfl.serde.element
 
-import com.ing.serialization.bfl.serde.Element
 import com.ing.serialization.bfl.serde.SerdeError
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.PrimitiveKind
@@ -29,7 +28,7 @@ class PrimitiveElement(name: String, private val kind: SerialKind, override val 
         }
     }
 
-    override val layout by lazy {
+    override val inherentLayout by lazy {
         val size = when (kind) {
             is PrimitiveKind.BOOLEAN -> 1
             is PrimitiveKind.BYTE -> 1
@@ -41,7 +40,7 @@ class PrimitiveElement(name: String, private val kind: SerialKind, override val 
             else -> throw SerdeError.Unreachable("Computing layout for primitive $kind")
         }
 
-        Layout(name, nullLayout + listOf(Pair("value", size)), listOf())
+        listOf(Pair("value", size))
     }
 
     @Suppress("ComplexMethod")
@@ -60,8 +59,8 @@ class PrimitiveElement(name: String, private val kind: SerialKind, override val 
         }
     }
 
-    override fun encodeNull(stream: DataOutput) =
-        with(stream) {
+    override fun encodeNull(output: DataOutput) =
+        with(output) {
             when (kind) {
                 is PrimitiveKind.BOOLEAN -> writeBoolean(false)
                 is PrimitiveKind.BYTE -> writeByte(0)

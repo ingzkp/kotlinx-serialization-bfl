@@ -2,6 +2,7 @@ package com.ing.serialization.bfl.serde
 
 import com.ing.serialization.bfl.serde.element.CollectionElement
 import com.ing.serialization.bfl.serde.element.PrimitiveElement
+import com.ing.serialization.bfl.serde.element.StringElement
 import com.ing.serialization.bfl.serializers.BFLSerializers
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.PrimitiveKind

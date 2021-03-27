@@ -3,7 +3,7 @@ package com.ing.serialization.bfl.serde.element
 class Layout(
     val name: String,
     val mask: List<Pair<String, Int>>,
-    val inner: List<Layout>
+    val inner: List<Layout> = listOf()
 ) {
     private fun toString(prefix: String = ""): String {
         val deepPrefix = "$prefix "

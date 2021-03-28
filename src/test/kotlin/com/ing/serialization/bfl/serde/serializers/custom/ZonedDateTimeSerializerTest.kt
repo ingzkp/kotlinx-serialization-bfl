@@ -1,9 +1,8 @@
 package com.ing.serialization.bfl.serde.serializers.custom
 
-import com.ing.serialization.bfl.deserialize
-import com.ing.serialization.bfl.serialize
+import com.ing.serialization.bfl.serde.roundTrip
+import com.ing.serialization.bfl.serde.sameSize
 import com.ing.serialization.bfl.serializeX
-import io.kotest.matchers.shouldBe
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
@@ -16,17 +15,22 @@ class ZonedDateTimeSerializerTest {
     data class Data(val date: @Contextual ZonedDateTime)
 
     @Test
-    fun `serialize 3rd party class`() {
+    fun `serialize ZonedDateTime`() {
         val data = Data(ZonedDateTime.now())
         println(serializeX(data).second)
     }
 
     @Test
-    fun `serialize and deserialize 3rd party class`() {
+    fun `serialize and deserialize ZonedDateTime`() {
         val data = Data(ZonedDateTime.now())
-        val bytes = serialize(data)
+        roundTrip(data)
+    }
 
-        val deserialized: Data = deserialize(bytes)
-        data shouldBe deserialized
+    @Test
+    fun `same size ZonedDateTime`() {
+        val data1 = Data(ZonedDateTime.now())
+        val data2 = Data(ZonedDateTime.now().minusDays(2))
+
+        sameSize(data1, data2)
     }
 }

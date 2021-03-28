@@ -1,28 +1,11 @@
 package com.ing.serialization.bfl.serde
 
 import com.ing.serialization.bfl.annotations.FixedLength
-import com.ing.serialization.bfl.serialize
-import io.kotest.matchers.shouldBe
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.modules.EmptySerializersModule
-import kotlinx.serialization.modules.SerializersModule
 import java.security.KeyPairGenerator
 import java.security.PublicKey
 import java.security.SecureRandom
-
-@ExperimentalSerializationApi
-inline fun <reified T : Any> checkedSerialize(
-    data: T,
-    mask: List<Pair<String, Int>>,
-    serializersModule: SerializersModule = EmptySerializersModule
-): ByteArray {
-    val bytes = serialize(data, serializersModule)
-    log(bytes, mask)
-    bytes.size shouldBe mask.sumBy { it.second }
-
-    return bytes
-}
 
 fun log(bytes: ByteArray, splitMask: List<Pair<String, Int>>) {
     println("Serialized:")

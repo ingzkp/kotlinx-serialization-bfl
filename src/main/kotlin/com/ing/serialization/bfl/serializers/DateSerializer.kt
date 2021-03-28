@@ -7,9 +7,6 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import java.util.Date
 
-@Serializable
-data class DateSurrogate(val l: Long)
-
 object DateSerializer : KSerializer<Date> {
     private val strategy = DateSurrogate.serializer()
     override val descriptor: SerialDescriptor = strategy.descriptor
@@ -23,3 +20,6 @@ object DateSerializer : KSerializer<Date> {
         encoder.encodeSerializableValue(strategy, DateSurrogate(value.time))
     }
 }
+
+@Serializable
+data class DateSurrogate(val l: Long)

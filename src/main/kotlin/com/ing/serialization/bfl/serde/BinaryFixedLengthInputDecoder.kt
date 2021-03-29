@@ -5,7 +5,6 @@ import com.ing.serialization.bfl.serde.element.PrimitiveElement
 import com.ing.serialization.bfl.serde.element.StringElement
 import com.ing.serialization.bfl.serializers.BFLSerializers
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.AbstractDecoder
 import kotlinx.serialization.encoding.CompositeDecoder
@@ -62,9 +61,8 @@ class BinaryFixedLengthInputDecoder(
     override fun decodeChar() = structureProcessor.removeNext().expect<PrimitiveElement>().decode<Char>(input)
     override fun decodeString() = structureProcessor.removeNext().expect<StringElement>().decode(input)
     override fun decodeEnum(enumDescriptor: SerialDescriptor) = input.readInt()
-
-    override fun decodeFloat() = throw SerdeError.UnsupportedPrimitive(PrimitiveKind.FLOAT)
-    override fun decodeDouble() = throw SerdeError.UnsupportedPrimitive(PrimitiveKind.DOUBLE)
+    override fun decodeFloat() = structureProcessor.removeNext().expect<PrimitiveElement>().decode<Float>(input)
+    override fun decodeDouble() = structureProcessor.removeNext().expect<PrimitiveElement>().decode<Double>(input)
 
     override fun decodeSequentially(): Boolean = true
 

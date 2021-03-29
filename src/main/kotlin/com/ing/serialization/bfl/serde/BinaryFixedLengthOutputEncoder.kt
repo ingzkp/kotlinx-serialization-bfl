@@ -5,7 +5,6 @@ import com.ing.serialization.bfl.serde.element.PrimitiveElement
 import com.ing.serialization.bfl.serde.element.StringElement
 import com.ing.serialization.bfl.serializers.BFLSerializers
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.AbstractEncoder
 import kotlinx.serialization.encoding.CompositeEncoder
@@ -58,9 +57,8 @@ class BinaryFixedLengthOutputEncoder(
     override fun encodeChar(value: Char) = structureProcessor.removeNext().expect<PrimitiveElement>().encode(output, value)
     override fun encodeString(value: String) = structureProcessor.removeNext().expect<StringElement>().encode(value, output)
     override fun encodeEnum(enumDescriptor: SerialDescriptor, index: Int) = output.writeInt(index)
-
-    override fun encodeFloat(value: Float) = throw SerdeError.UnsupportedPrimitive(PrimitiveKind.FLOAT)
-    override fun encodeDouble(value: Double) = throw SerdeError.UnsupportedPrimitive(PrimitiveKind.DOUBLE)
+    override fun encodeFloat(value: Float) = structureProcessor.removeNext().expect<PrimitiveElement>().encode(output, value)
+    override fun encodeDouble(value: Double) = structureProcessor.removeNext().expect<PrimitiveElement>().encode(output, value)
 
     override fun encodeNull() {
         output.writeBoolean(false)

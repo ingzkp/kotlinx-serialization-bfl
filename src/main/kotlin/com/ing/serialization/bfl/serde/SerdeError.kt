@@ -14,7 +14,6 @@ sealed class SerdeError : IllegalStateException {
 
     class Unreachable(message: String) : SerdeError("Panic. Unreachable code. $message")
 
-    class UnsupportedPrimitive(kind: SerialKind) : SerdeError("$kind is not supported")
     class NonPrimitive(kind: SerialKind) : SerdeError("$kind is not a primitive type")
 
     class UnexpectedElement(expected: String, actual: Element) : SerdeError("Expected $expected, actual ${actual.name}")

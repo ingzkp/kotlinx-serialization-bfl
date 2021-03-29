@@ -1,11 +1,15 @@
 package com.ing.serialization.bfl.serde.element
 
+import com.ing.serialization.bfl.deserialize
 import com.ing.serialization.bfl.serde.SerdeError
+import com.ing.serialization.bfl.serialize
+import com.ing.serialization.bfl.serializers.BigDecimalSurrogate
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialKind
 import java.io.DataInput
 import java.io.DataOutput
+import java.math.BigDecimal
 
 /**
  * The basic abstraction of each object being serialized.
@@ -19,10 +23,9 @@ class PrimitiveElement(name: String, private val kind: SerialKind, override val 
             PrimitiveKind.SHORT,
             PrimitiveKind.INT,
             PrimitiveKind.LONG,
-            PrimitiveKind.CHAR -> { /* OK */ }
-            // Unsupported types in Zinc.
+            PrimitiveKind.CHAR,
             PrimitiveKind.FLOAT,
-            PrimitiveKind.DOUBLE -> throw SerdeError.UnsupportedPrimitive(kind)
+            PrimitiveKind.DOUBLE -> { /* OK */ }
             // Non-Primitive types.
             else -> throw SerdeError.NonPrimitive(kind)
         }
@@ -36,7 +39,7 @@ class PrimitiveElement(name: String, private val kind: SerialKind, override val 
             is PrimitiveKind.INT -> 4
             is PrimitiveKind.LONG -> 8
             is PrimitiveKind.CHAR -> 2
-            is PrimitiveKind.FLOAT, PrimitiveKind.DOUBLE -> throw SerdeError.UnsupportedPrimitive(kind)
+            is PrimitiveKind.FLOAT, PrimitiveKind.DOUBLE -> BigDecimalSurrogate.SIZE
             else -> throw SerdeError.Unreachable("Computing layout for primitive $kind")
         }
 
@@ -53,7 +56,14 @@ class PrimitiveElement(name: String, private val kind: SerialKind, override val 
                 kind is PrimitiveKind.INT && value is Int -> writeInt(value)
                 kind is PrimitiveKind.LONG && value is Long -> writeLong(value)
                 kind is PrimitiveKind.CHAR && value is Char -> writeChar('\u0000'.toInt())
-                (kind is PrimitiveKind.FLOAT) || (kind is PrimitiveKind.DOUBLE) -> throw SerdeError.UnsupportedPrimitive(kind)
+                kind is PrimitiveKind.FLOAT && value is Float -> {
+                    val surrogate = BigDecimalSurrogate.from(value)
+                    writeBigDecimal(stream, surrogate)
+                }
+                kind is PrimitiveKind.DOUBLE && value is Double -> {
+                    val surrogate = BigDecimalSurrogate.from(value)
+                    writeBigDecimal(stream, surrogate)
+                }
                 else -> throw IllegalStateException("$name cannot encode $value of type ${value::class.simpleName}")
             }
         }
@@ -68,14 +78,14 @@ class PrimitiveElement(name: String, private val kind: SerialKind, override val 
                 is PrimitiveKind.INT -> writeInt(0)
                 is PrimitiveKind.LONG -> writeLong(0)
                 is PrimitiveKind.CHAR -> writeChar('\u0000'.toInt())
-                is PrimitiveKind.FLOAT, PrimitiveKind.DOUBLE -> throw SerdeError.UnsupportedPrimitive(kind)
+                is PrimitiveKind.FLOAT, PrimitiveKind.DOUBLE -> writeBigDecimal(this, null)
                 else -> throw SerdeError.Unreachable("Encoding null for primitive $kind.")
             }
         }
 
     @Suppress("UNCHECKED_CAST")
-    fun <T> decode(stream: DataInput): T =
-        with(stream) {
+    fun <T> decode(output: DataInput): T =
+        with(output) {
             when (kind) {
                 is PrimitiveKind.BOOLEAN -> readBoolean()
                 is PrimitiveKind.BYTE -> readByte()
@@ -83,8 +93,24 @@ class PrimitiveElement(name: String, private val kind: SerialKind, override val 
                 is PrimitiveKind.INT -> readInt()
                 is PrimitiveKind.LONG -> readLong()
                 is PrimitiveKind.CHAR -> readChar()
-                is PrimitiveKind.FLOAT, PrimitiveKind.DOUBLE -> throw SerdeError.UnsupportedPrimitive(kind)
+                is PrimitiveKind.FLOAT -> readBigDecimal(this).toFloat()
+                is PrimitiveKind.DOUBLE -> readBigDecimal(this).toDouble()
                 else -> throw SerdeError.Unreachable("Decoding a primitive $kind")
             } as? T ?: throw IllegalStateException("$name cannot decode required type")
         }
+
+    private fun writeBigDecimal(output: DataOutput, surrogate: BigDecimalSurrogate?) {
+        val serialization = surrogate?.let { serialize(surrogate) }
+            ?: ByteArray(BigDecimalSurrogate.SIZE) { 0 }
+        output.write(serialization)
+    }
+
+    private fun readBigDecimal(input: DataInput): BigDecimal {
+        val surrogateInput = ByteArray(BigDecimalSurrogate.SIZE)
+        input.readFully(surrogateInput)
+
+        val surrogate = deserialize<BigDecimalSurrogate>(surrogateInput)
+
+        return surrogate.toOriginal()
+    }
 }

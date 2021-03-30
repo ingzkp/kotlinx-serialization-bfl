@@ -8,6 +8,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import sun.security.rsa.RSAPublicKeyImpl
+import java.security.KeyFactory
+import java.security.spec.X509EncodedKeySpec
 
 @ExperimentalSerializationApi
 object RSAPublicKeySerializer : KSerializer<RSAPublicKeyImpl> {
@@ -16,7 +18,10 @@ object RSAPublicKeySerializer : KSerializer<RSAPublicKeyImpl> {
 
     override fun deserialize(decoder: Decoder): RSAPublicKeyImpl {
         val surrogate = decoder.decodeSerializableValue(strategy)
-        return RSAPublicKeyImpl.newKey(surrogate.encoded) as RSAPublicKeyImpl
+        return (
+            KeyFactory.getInstance("RSA").generatePublic(X509EncodedKeySpec(surrogate.encoded))
+                ?: error("Byte sequence ${surrogate.encoded} is not an RSA pub key encoding")
+            ) as RSAPublicKeyImpl
     }
 
     override fun serialize(encoder: Encoder, value: RSAPublicKeyImpl) {

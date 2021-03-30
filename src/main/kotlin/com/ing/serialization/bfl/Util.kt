@@ -13,10 +13,23 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 
 @ExperimentalSerializationApi
-inline fun <reified T : Any> serialize(data: T, serializersModule: SerializersModule = EmptySerializersModule): ByteArray {
+fun <T : Any> deserialize(
+    data: ByteArray,
+    clazz: Class<T>,
+    serializersModule: SerializersModule = EmptySerializersModule
+): T {
+    val input = ByteArrayInputStream(data)
+    val stream = DataInputStream(input)
+    val bfl = BinaryFixedLengthInputDecoder(stream, serializersModule)
+    return clazz.cast(bfl.decodeSerializableValue(serializersModule.serializer(clazz)))
+}
+
+@ExperimentalSerializationApi
+fun <T : Any> serialize(data: T, serializersModule: SerializersModule = EmptySerializersModule): ByteArray {
     val output = ByteArrayOutputStream()
     val stream = DataOutputStream(output)
-    BinaryFixedLengthOutputEncoder(stream, serializersModule).encodeSerializableValue(serializer(), data)
+    BinaryFixedLengthOutputEncoder(stream, serializersModule)
+        .encodeSerializableValue(serializer(data::class.java), data)
     return output.toByteArray()
 }
 

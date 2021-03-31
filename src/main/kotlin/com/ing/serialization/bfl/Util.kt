@@ -18,25 +18,19 @@ import java.io.DataOutputStream
 inline fun <reified T : Any> serialize(
     data: T,
     serializersModule: SerializersModule = EmptySerializersModule
-): ByteArray {
-    return serialize(data, serializer(), serializersModule)
-}
+): ByteArray = serialize(data, serializer(), serializersModule)
 
 @ExperimentalSerializationApi
 inline fun <reified T : Any> serializeX(
     data: T,
     serializersModule: SerializersModule = EmptySerializersModule
-): Pair<ByteArray, Layout> {
-    return serializeX(data, serializer(), serializersModule)
-}
+): Pair<ByteArray, Layout> = serializeX(data, serializer(), serializersModule)
 
 @ExperimentalSerializationApi
 inline fun <reified T : Any> deserialize(
     data: ByteArray,
     serializersModule: SerializersModule = EmptySerializersModule
-): T {
-    return deserialize(data, serializer(), serializersModule)
-}
+): T = deserialize(data, serializer(), serializersModule)
 
 @ExperimentalSerializationApi
 fun <T> serialize(

@@ -24,7 +24,7 @@ inline fun <reified T : Any> serializeX(data: T, serializersModule: SerializersM
     ByteArrayOutputStream().use { output ->
         val layout = DataOutputStream(output).use { stream ->
             val bfl = BinaryFixedLengthOutputEncoder(stream, serializersModule)
-            bfl.encodeSerializableValue(serializer(), data)
+            bfl.encodeSerializableValue(serializersModule.serializer(), data)
             bfl.layout
         }
         Pair(output.toByteArray(), layout)
@@ -34,7 +34,7 @@ inline fun <reified T : Any> deserialize(data: ByteArray, serializersModule: Ser
     ByteArrayInputStream(data).use { input ->
         DataInputStream(input).use { stream ->
             val bfl = BinaryFixedLengthInputDecoder(stream, serializersModule)
-            bfl.decodeSerializableValue(serializer())
+            bfl.decodeSerializableValue(serializersModule.serializer())
         }
     }
 

@@ -22,10 +22,20 @@ class ContextualTypeTest {
 
     private val serializers = SerializersModule {
         contextual(SecureHashSerializer)
+        contextual(SecureHashSHA256Serializer)
+        contextual(SecureHashHASHSerializer)
     }
 
     @Test
-    fun `contextual types are serializable`() {
+    fun `contextual types are directly serializable`() {
+        val data = SecureHash.allOnesHash
+
+        val serialization = serializeX(data, serializers)
+        println(serialization.second)
+    }
+
+    @Test
+    fun `contextual types as fields are serializable`() {
         val data = Data(SecureHash.allOnesHash)
 
         val serialization = serializeX(data, serializers)
@@ -39,7 +49,7 @@ class ContextualTypeTest {
         val serialization = serialize(data, serializers)
         val deserialization = deserialize<Data>(serialization, serializers)
 
-        assert(deserialization == data) { "Deserializion must coincide with the original data" }
+        assert(deserialization == data) { "Deserialization must coincide with the original data" }
     }
 
     @Test
@@ -51,12 +61,13 @@ class ContextualTypeTest {
 }
 
 /**
- * This is a poor imitation of SecureHas class in Corda.
+ * This is a poor imitation of SecureHash class in Corda.
  */
 sealed class SecureHash(val bytes: ByteArray) {
     init {
         require(bytes.size == 32) { "Hash may be at most 32 bytes long" }
     }
+
     class SHA256(bytes: ByteArray) : SecureHash(bytes) {
         override fun equals(other: Any?) = (other is SHA256) && (bytes contentEquals other.bytes)
         override fun hashCode() = ByteBuffer.wrap(bytes).int
@@ -73,21 +84,26 @@ sealed class SecureHash(val bytes: ByteArray) {
     }
 }
 
-object SecureHashSerializer : KSerializer<SecureHash> {
+open class SealedSecureHashSerializer<T : SecureHash> : KSerializer<T> {
     private val strategy = SecureHashSurrogate.serializer()
     override val descriptor: SerialDescriptor = strategy.descriptor
 
-    override fun deserialize(decoder: Decoder): SecureHash {
-        return decoder.decodeSerializableValue(strategy).toOriginal()
+    override fun deserialize(decoder: Decoder): T {
+        @Suppress("UNCHECKED_CAST")
+        return decoder.decodeSerializableValue(strategy).toOriginal() as? T
+            ?: error("Cannot deserialize SecureHash")
     }
 
-    override fun serialize(encoder: Encoder, value: SecureHash) {
+    override fun serialize(encoder: Encoder, value: T) {
         encoder.encodeSerializableValue(strategy, SecureHashSurrogate.from(value))
     }
 }
 
-@Suppress("ArrayInDataClass")
+object SecureHashSerializer : KSerializer<SecureHash> by SealedSecureHashSerializer()
+object SecureHashSHA256Serializer : KSerializer<SecureHash.SHA256> by SealedSecureHashSerializer()
+object SecureHashHASHSerializer : KSerializer<SecureHash.HASH> by SealedSecureHashSerializer()
 
+@Suppress("ArrayInDataClass")
 @Serializable
 data class SecureHashSurrogate(
     @FixedLength([20])

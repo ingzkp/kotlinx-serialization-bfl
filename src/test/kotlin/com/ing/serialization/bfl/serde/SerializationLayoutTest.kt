@@ -2,11 +2,9 @@ package com.ing.serialization.bfl.serde
 
 import com.ing.serialization.bfl.annotations.FixedLength
 import com.ing.serialization.bfl.serializeX
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 
-@ExperimentalSerializationApi
 @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
 class SerializationLayoutTest {
     @Serializable

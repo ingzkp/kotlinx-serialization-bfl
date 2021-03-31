@@ -1,7 +1,6 @@
 package com.ing.serialization.bfl.serializers
 
 import com.ing.serialization.bfl.annotations.FixedLength
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -10,7 +9,6 @@ import kotlinx.serialization.encoding.Encoder
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
-@ExperimentalSerializationApi
 object ZonedDateTimeSerializer : KSerializer<ZonedDateTime> {
     private val strategy = ZonedDateTimeSurrogate.serializer()
     override val descriptor: SerialDescriptor = strategy.descriptor
@@ -24,7 +22,6 @@ object ZonedDateTimeSerializer : KSerializer<ZonedDateTime> {
     }
 }
 
-@ExperimentalSerializationApi
 @Serializable
 data class ZonedDateTimeSurrogate(
     val year: Int,

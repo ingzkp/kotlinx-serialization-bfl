@@ -4,10 +4,9 @@ import com.ing.serialization.bfl.deserialize
 import com.ing.serialization.bfl.serde.checkedSerialize
 import com.ing.serialization.bfl.serialize
 import io.kotest.matchers.shouldBe
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
-@ExperimentalSerializationApi
+
 class NullableIntTest {
     @Serializable
     data class NullableData(val int: Int?)

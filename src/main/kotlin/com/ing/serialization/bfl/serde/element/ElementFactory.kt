@@ -9,7 +9,6 @@ import com.ing.serialization.bfl.serde.isPolymorphic
 import com.ing.serialization.bfl.serde.isString
 import com.ing.serialization.bfl.serde.isStructure
 import com.ing.serialization.bfl.serde.isTrulyPrimitive
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.elementDescriptors
 import kotlinx.serialization.descriptors.getContextualDescriptor
@@ -17,7 +16,6 @@ import kotlinx.serialization.descriptors.getPolymorphicDescriptors
 import kotlinx.serialization.modules.EmptySerializersModule
 import kotlinx.serialization.modules.SerializersModule
 
-@ExperimentalSerializationApi
 class ElementFactory(private val serializersModule: SerializersModule = EmptySerializersModule) {
     companion object {
         const val polySerialNameLength = 100

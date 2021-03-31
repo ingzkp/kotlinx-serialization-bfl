@@ -1,9 +1,7 @@
 package com.ing.serialization.bfl.serde.element
 
-import kotlinx.serialization.ExperimentalSerializationApi
 import java.io.DataOutput
 
-@ExperimentalSerializationApi
 class StructureElement(name: String, inner: List<Element>, override val isNullable: Boolean) : Element(name, inner) {
     override val inherentLayout by lazy {
         listOf(Pair("length", constituentsSize))

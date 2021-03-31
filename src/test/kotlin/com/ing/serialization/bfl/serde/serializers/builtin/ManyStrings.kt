@@ -4,11 +4,9 @@ import com.ing.serialization.bfl.annotations.FixedLength
 import com.ing.serialization.bfl.deserialize
 import com.ing.serialization.bfl.serializeX
 import io.kotest.matchers.shouldBe
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 
-@ExperimentalSerializationApi
 class ManyStrings {
     @Serializable
     data class Data(

@@ -6,12 +6,11 @@ import com.ing.serialization.bfl.serde.checkedSerialize
 import com.ing.serialization.bfl.serialize
 import com.ing.serialization.bfl.serializers.DateSerializer
 import io.kotest.matchers.shouldBe
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 import java.text.SimpleDateFormat
 import java.util.Date
-@ExperimentalSerializationApi
+
 class List3rdPartyClassTest {
     @Serializable
     data class Data(@FixedLength([2]) val dates: List<@Serializable(with = DateSerializer::class) Date>)

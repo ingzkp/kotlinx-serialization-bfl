@@ -3,11 +3,9 @@ package com.ing.serialization.bfl.serde
 import com.ing.serialization.bfl.serde.element.CollectionElement
 import com.ing.serialization.bfl.serde.element.Element
 import com.ing.serialization.bfl.serde.element.StringElement
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.SerialKind
 
-@ExperimentalSerializationApi
 sealed class SerdeError : IllegalStateException {
     constructor(message: String) : super(message)
     constructor(message: String, cause: Throwable) : super(message, cause)

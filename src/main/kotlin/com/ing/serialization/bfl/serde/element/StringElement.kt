@@ -1,14 +1,12 @@
 package com.ing.serialization.bfl.serde.element
 
 import com.ing.serialization.bfl.serde.SerdeError
-import kotlinx.serialization.ExperimentalSerializationApi
 import java.io.DataInput
 import java.io.DataOutput
 
 /**
  * The basic abstraction of each object being serialized.
  */
-@ExperimentalSerializationApi
 class StringElement(name: String, val requiredLength: Int, override val isNullable: Boolean) : Element(name) {
     /**
      * Layout of a sequence of bytes describing a string.

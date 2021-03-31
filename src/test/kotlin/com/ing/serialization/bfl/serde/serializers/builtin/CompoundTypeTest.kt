@@ -4,10 +4,9 @@ import com.ing.serialization.bfl.deserialize
 import com.ing.serialization.bfl.serde.checkedSerialize
 import com.ing.serialization.bfl.serialize
 import io.kotest.matchers.shouldBe
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
-@ExperimentalSerializationApi
+
 class CompoundTypeTest {
     @Serializable
     data class Data(val pair: Pair<Int, Int>)

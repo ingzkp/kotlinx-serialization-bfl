@@ -1,14 +1,13 @@
 package com.ing.serialization.bfl.serde.element
 
 import com.ing.serialization.bfl.serde.SerdeError
-import kotlinx.serialization.ExperimentalSerializationApi
 import java.io.DataInput
 import java.io.DataOutput
 
 /**
  * The basic abstraction of each object being serialized.
  */
-@ExperimentalSerializationApi
+
 abstract class Element(val name: String, val inner: List<Element> = listOf()) {
     abstract val isNullable: Boolean
 

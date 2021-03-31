@@ -4,11 +4,9 @@ import com.ing.serialization.bfl.serde.checkedSerialize
 import com.ing.serialization.bfl.serde.roundTrip
 import com.ing.serialization.bfl.serde.sameSize
 import com.ing.serialization.bfl.serializers.BigDecimalSurrogate
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 
-@ExperimentalSerializationApi
 class FloatTest {
     @Serializable
     data class Data(val value: Float?)

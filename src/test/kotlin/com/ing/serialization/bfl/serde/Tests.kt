@@ -5,12 +5,11 @@ import com.ing.serialization.bfl.serialize
 import com.ing.serialization.bfl.serializers.BFLSerializers
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import kotlinx.serialization.ExperimentalSerializationApi
 
 /**
  * Serialize and check whether serialization fits into the expected mask.
  */
-@ExperimentalSerializationApi
+
 inline fun <reified T : Any> checkedSerialize(
     data: T,
     mask: List<Pair<String, Int>>
@@ -25,7 +24,7 @@ inline fun <reified T : Any> checkedSerialize(
 /**
  * Test if value survives serialization/deserialization.
  */
-@ExperimentalSerializationApi
+
 inline fun <reified T : Any> roundTrip(value: T) {
     val serialization = serialize(value, BFLSerializers)
     val deserialization = deserialize<T>(serialization, BFLSerializers)
@@ -36,7 +35,7 @@ inline fun <reified T : Any> roundTrip(value: T) {
 /**
  * Test if serializations of different instances have the same size.
  */
-@ExperimentalSerializationApi
+
 inline fun <reified T : Any> sameSize(value1: T, value2: T) {
     value1 shouldNotBe value2
 

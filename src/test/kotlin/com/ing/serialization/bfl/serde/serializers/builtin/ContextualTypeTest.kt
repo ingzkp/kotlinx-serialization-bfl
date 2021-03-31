@@ -6,7 +6,6 @@ import com.ing.serialization.bfl.serialize
 import com.ing.serialization.bfl.serializeX
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.Contextual
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -17,7 +16,6 @@ import kotlinx.serialization.modules.contextual
 import org.junit.jupiter.api.Test
 import java.nio.ByteBuffer
 
-@ExperimentalSerializationApi
 class ContextualTypeTest {
     @Serializable
     data class Data(val value: @Contextual SecureHash)
@@ -75,7 +73,6 @@ sealed class SecureHash(val bytes: ByteArray) {
     }
 }
 
-@ExperimentalSerializationApi
 object SecureHashSerializer : KSerializer<SecureHash> {
     private val strategy = SecureHashSurrogate.serializer()
     override val descriptor: SerialDescriptor = strategy.descriptor
@@ -90,7 +87,7 @@ object SecureHashSerializer : KSerializer<SecureHash> {
 }
 
 @Suppress("ArrayInDataClass")
-@ExperimentalSerializationApi
+
 @Serializable
 data class SecureHashSurrogate(
     @FixedLength([20])

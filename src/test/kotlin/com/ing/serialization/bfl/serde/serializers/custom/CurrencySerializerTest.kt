@@ -4,13 +4,11 @@ import com.ing.serialization.bfl.serde.checkedSerialize
 import com.ing.serialization.bfl.serde.roundTrip
 import com.ing.serialization.bfl.serde.sameSize
 import kotlinx.serialization.Contextual
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 import java.util.Currency
 import java.util.Locale
 
-@ExperimentalSerializationApi
 class CurrencySerializerTest {
     @Serializable
     data class Data(val value: @Contextual Currency)

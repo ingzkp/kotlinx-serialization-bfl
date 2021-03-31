@@ -5,12 +5,10 @@ import com.ing.serialization.bfl.serde.roundTrip
 import com.ing.serialization.bfl.serde.sameSize
 import com.ing.serialization.bfl.serializers.BigDecimalSurrogate
 import kotlinx.serialization.Contextual
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
 
-@ExperimentalSerializationApi
 class BigDecimalSerializerTest {
     @Serializable
     data class Data(val value: @Contextual BigDecimal)

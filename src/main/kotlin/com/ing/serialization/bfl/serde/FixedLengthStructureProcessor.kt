@@ -5,11 +5,9 @@ import com.ing.serialization.bfl.serde.element.CollectionElement
 import com.ing.serialization.bfl.serde.element.Element
 import com.ing.serialization.bfl.serde.element.ElementFactory
 import com.ing.serialization.bfl.serde.element.StructureElement
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.modules.SerializersModule
 
-@ExperimentalSerializationApi
 class FixedLengthStructureProcessor(private val serializersModule: SerializersModule) {
     internal lateinit var structure: Element
 

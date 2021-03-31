@@ -1,7 +1,6 @@
 package com.ing.serialization.bfl.serializers
 
 import com.ing.serialization.bfl.annotations.FixedLength
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -9,7 +8,6 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import java.math.BigDecimal
 
-@ExperimentalSerializationApi
 object BigDecimalSerializer : KSerializer<BigDecimal> {
     private val strategy = BigDecimalSurrogate.serializer()
     override val descriptor: SerialDescriptor = strategy.descriptor
@@ -23,7 +21,6 @@ object BigDecimalSerializer : KSerializer<BigDecimal> {
     }
 }
 
-@ExperimentalSerializationApi
 @Suppress("ArrayInDataClass")
 @Serializable
 data class BigDecimalSurrogate(

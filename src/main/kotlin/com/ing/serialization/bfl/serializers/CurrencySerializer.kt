@@ -1,7 +1,6 @@
 package com.ing.serialization.bfl.serializers
 
 import com.ing.serialization.bfl.annotations.FixedLength
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -9,7 +8,6 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import java.util.Currency
 
-@ExperimentalSerializationApi
 object CurrencySerializer : KSerializer<Currency> {
     private val strategy = CurrencySurrogate.serializer()
     override val descriptor: SerialDescriptor = strategy.descriptor
@@ -24,7 +22,6 @@ object CurrencySerializer : KSerializer<Currency> {
     }
 }
 
-@ExperimentalSerializationApi
 @Serializable
 /**
  * ISO 4217: Currency codes are composed of a country's two-character Internet country code

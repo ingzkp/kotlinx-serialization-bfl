@@ -4,7 +4,6 @@ import com.ing.serialization.bfl.deserialize
 import com.ing.serialization.bfl.serde.SerdeError
 import com.ing.serialization.bfl.serialize
 import com.ing.serialization.bfl.serializers.BigDecimalSurrogate
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialKind
 import java.io.DataInput
@@ -14,7 +13,7 @@ import java.math.BigDecimal
 /**
  * The basic abstraction of each object being serialized.
  */
-@ExperimentalSerializationApi
+
 class PrimitiveElement(name: String, private val kind: SerialKind, override val isNullable: Boolean) : Element(name) {
     init {
         when (kind) {

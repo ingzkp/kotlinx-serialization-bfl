@@ -4,12 +4,11 @@ import com.ing.serialization.bfl.serde.checkedSerialize
 import com.ing.serialization.bfl.serde.roundTrip
 import com.ing.serialization.bfl.serde.sameSize
 import com.ing.serialization.bfl.serializers.DateSerializer
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 import java.text.SimpleDateFormat
 import java.util.Date
-@ExperimentalSerializationApi
+
 class DateSerializerTest {
     @Serializable
     data class Data(val date: @Serializable(with = DateSerializer::class) Date)

@@ -1,13 +1,11 @@
 package com.ing.serialization.bfl.serializers
 
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.contextual
 import kotlinx.serialization.modules.polymorphic
 import sun.security.rsa.RSAPublicKeyImpl
 import java.security.PublicKey
 
-@ExperimentalSerializationApi
 val BFLSerializers = SerializersModule {
     // Polymorphic types.
     polymorphic(PublicKey::class) {

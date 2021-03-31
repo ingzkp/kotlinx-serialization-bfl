@@ -1,13 +1,12 @@
 package com.ing.serialization.bfl.serde.element
 
 import com.ing.serialization.bfl.serde.SerdeError
-import kotlinx.serialization.ExperimentalSerializationApi
 import java.io.DataOutput
 
 /**
  * The basic abstraction of each object being serialized.
  */
-@ExperimentalSerializationApi
+
 class CollectionElement(
     name: String,
     inner: List<Element>,
@@ -49,13 +48,11 @@ class CollectionElement(
         repeat(4 + requiredLength * elementSize) { output.writeByte(0) }
 }
 
-@ExperimentalSerializationApi
 interface CollectionElementSizingInfo {
     var actualLength: Int?
     val requiredLength: Int
 }
 
-@ExperimentalSerializationApi
 data class CollectionSizingInfo(
     override var actualLength: Int? = null,
     override val requiredLength: Int,

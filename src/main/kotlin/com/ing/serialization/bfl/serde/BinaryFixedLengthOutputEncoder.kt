@@ -4,7 +4,6 @@ import com.ing.serialization.bfl.serde.element.CollectionElement
 import com.ing.serialization.bfl.serde.element.PrimitiveElement
 import com.ing.serialization.bfl.serde.element.StringElement
 import com.ing.serialization.bfl.serializers.BFLSerializers
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.AbstractEncoder
 import kotlinx.serialization.encoding.CompositeEncoder
@@ -13,7 +12,6 @@ import kotlinx.serialization.modules.plus
 import java.io.DataOutput
 
 @Suppress("TooManyFunctions")
-@ExperimentalSerializationApi
 class BinaryFixedLengthOutputEncoder(
     private val output: DataOutput,
     userSerializersModule: SerializersModule

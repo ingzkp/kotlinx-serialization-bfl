@@ -4,12 +4,10 @@ import com.ing.serialization.bfl.serde.roundTrip
 import com.ing.serialization.bfl.serde.sameSize
 import com.ing.serialization.bfl.serializeX
 import kotlinx.serialization.Contextual
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 import java.time.ZonedDateTime
 
-@ExperimentalSerializationApi
 class ZonedDateTimeSerializerTest {
     @Serializable
     data class Data(val date: @Contextual ZonedDateTime)

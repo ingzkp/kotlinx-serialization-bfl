@@ -1,7 +1,6 @@
 package com.ing.serialization.bfl.serializers
 
 import com.ing.serialization.bfl.annotations.FixedLength
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -11,7 +10,6 @@ import sun.security.rsa.RSAPublicKeyImpl
 import java.security.KeyFactory
 import java.security.spec.X509EncodedKeySpec
 
-@ExperimentalSerializationApi
 object RSAPublicKeySerializer : KSerializer<RSAPublicKeyImpl> {
     private val strategy = RSAPublicKeySurrogate.serializer()
     override val descriptor = strategy.descriptor
@@ -29,7 +27,6 @@ object RSAPublicKeySerializer : KSerializer<RSAPublicKeyImpl> {
     }
 }
 
-@ExperimentalSerializationApi
 @Suppress("ArrayInDataClass")
 @Serializable
 @SerialName("RSAPublicKeyImpl")

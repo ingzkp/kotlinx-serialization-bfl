@@ -6,12 +6,11 @@ import com.ing.serialization.bfl.serde.element.ElementFactory
 import com.ing.serialization.bfl.serde.generateRSAPubKey
 import com.ing.serialization.bfl.serialize
 import io.kotest.matchers.shouldBe
-import kotlinx.serialization.ExperimentalSerializationApi
 import org.junit.jupiter.api.Test
 import java.security.PublicKey
 
 @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
-@ExperimentalSerializationApi
+
 class PolymorphicTest {
     @Test
     fun `serialize polymorphic type itself`() {

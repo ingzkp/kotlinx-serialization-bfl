@@ -6,9 +6,7 @@ import com.ing.serialization.bfl.serde.element.StringElement
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.SerialKind
 
-sealed class SerdeError : IllegalStateException {
-    constructor(message: String) : super(message)
-    constructor(message: String, cause: Throwable) : super(message, cause)
+sealed class SerdeError(message: String) : IllegalStateException(message) {
 
     class Unreachable(message: String) : SerdeError("Panic. Unreachable code. $message")
 
@@ -25,14 +23,12 @@ sealed class SerdeError : IllegalStateException {
     class CollectionTooLarge(element: CollectionElement) :
         SerdeError("Size of ${element.name} (${element.actualLength}) is larger than required (${element.requiredLength})")
 
-    class InsufficientLengthData(parentName: String, descriptor: SerialDescriptor) :
-        SerdeError("Insufficient length data for $parentName.${descriptor.serialName}")
+    class InsufficientLengthData(descriptor: SerialDescriptor, parentName: String) :
+        SerdeError("Insufficient length data along the chain $parentName.${descriptor.simpleSerialName}")
 
     class NoPolymorphicSerializers(descriptor: SerialDescriptor) :
         SerdeError("Serializers module has no serializers for a polymorphic type ${descriptor.serialName}")
 
     class NoContextualSerializer(descriptor: SerialDescriptor) :
         SerdeError("Serializers module has no serializers for a context type ${descriptor.serialName}")
-
-    class CannotParse(message: String, cause: Throwable) : SerdeError(message, cause)
 }

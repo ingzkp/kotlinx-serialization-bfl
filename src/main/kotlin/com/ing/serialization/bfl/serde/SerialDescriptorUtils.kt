@@ -23,3 +23,6 @@ val SerialDescriptor.isPolymorphic: Boolean
 
 val SerialDescriptor.isContextual: Boolean
     get() = kind is SerialKind.CONTEXTUAL
+
+val SerialDescriptor.simpleSerialName: String
+    get() = serialName.split(".").last()

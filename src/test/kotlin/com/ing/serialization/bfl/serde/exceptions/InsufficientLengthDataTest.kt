@@ -10,30 +10,43 @@ import org.junit.jupiter.api.assertThrows
 
 class InsufficientLengthDataTest {
     @Serializable
-    data class Data(@FixedLength([2, 2]) val map: Map<String, List<Int>>)
+    data class Data(@FixedLength([2, 2]) val myMap: Map<String, List<Int>>)
 
     @Test
     fun `direct property insufficient length`() {
         val data = Data(mapOf("a" to listOf(2)))
-
         val exception = assertThrows<SerdeError> {
             serialize(data)
         }
 
-        exception.message shouldBe "Property ${Data::class.qualifiedName}.map cannot be parsed"
+        exception.message shouldBe "Insufficient length data along the chain Data.myMap.ArrayList"
     }
 
     @Serializable
-    data class ComplexData(@FixedLength([2]) val list: List<Data>)
+    data class ComplexData(@FixedLength([2]) val myList: List<Data>)
 
     @Test
-    fun `indirect property insufficient length`() {
+    fun `Insufficient length deep along the hierarchy`() {
         val data = ComplexData(listOf(Data(mapOf("a" to listOf(2)))))
-
         val exception = assertThrows<SerdeError> {
             serialize(data)
         }
 
-        exception.message shouldBe "Property ${Data::class.qualifiedName}.map cannot be parsed"
+        exception.message shouldBe "Insufficient length data along the chain ComplexData.myList.myMap.ArrayList"
+    }
+
+    @Serializable
+    data class LocalData(val participants: List<Int>)
+    @Serializable
+    data class Wrapper(val localData: LocalData)
+
+    @Test
+    fun `Insufficient length shallow along the hierarchy`() {
+        val data = Wrapper(LocalData(listOf(1)))
+        val exception = assertThrows<SerdeError> {
+            serialize(data)
+        }
+
+        exception.message shouldBe "Insufficient length data along the chain Wrapper.localData.participants.ArrayList"
     }
 }

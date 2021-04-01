@@ -2,11 +2,11 @@ package com.ing.serialization.bfl.serde.exceptions
 
 import com.ing.serialization.bfl.annotations.FixedLength
 import com.ing.serialization.bfl.serde.SerdeError
-import com.ing.serialization.bfl.serialize
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import com.ing.serialization.bfl.api.serialize as serializeInlined
 
 class InsufficientLengthDataTest {
     @Serializable
@@ -16,7 +16,7 @@ class InsufficientLengthDataTest {
     fun `direct property insufficient length`() {
         val data = Data(mapOf("a" to listOf(2)))
         val exception = assertThrows<SerdeError> {
-            serialize(data)
+            serializeInlined(data)
         }
 
         exception.message shouldBe "Insufficient length data along the chain Data.myMap.ArrayList"
@@ -29,7 +29,7 @@ class InsufficientLengthDataTest {
     fun `Insufficient length deep along the hierarchy`() {
         val data = ComplexData(listOf(Data(mapOf("a" to listOf(2)))))
         val exception = assertThrows<SerdeError> {
-            serialize(data)
+            serializeInlined(data)
         }
 
         exception.message shouldBe "Insufficient length data along the chain ComplexData.myList.myMap.ArrayList"
@@ -44,7 +44,7 @@ class InsufficientLengthDataTest {
     fun `Insufficient length shallow along the hierarchy`() {
         val data = Wrapper(LocalData(listOf(1)))
         val exception = assertThrows<SerdeError> {
-            serialize(data)
+            serializeInlined(data)
         }
 
         exception.message shouldBe "Insufficient length data along the chain Wrapper.localData.participants.ArrayList"

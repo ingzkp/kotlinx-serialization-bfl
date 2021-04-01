@@ -1,10 +1,12 @@
 package com.ing.serialization.bfl.serde.serializers.builtin
 
 import com.ing.serialization.bfl.annotations.FixedLength
-import com.ing.serialization.bfl.deserialize
 import com.ing.serialization.bfl.serde.Own
-import com.ing.serialization.bfl.serde.checkedSerialize
-import com.ing.serialization.bfl.serialize
+import com.ing.serialization.bfl.serde.checkedSerializeInlined
+import com.ing.serialization.bfl.serde.roundTrip
+import com.ing.serialization.bfl.serde.roundTripInlined
+import com.ing.serialization.bfl.serde.sameSize
+import com.ing.serialization.bfl.serde.sameSizeInlined
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
@@ -23,27 +25,30 @@ class ListOwn {
         )
 
         var data = Data(listOf(Own()))
-        var bytes = checkedSerialize(data, mask)
+        var bytes = checkedSerializeInlined(data, mask)
 
         data = Data(listOf())
-        bytes = checkedSerialize(data, mask)
+        bytes = checkedSerializeInlined(data, mask)
         bytes shouldBe ByteArray(mask.sumBy { it.second }) { 0 }
     }
 
     @Test
     fun `serialize and deserialize list with own serializable class`() {
         val data = Data(listOf(Own()))
-        val bytes = serialize(data)
 
-        val deserialized: Data = deserialize(bytes)
-        data shouldBe deserialized
+        roundTripInlined(data)
+        roundTrip(data, data::class)
     }
 
     @Test
     fun `serialization has fixed length`() {
-        val list1 = listOf(Own(1))
-        val list2 = listOf(Own(1), Own(2))
-        serialize(Data(list1)).size shouldBe serialize(Data(list2)).size
-        serialize(Data(list1)).size shouldBe serialize(Data(listOf())).size
+        val empty = Data(listOf())
+        val data1 = Data(listOf(Own(1)))
+        val data2 = Data(listOf(Own(1), Own(2)))
+
+        sameSizeInlined(empty, data1)
+        sameSize(empty, data1)
+        sameSizeInlined(data2, data1)
+        sameSize(data2, data1)
     }
 }

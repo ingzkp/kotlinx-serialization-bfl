@@ -1,9 +1,11 @@
 package com.ing.serialization.bfl.serde.serializers.builtin
 
 import com.ing.serialization.bfl.annotations.FixedLength
-import com.ing.serialization.bfl.deserialize
-import com.ing.serialization.bfl.serde.checkedSerialize
-import com.ing.serialization.bfl.serialize
+import com.ing.serialization.bfl.serde.checkedSerializeInlined
+import com.ing.serialization.bfl.serde.roundTrip
+import com.ing.serialization.bfl.serde.roundTripInlined
+import com.ing.serialization.bfl.serde.sameSize
+import com.ing.serialization.bfl.serde.sameSizeInlined
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
@@ -25,29 +27,30 @@ class ComplexMapTest {
         )
 
         var data = Data(mapOf("a" to listOf(2)))
-        var bytes = checkedSerialize(data, mask)
+        var bytes = checkedSerializeInlined(data, mask)
 
         data = Data(mapOf())
-        bytes = checkedSerialize(data, mask)
+        bytes = checkedSerializeInlined(data, mask)
         bytes shouldBe ByteArray(mask.sumBy { it.second }) { 0 }
     }
 
     @Test
     fun `serialize and deserialize complex map`() {
         val data = Data(mapOf("a" to listOf(2)))
-        val bytes = serialize(data)
 
-        val deserialized: Data = deserialize(bytes)
-        data shouldBe deserialized
+        roundTripInlined(data)
+        roundTrip(data, data::class)
     }
 
     @Test
     fun `serialization has fixed length`() {
         val empty = Data(mapOf())
-        val map1 = Data(mapOf("a" to listOf(1)))
-        val map2 = Data(mapOf("a" to listOf(1), "b" to listOf(2, 3)))
+        val data1 = Data(mapOf("a" to listOf(1)))
+        val data2 = Data(mapOf("a" to listOf(1), "b" to listOf(2, 3)))
 
-        serialize(map1).size shouldBe serialize(map2).size
-        serialize(map2).size shouldBe serialize(empty).size
+        sameSizeInlined(empty, data1)
+        sameSize(empty, data1)
+        sameSizeInlined(data2, data1)
+        sameSize(data2, data1)
     }
 }

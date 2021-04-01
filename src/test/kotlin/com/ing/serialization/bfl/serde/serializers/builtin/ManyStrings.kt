@@ -1,11 +1,11 @@
 package com.ing.serialization.bfl.serde.serializers.builtin
 
 import com.ing.serialization.bfl.annotations.FixedLength
-import com.ing.serialization.bfl.deserialize
-import com.ing.serialization.bfl.serializeX
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
+import com.ing.serialization.bfl.api.reified.debugSerialize as debugSerializeInlined
+import com.ing.serialization.bfl.api.reified.deserialize as deserializeInlined
 
 class ManyStrings {
     @Serializable
@@ -30,10 +30,10 @@ class ManyStrings {
             null, null, "Batman", "UT", null, "US"
         )
 
-        val serialization = serializeX(data)
+        val serialization = debugSerializeInlined(data)
         println(serialization.second)
 
-        val deserialization = deserialize<Data>(serialization.first)
+        val deserialization = deserializeInlined<Data>(serialization.first)
 
         deserialization shouldBe data
     }

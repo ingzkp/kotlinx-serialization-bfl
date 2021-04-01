@@ -1,9 +1,12 @@
 package com.ing.serialization.bfl.serde.serializers.builtin
 
 import com.ing.serialization.bfl.annotations.FixedLength
-import com.ing.serialization.bfl.deserialize
 import com.ing.serialization.bfl.serde.checkedSerialize
-import com.ing.serialization.bfl.serialize
+import com.ing.serialization.bfl.serde.checkedSerializeInlined
+import com.ing.serialization.bfl.serde.roundTrip
+import com.ing.serialization.bfl.serde.roundTripInlined
+import com.ing.serialization.bfl.serde.sameSize
+import com.ing.serialization.bfl.serde.sameSizeInlined
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
@@ -21,10 +24,14 @@ class StringTest {
         )
 
         var data = Data()
-        var bytes = checkedSerialize(data, mask)
+        var bytes = checkedSerializeInlined(data, mask)
+        bytes[1].toInt() shouldBe data.s.length
+        bytes = checkedSerialize(data, mask)
         bytes[1].toInt() shouldBe data.s.length
 
         data = Data("")
+        bytes = checkedSerializeInlined(data, mask)
+        bytes[1].toInt() shouldBe data.s.length
         bytes = checkedSerialize(data, mask)
         bytes[1].toInt() shouldBe data.s.length
     }
@@ -32,14 +39,17 @@ class StringTest {
     @Test
     fun `serialize and deserialize string`() {
         val data = Data()
-        val bytes = serialize(data)
 
-        val deserialized: Data = deserialize(bytes)
-        data shouldBe deserialized
+        roundTripInlined(data)
+        roundTrip(data, data::class)
     }
 
     @Test
     fun `serialization has fixed length`() {
-        serialize(Data("1")).size shouldBe serialize(Data("12")).size
+        val data1 = Data("1")
+        val data2 = Data("12")
+
+        sameSizeInlined(data1, data2)
+        sameSize(data1, data2)
     }
 }

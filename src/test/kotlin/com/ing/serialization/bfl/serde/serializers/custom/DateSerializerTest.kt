@@ -1,8 +1,11 @@
 package com.ing.serialization.bfl.serde.serializers.custom
 
 import com.ing.serialization.bfl.serde.checkedSerialize
+import com.ing.serialization.bfl.serde.checkedSerializeInlined
 import com.ing.serialization.bfl.serde.roundTrip
+import com.ing.serialization.bfl.serde.roundTripInlined
 import com.ing.serialization.bfl.serde.sameSize
+import com.ing.serialization.bfl.serde.sameSizeInlined
 import com.ing.serialization.bfl.serializers.DateSerializer
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
@@ -18,13 +21,15 @@ class DateSerializerTest {
         val mask = listOf(Pair("date", 8))
 
         val data = Data(SimpleDateFormat("yyyy-MM-ddX").parse("2016-02-15+00"))
+        checkedSerializeInlined(data, mask)
         checkedSerialize(data, mask)
     }
 
     @Test
     fun `serialize and deserialize Date`() {
         val data = Data(SimpleDateFormat("yyyy-MM-ddX").parse("2016-02-15+00"))
-        roundTrip(data)
+        roundTripInlined(data)
+        roundTrip(data, data::class)
     }
 
     @Test
@@ -32,6 +37,7 @@ class DateSerializerTest {
         val data1 = Data(SimpleDateFormat("yyyy-MM-ddX").parse("2016-02-15+00"))
         val data2 = Data(SimpleDateFormat("yyyy-MM-ddX").parse("2018-01-12+00"))
 
+        sameSizeInlined(data1, data2)
         sameSize(data1, data2)
     }
 }

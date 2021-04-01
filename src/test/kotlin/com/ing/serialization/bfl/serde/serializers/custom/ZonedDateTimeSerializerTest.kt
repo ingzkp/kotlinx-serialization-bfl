@@ -1,12 +1,12 @@
 package com.ing.serialization.bfl.serde.serializers.custom
 
-import com.ing.serialization.bfl.serde.roundTrip
-import com.ing.serialization.bfl.serde.sameSize
-import com.ing.serialization.bfl.serializeX
+import com.ing.serialization.bfl.serde.roundTripInlined
+import com.ing.serialization.bfl.serde.sameSizeInlined
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 import java.time.ZonedDateTime
+import com.ing.serialization.bfl.api.reified.debugSerialize as debugSerializeInlined
 
 class ZonedDateTimeSerializerTest {
     @Serializable
@@ -15,13 +15,13 @@ class ZonedDateTimeSerializerTest {
     @Test
     fun `serialize ZonedDateTime`() {
         val data = Data(ZonedDateTime.now())
-        println(serializeX(data).second)
+        println(debugSerializeInlined(data).second)
     }
 
     @Test
     fun `serialize and deserialize ZonedDateTime`() {
         val data = Data(ZonedDateTime.now())
-        roundTrip(data)
+        roundTripInlined(data)
     }
 
     @Test
@@ -29,6 +29,6 @@ class ZonedDateTimeSerializerTest {
         val data1 = Data(ZonedDateTime.now())
         val data2 = Data(ZonedDateTime.now().minusDays(2))
 
-        sameSize(data1, data2)
+        sameSizeInlined(data1, data2)
     }
 }

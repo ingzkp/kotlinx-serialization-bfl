@@ -95,6 +95,7 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
 
                 // Get the descriptor for the polymorphic type.
                 val polyDescriptors = serializersModule.getPolymorphicDescriptors(descriptor)
+
                 if (polyDescriptors.isEmpty()) {
                     throw SerdeError.NoPolymorphicSerializers(descriptor)
                 }

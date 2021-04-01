@@ -1,10 +1,11 @@
 package com.ing.serialization.bfl.serde.serializers.builtin
 
 import com.ing.serialization.bfl.annotations.FixedLength
-import com.ing.serialization.bfl.deserialize
-import com.ing.serialization.bfl.serde.checkedSerialize
-import com.ing.serialization.bfl.serialize
-import io.kotest.matchers.shouldBe
+import com.ing.serialization.bfl.serde.checkedSerializeInlined
+import com.ing.serialization.bfl.serde.roundTrip
+import com.ing.serialization.bfl.serde.roundTripInlined
+import com.ing.serialization.bfl.serde.sameSize
+import com.ing.serialization.bfl.serde.sameSizeInlined
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 
@@ -30,19 +31,18 @@ class CompoundComplexMapTest {
         )
 
         var data = Data(Triple("a", 1, mapOf("a" to listOf(2))))
-        checkedSerialize(data, mask)
+        checkedSerializeInlined(data, mask)
 
         data = Data(Triple("a", 1, mapOf()))
-        checkedSerialize(data, mask)
+        checkedSerializeInlined(data, mask)
     }
 
     @Test
     fun `serialize and deserialize complex map within a compound type`() {
         val data = Data(Triple("a", 1, mapOf("a" to listOf(2))))
-        val bytes = serialize(data)
 
-        val deserialized: Data = deserialize(bytes)
-        data shouldBe deserialized
+        roundTripInlined(data)
+        roundTrip(data, data::class)
     }
 
     @Test
@@ -51,7 +51,9 @@ class CompoundComplexMapTest {
         val data1 = Data(Triple("a", 1, mapOf("a" to listOf(2))))
         val data2 = Data(Triple("ba", 2, mapOf("ah" to listOf(2, 4))))
 
-        serialize(data1).size shouldBe serialize(data2).size
-        serialize(data2).size shouldBe serialize(empty).size
+        sameSizeInlined(empty, data1)
+        sameSize(empty, data1)
+        sameSizeInlined(data2, data1)
+        sameSize(data2, data1)
     }
 }

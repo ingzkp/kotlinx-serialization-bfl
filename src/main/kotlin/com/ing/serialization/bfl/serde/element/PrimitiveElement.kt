@@ -1,14 +1,14 @@
 package com.ing.serialization.bfl.serde.element
 
-import com.ing.serialization.bfl.deserialize
+import com.ing.serialization.bfl.api.reified.deserialize
 import com.ing.serialization.bfl.serde.SerdeError
-import com.ing.serialization.bfl.serialize
 import com.ing.serialization.bfl.serializers.BigDecimalSurrogate
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialKind
 import java.io.DataInput
 import java.io.DataOutput
 import java.math.BigDecimal
+import com.ing.serialization.bfl.api.reified.serialize as inlinedSerialize
 
 /**
  * The basic abstraction of each object being serialized.
@@ -99,7 +99,7 @@ class PrimitiveElement(name: String, private val kind: SerialKind, override val 
         }
 
     private fun writeBigDecimal(output: DataOutput, surrogate: BigDecimalSurrogate?) {
-        val serialization = surrogate?.let { serialize(surrogate) }
+        val serialization = surrogate?.let { inlinedSerialize(surrogate) }
             ?: ByteArray(BigDecimalSurrogate.SIZE) { 0 }
         output.write(serialization)
     }

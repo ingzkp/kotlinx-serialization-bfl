@@ -1,9 +1,11 @@
 package com.ing.serialization.bfl.serde.serializers.builtin
 
-import com.ing.serialization.bfl.deserialize
 import com.ing.serialization.bfl.serde.OwnList
-import com.ing.serialization.bfl.serde.checkedSerialize
-import com.ing.serialization.bfl.serialize
+import com.ing.serialization.bfl.serde.checkedSerializeInlined
+import com.ing.serialization.bfl.serde.roundTrip
+import com.ing.serialization.bfl.serde.roundTripInlined
+import com.ing.serialization.bfl.serde.sameSize
+import com.ing.serialization.bfl.serde.sameSizeInlined
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
@@ -22,28 +24,30 @@ class OwnClassWithListTest {
         )
 
         var data = Data(OwnList(listOf(10)))
-        var bytes = checkedSerialize(data, mask)
+        var bytes = checkedSerializeInlined(data, mask)
         //
         data = Data(OwnList(listOf()))
-        bytes = checkedSerialize(data, mask)
+        bytes = checkedSerializeInlined(data, mask)
         bytes shouldBe ByteArray(mask.sumBy { it.second }) { 0 }
     }
 
     @Test
     fun `serialize and deserialize list with own (with list) serializable class`() {
         val data = Data(OwnList(listOf(10)))
-        val bytes = serialize(data)
 
-        val deserialized: Data = deserialize(bytes)
-        data shouldBe deserialized
+        roundTripInlined(data)
+        roundTrip(data, data::class)
     }
 
     @Test
     fun `serialization has fixed length`() {
-        val empty = OwnList(listOf())
-        val own1 = OwnList(listOf(10))
-        val own2 = OwnList(listOf(10, 2))
-        serialize(Data(own1)).size shouldBe serialize(Data(own2)).size
-        serialize(Data(own2)).size shouldBe serialize(Data(empty)).size
+        val empty = Data(OwnList(listOf()))
+        val own1 = Data(OwnList(listOf(10)))
+        val own2 = Data(OwnList(listOf(10, 2)))
+
+        sameSize(empty, own1)
+        sameSizeInlined(empty, own1)
+        sameSize(own2, own1)
+        sameSizeInlined(own2, own1)
     }
 }

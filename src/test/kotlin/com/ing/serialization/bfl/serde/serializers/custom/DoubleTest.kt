@@ -1,8 +1,11 @@
 package com.ing.serialization.bfl.serde.serializers.custom
 
 import com.ing.serialization.bfl.serde.checkedSerialize
+import com.ing.serialization.bfl.serde.checkedSerializeInlined
 import com.ing.serialization.bfl.serde.roundTrip
+import com.ing.serialization.bfl.serde.roundTripInlined
 import com.ing.serialization.bfl.serde.sameSize
+import com.ing.serialization.bfl.serde.sameSizeInlined
 import com.ing.serialization.bfl.serializers.BigDecimalSurrogate
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
@@ -21,16 +24,18 @@ class DoubleTest {
         )
 
         val data = Data(4.33)
+        checkedSerializeInlined(data, mask)
         checkedSerialize(data, mask)
     }
 
     @Test
     fun `serialize and deserialize Double`() {
         var data = Data(4.33)
-        roundTrip(data)
+        roundTripInlined(data)
 
         data = Data(null)
-        roundTrip(data)
+        roundTripInlined(data)
+        roundTrip(data, data::class)
     }
 
     @Test
@@ -44,7 +49,7 @@ class DoubleTest {
         val data2 = Data(double)
         val data3 = Data(null)
 
-        sameSize(data1, data2)
+        sameSizeInlined(data1, data2)
         sameSize(data1, data3)
     }
 }

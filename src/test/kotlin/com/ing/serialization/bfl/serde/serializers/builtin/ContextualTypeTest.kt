@@ -1,10 +1,10 @@
 package com.ing.serialization.bfl.serde.serializers.builtin
 
 import com.ing.serialization.bfl.annotations.FixedLength
-import com.ing.serialization.bfl.deserialize
-import com.ing.serialization.bfl.serialize
-import com.ing.serialization.bfl.serializeX
-import io.kotest.matchers.shouldBe
+import com.ing.serialization.bfl.serde.roundTrip
+import com.ing.serialization.bfl.serde.roundTripInlined
+import com.ing.serialization.bfl.serde.sameSize
+import com.ing.serialization.bfl.serde.sameSizeInlined
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -15,6 +15,7 @@ import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.contextual
 import org.junit.jupiter.api.Test
 import java.nio.ByteBuffer
+import com.ing.serialization.bfl.api.reified.debugSerialize as debugSerializeInlined
 
 class ContextualTypeTest {
     @Serializable
@@ -30,7 +31,7 @@ class ContextualTypeTest {
     fun `contextual types are directly serializable`() {
         val data = SecureHash.allOnesHash
 
-        val serialization = serializeX(data, serializers)
+        val serialization = debugSerializeInlined(data, serializers)
         println(serialization.second)
     }
 
@@ -38,7 +39,7 @@ class ContextualTypeTest {
     fun `contextual types as fields are serializable`() {
         val data = Data(SecureHash.allOnesHash)
 
-        val serialization = serializeX(data, serializers)
+        val serialization = debugSerializeInlined(data, serializers)
         println(serialization.second)
     }
 
@@ -46,17 +47,17 @@ class ContextualTypeTest {
     fun `serialize and deserialize contextual type`() {
         val data = Data(SecureHash.allOnesHash)
 
-        val serialization = serialize(data, serializers)
-        val deserialization = deserialize<Data>(serialization, serializers)
-
-        assert(deserialization == data) { "Deserialization must coincide with the original data" }
+        roundTripInlined(data, serializers)
+        roundTrip(data, data::class, serializers)
     }
 
     @Test
     fun `serialization has fixed length`() {
         val data1 = Data(SecureHash.allOnesHash)
         val data2 = Data(SecureHash.zeroHash)
-        serialize(data1, serializers).size shouldBe serialize(data2, serializers).size
+
+        sameSizeInlined(data2, data1, serializers)
+        sameSize(data2, data1, serializers)
     }
 }
 

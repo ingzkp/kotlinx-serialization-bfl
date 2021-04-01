@@ -1,10 +1,11 @@
 package com.ing.serialization.bfl.serde.serializers.builtin
 
 import com.ing.serialization.bfl.annotations.FixedLength
-import com.ing.serialization.bfl.deserialize
-import com.ing.serialization.bfl.serde.checkedSerialize
-import com.ing.serialization.bfl.serialize
-import io.kotest.matchers.shouldBe
+import com.ing.serialization.bfl.serde.checkedSerializeInlined
+import com.ing.serialization.bfl.serde.roundTrip
+import com.ing.serialization.bfl.serde.roundTripInlined
+import com.ing.serialization.bfl.serde.sameSize
+import com.ing.serialization.bfl.serde.sameSizeInlined
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 
@@ -24,23 +25,26 @@ class ListNullable {
         )
 
         val data = NullableData(listOf(25, null))
-        checkedSerialize(data, mask)
+        checkedSerializeInlined(data, mask)
     }
 
     @Test
     fun `serialize and deserialize list with a primitive nullable type`() {
         val data = NullableData(listOf(25, null))
-        val bytes = serialize(data)
 
-        val deserialized: NullableData = deserialize(bytes)
-        data shouldBe deserialized
+        roundTripInlined(data)
+        roundTrip(data, data::class)
     }
 
     @Test
     fun `serialization has fixed length`() {
-        val list1 = listOf(25)
-        val list2 = listOf(null, null)
-        serialize(NullableData(list1)).size shouldBe serialize(NullableData(list2)).size
-        serialize(NullableData(list1)).size shouldBe serialize(NullableData(listOf())).size
+        val empty = NullableData(listOf())
+        val data1 = NullableData(listOf(25))
+        val data2 = NullableData(listOf(null, null))
+
+        sameSizeInlined(empty, data1)
+        sameSize(empty, data1)
+        sameSizeInlined(data2, data1)
+        sameSize(data2, data1)
     }
 }

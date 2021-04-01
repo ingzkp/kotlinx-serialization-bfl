@@ -1,33 +1,31 @@
 package com.ing.serialization.bfl.serializers
 
 import com.ing.serialization.bfl.annotations.FixedLength
+import com.ing.serialization.bfl.api.BaseSerializer
+import com.ing.serialization.bfl.api.Surrogate
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
+import sun.security.provider.DSAPublicKeyImpl
 import sun.security.rsa.RSAPublicKeyImpl
 import java.security.KeyFactory
 import java.security.spec.X509EncodedKeySpec
 
-object RSAPublicKeySerializer : KSerializer<RSAPublicKeyImpl> {
-    private val strategy = RSAPublicKeySurrogate.serializer()
-    override val descriptor = strategy.descriptor
-
-    override fun deserialize(decoder: Decoder): RSAPublicKeyImpl {
-        val surrogate = decoder.decodeSerializableValue(strategy)
-        return (
-            KeyFactory.getInstance("RSA").generatePublic(X509EncodedKeySpec(surrogate.encoded))
-                ?: error("Byte sequence ${surrogate.encoded} is not an RSA pub key encoding")
-            ) as RSAPublicKeyImpl
-    }
-
-    override fun serialize(encoder: Encoder, value: RSAPublicKeyImpl) {
-        encoder.encodeSerializableValue(strategy, RSAPublicKeySurrogate(value.encoded))
-    }
-}
+object RSAPublicKeySerializer : KSerializer<RSAPublicKeyImpl>
+by (BaseSerializer(RSASurrogate.serializer()) { RSASurrogate(it.encoded) })
 
 @Suppress("ArrayInDataClass")
 @Serializable
-@SerialName("RSAPublicKeyImpl")
-data class RSAPublicKeySurrogate(@FixedLength([500]) val encoded: ByteArray)
+data class RSASurrogate(@FixedLength([294]) val encoded: ByteArray) : Surrogate<RSAPublicKeyImpl> {
+    override fun toOriginal(): RSAPublicKeyImpl =
+        KeyFactory.getInstance("RSA").generatePublic(X509EncodedKeySpec(encoded)) as RSAPublicKeyImpl
+}
+
+object DSAPublicKeySerializer : KSerializer<DSAPublicKeyImpl>
+by (BaseSerializer(DSASurrogate.serializer()) { DSASurrogate(it.encoded) })
+
+@Suppress("ArrayInDataClass")
+@Serializable
+data class DSASurrogate(@FixedLength([500]) val encoded: ByteArray) : Surrogate<DSAPublicKeyImpl> {
+    override fun toOriginal(): DSAPublicKeyImpl =
+        KeyFactory.getInstance("DSA").generatePublic(X509EncodedKeySpec(encoded)) as DSAPublicKeyImpl
+}

@@ -1,9 +1,10 @@
 package com.ing.serialization.bfl.serde.serializers.builtin
 
 import com.ing.serialization.bfl.annotations.FixedLength
-import com.ing.serialization.bfl.deserialize
 import com.ing.serialization.bfl.serde.checkedSerialize
-import com.ing.serialization.bfl.serialize
+import com.ing.serialization.bfl.serde.checkedSerializeInlined
+import com.ing.serialization.bfl.serde.roundTrip
+import com.ing.serialization.bfl.serde.roundTripInlined
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
@@ -22,11 +23,16 @@ class StringNullableTest {
         )
 
         var data = NullableData()
-        var bytes = checkedSerialize(data, mask)
+        var bytes = checkedSerializeInlined(data, mask)
+        assert(bytes[0] != 0.toByte()) { "A non-null value is expected" }
+        bytes[2].toInt() shouldBe data.s?.length
+        bytes = checkedSerialize(data, mask)
         assert(bytes[0] != 0.toByte()) { "A non-null value is expected" }
         bytes[2].toInt() shouldBe data.s?.length
 
         data = NullableData(null)
+        bytes = checkedSerializeInlined(data, mask)
+        assert(bytes[0] == 0.toByte()) { "A null value is expected" }
         bytes = checkedSerialize(data, mask)
         assert(bytes[0] == 0.toByte()) { "A null value is expected" }
     }
@@ -34,9 +40,8 @@ class StringNullableTest {
     @Test
     fun `serialize and deserialize nullable string`() {
         val data = NullableData(null)
-        val bytes = serialize(data)
 
-        val deserialized: NullableData = deserialize(bytes)
-        data shouldBe deserialized
+        roundTripInlined(data)
+        roundTrip(data, data::class)
     }
 }

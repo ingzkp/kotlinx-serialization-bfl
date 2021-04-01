@@ -10,7 +10,10 @@ val BFLSerializers = SerializersModule {
     // Polymorphic types.
     polymorphic(PublicKey::class) {
         subclass(RSAPublicKeyImpl::class, RSAPublicKeySerializer)
+        // subclass(DSAPublicKeyImpl::class, DSAPublicKeySerializer)
     }
+    contextual(RSAPublicKeySerializer)
+    contextual(DSAPublicKeySerializer)
     //
     // Contextual types.
     contextual(BigDecimalSerializer)

@@ -1,11 +1,13 @@
 package com.ing.serialization.bfl.serde.serializers.builtin
 
-import com.ing.serialization.bfl.deserialize
 import com.ing.serialization.bfl.serde.checkedSerialize
+import com.ing.serialization.bfl.serde.checkedSerializeInlined
 import com.ing.serialization.bfl.serde.element.ElementFactory
 import com.ing.serialization.bfl.serde.generateRSAPubKey
-import com.ing.serialization.bfl.serialize
-import io.kotest.matchers.shouldBe
+import com.ing.serialization.bfl.serde.roundTrip
+import com.ing.serialization.bfl.serde.roundTripInlined
+import com.ing.serialization.bfl.serde.sameSize
+import com.ing.serialization.bfl.serde.sameSizeInlined
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 import java.security.PublicKey
@@ -21,23 +23,31 @@ class NestedClassesPolymorphicTest {
 
     @Test
     fun `serialize polymorphic type within nested compound type`() {
-        val mask = listOf(
+        val data = Data(Some(generateRSAPubKey()))
+
+        var mask = listOf(
             Pair("some.pk.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
             Pair("some.pk.length", 4),
-            Pair("some.nested.value", 500)
+            Pair("some.nested.value", 294)
         )
 
-        val data = Data(Some(generateRSAPubKey()))
+        checkedSerializeInlined(data, mask)
+
+        mask = listOf(
+            Pair("some.pk.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("some.pk.length", 4),
+            Pair("some.nested.value", 294)
+        )
+
         checkedSerialize(data, mask)
     }
 
     @Test
     fun `serialize and deserialize polymorphic type within nested compound type`() {
         val data = Data(Some(generateRSAPubKey()))
-        val bytes = serialize(data)
 
-        val deserialized: Data = deserialize(bytes)
-        data shouldBe deserialized
+        roundTripInlined(data)
+        roundTrip(data, data::class)
     }
 
     @Test
@@ -45,6 +55,7 @@ class NestedClassesPolymorphicTest {
         val data1 = Data(Some(generateRSAPubKey()))
         val data2 = Data(Some(generateRSAPubKey()))
 
-        serialize(data1).size shouldBe serialize(data2).size
+        sameSizeInlined(data1, data2)
+        sameSize(data1, data2)
     }
 }

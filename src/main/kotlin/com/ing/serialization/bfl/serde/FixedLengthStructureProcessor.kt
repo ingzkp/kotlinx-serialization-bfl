@@ -1,6 +1,5 @@
 package com.ing.serialization.bfl.serde
 
-import com.ing.serialization.bfl.prepend
 import com.ing.serialization.bfl.serde.element.CollectionElement
 import com.ing.serialization.bfl.serde.element.Element
 import com.ing.serialization.bfl.serde.element.ElementFactory
@@ -58,9 +57,4 @@ class FixedLengthStructureProcessor(private val serializersModule: SerializersMo
             queue.prepend(collection.inner)
         }
     }
-
-    /**
-     * Schedules element with high priority to the front of the queue.
-     */
-    fun schedulePriorityElement(element: Element) = queue.addFirst(element)
 }

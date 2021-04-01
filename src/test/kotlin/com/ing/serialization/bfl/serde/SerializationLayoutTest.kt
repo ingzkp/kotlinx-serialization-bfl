@@ -1,9 +1,9 @@
 package com.ing.serialization.bfl.serde
 
 import com.ing.serialization.bfl.annotations.FixedLength
-import com.ing.serialization.bfl.serializeX
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
+import com.ing.serialization.bfl.api.reified.debugSerialize as debugSerializeInlined
 
 @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
 class SerializationLayoutTest {
@@ -12,6 +12,6 @@ class SerializationLayoutTest {
 
     @Test
     fun `layout is accessible`() {
-        println(serializeX(Data()).second)
+        println(debugSerializeInlined(Data()).second)
     }
 }

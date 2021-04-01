@@ -7,7 +7,7 @@ import java.security.PublicKey
 import java.security.SecureRandom
 
 fun log(bytes: ByteArray, splitMask: List<Pair<String, Int>>) {
-    println("Serialized:")
+    println("Serialized [${bytes.size}]:")
     // println("Raw: ${bytes.joinToString(separator = ",")}")
     var start = 0
     splitMask.forEach {

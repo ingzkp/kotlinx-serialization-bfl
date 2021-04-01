@@ -1,17 +1,17 @@
 package com.ing.serialization.bfl.serde.serializers.builtin
 
-import com.ing.serialization.bfl.deserialize
-import com.ing.serialization.bfl.serde.checkedSerialize
+import com.ing.serialization.bfl.serde.checkedSerializeInlined
 import com.ing.serialization.bfl.serde.element.ElementFactory
 import com.ing.serialization.bfl.serde.generateRSAPubKey
-import com.ing.serialization.bfl.serialize
-import io.kotest.matchers.shouldBe
+import com.ing.serialization.bfl.serde.roundTrip
+import com.ing.serialization.bfl.serde.roundTripInlined
+import com.ing.serialization.bfl.serde.sameSize
+import com.ing.serialization.bfl.serde.sameSizeInlined
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 import java.security.PublicKey
 
 @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
-
 class ClassPolymorphicTest {
     @Serializable
     data class Data(val pk: PublicKey)
@@ -20,11 +20,11 @@ class ClassPolymorphicTest {
     fun `serialize polymorphic type within structure`() {
         val mask = listOf(
             Pair("pk.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
-            Pair("pk.value", 4 + 500)
+            Pair("pk.value", 4 + 294)
         )
 
         val data = Data(generateRSAPubKey())
-        checkedSerialize(data, mask)
+        checkedSerializeInlined(data, mask)
     }
 
     @Test
@@ -33,10 +33,9 @@ class ClassPolymorphicTest {
         data class Data(val pk: PublicKey)
 
         val data = Data(generateRSAPubKey())
-        val bytes = serialize(data)
 
-        val deserialized: Data = deserialize(bytes)
-        data shouldBe deserialized
+        roundTripInlined(data)
+        roundTrip(data, data::class)
     }
 
     @Test
@@ -44,6 +43,7 @@ class ClassPolymorphicTest {
         val data1 = Data(generateRSAPubKey())
         val data2 = Data(generateRSAPubKey())
 
-        serialize(data1).size shouldBe serialize(data2).size
+        sameSizeInlined(data2, data1)
+        sameSize(data2, data1)
     }
 }

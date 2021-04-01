@@ -1,7 +1,6 @@
 package com.ing.serialization.bfl.serde.element
 
 import com.ing.serialization.bfl.annotations.FixedLength
-import com.ing.serialization.bfl.prepend
 import com.ing.serialization.bfl.serde.SerdeError
 import com.ing.serialization.bfl.serde.isCollection
 import com.ing.serialization.bfl.serde.isContextual
@@ -9,6 +8,7 @@ import com.ing.serialization.bfl.serde.isPolymorphic
 import com.ing.serialization.bfl.serde.isString
 import com.ing.serialization.bfl.serde.isStructure
 import com.ing.serialization.bfl.serde.isTrulyPrimitive
+import com.ing.serialization.bfl.serde.prepend
 import com.ing.serialization.bfl.serde.simpleSerialName
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.elementDescriptors

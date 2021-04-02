@@ -39,8 +39,8 @@ data class BigDecimalSurrogate(
     }
 
     companion object {
-        const val INTEGER_SIZE: Int = 10
-        const val FRACTION_SIZE: Int = 10
+        const val INTEGER_SIZE: Int = 100
+        const val FRACTION_SIZE: Int = 20
         const val SIZE = 1 + (4 + INTEGER_SIZE) + (4 + FRACTION_SIZE)
 
         val MAX = BigDecimalSurrogate(1, ByteArray(INTEGER_SIZE) { 9 }, ByteArray(FRACTION_SIZE) { 9 }).toOriginal()

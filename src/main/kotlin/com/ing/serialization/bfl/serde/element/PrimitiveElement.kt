@@ -21,7 +21,7 @@ class PrimitiveElement(
     override val isNullable: Boolean
 ) : Element(serialName, propertyName) {
     init {
-        if (kind !is PrimitiveKind) throw SerdeError.NonPrimitive(kind)
+        if (kind !is PrimitiveKind || kind is PrimitiveKind.STRING) throw SerdeError.NotFixedPrimitive(kind)
     }
 
     override val inherentLayout by lazy {

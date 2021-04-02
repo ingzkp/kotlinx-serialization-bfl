@@ -9,7 +9,7 @@ import kotlin.reflect.KClass
 
 sealed class SerdeError(message: String) : IllegalStateException(message) {
 
-    class NonPrimitive(kind: SerialKind) : SerdeError("$kind is not a primitive type")
+    class NotFixedPrimitive(kind: SerialKind) : SerdeError("$kind is not a fixed length primitive type")
 
     class UnexpectedElement(expected: String, actual: Element) : SerdeError("Expected $expected, actual ${actual.serialName}")
 

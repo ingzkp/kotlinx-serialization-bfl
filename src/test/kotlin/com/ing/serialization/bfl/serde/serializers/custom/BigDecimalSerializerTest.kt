@@ -37,6 +37,13 @@ class BigDecimalSerializerTest {
     }
 
     @Test
+    fun `serialize and deserialize BigDecimal_TEN`() {
+        val data = Data(BigDecimal.TEN)
+        roundTripInlined(data)
+        roundTrip(data, data::class)
+    }
+
+    @Test
     fun `same size BigDecimal`() {
         val data1 = Data(4.33.toBigDecimal())
         val data2 = Data(BigDecimalSurrogate.MAX)

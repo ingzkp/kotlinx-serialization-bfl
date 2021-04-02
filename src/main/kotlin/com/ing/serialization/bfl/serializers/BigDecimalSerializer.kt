@@ -29,7 +29,7 @@ data class BigDecimalSurrogate(
     @FixedLength([FRACTION_SIZE]) val fraction: ByteArray
 ) {
     fun toOriginal(): BigDecimal {
-        val integer = this.integer.joinToString(separator = "") { "$it" }.trim('0')
+        val integer = this.integer.joinToString(separator = "") { "$it" }.trimStart('0')
         val fraction = this.fraction.joinToString(separator = "") { "$it" }.trim('0')
         var digit = if (fraction.isEmpty()) integer else "$integer.$fraction"
         if (this.sign == (-1).toByte()) {

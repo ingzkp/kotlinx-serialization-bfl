@@ -7,7 +7,12 @@ import java.io.DataOutput
 /**
  * The basic abstraction of each object being serialized.
  */
-class StringElement(name: String, val requiredLength: Int, override val isNullable: Boolean) : Element(name) {
+class StringElement(
+    serialName: String,
+    propertyName: String,
+    val requiredLength: Int,
+    override val isNullable: Boolean
+) : Element(serialName, propertyName) {
     /**
      * Layout of a sequence of bytes describing a string.
      * SHORT (string length) + requiredLength * length(CHAR)

@@ -8,11 +8,12 @@ import java.io.DataOutput
  */
 
 class CollectionElement(
-    name: String,
+    serialName: String,
+    propertyName: String,
     inner: List<Element>,
     private val sizingInfo: CollectionSizingInfo,
     override val isNullable: Boolean
-) : CollectionElementSizingInfo by sizingInfo, Element(name, inner) {
+) : CollectionElementSizingInfo by sizingInfo, Element(serialName, propertyName, inner) {
     /**
      * INT (collection length) + number_of_elements * sum_i { size(inner_i) }
      * = 4 + n * sum_i { size(inner_i) }

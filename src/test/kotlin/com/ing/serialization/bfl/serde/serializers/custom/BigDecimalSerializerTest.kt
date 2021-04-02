@@ -14,7 +14,11 @@ import java.math.BigDecimal
 
 class BigDecimalSerializerTest {
     @Serializable
-    data class Data(val value: @Contextual BigDecimal)
+    data class Data(val value: @Contextual BigDecimal) {
+        override fun toString(): String {
+            return "Data(value=${value.toPlainString()})"
+        }
+    }
 
     @Test
     fun `serialize BigDecimal`() {
@@ -37,15 +41,15 @@ class BigDecimalSerializerTest {
     }
 
     @Test
-    fun `serialize and deserialize BigDecimal_TEN`() {
+    fun `serialize and deserialize BigDecimal ten`() {
         val data = Data(BigDecimal.TEN)
         roundTripInlined(data)
         roundTrip(data, data::class)
     }
 
     @Test
-    fun test2() {
-        val data = Data(BigDecimal.valueOf(300L, 10))
+    fun `serialize and deserialize BigDecimal one tenth`() {
+        val data = Data(BigDecimal("0.01"))
         roundTripInlined(data)
         roundTrip(data, data::class)
     }

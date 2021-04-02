@@ -30,7 +30,7 @@ data class BigDecimalSurrogate(
 ) {
     fun toOriginal(): BigDecimal {
         val integer = this.integer.joinToString(separator = "") { "$it" }.trimStart('0')
-        val fraction = this.fraction.joinToString(separator = "") { "$it" }.trim('0')
+        val fraction = this.fraction.joinToString(separator = "") { "$it" }.trimEnd('0')
         var digit = if (fraction.isEmpty()) integer else "$integer.$fraction"
         if (this.sign == (-1).toByte()) {
             digit = "-$digit"
@@ -39,8 +39,8 @@ data class BigDecimalSurrogate(
     }
 
     companion object {
-        const val INTEGER_SIZE: Int = 100
-        const val FRACTION_SIZE: Int = 20
+        const val INTEGER_SIZE: Int = 10
+        const val FRACTION_SIZE: Int = 10
         const val SIZE = 1 + (4 + INTEGER_SIZE) + (4 + FRACTION_SIZE)
 
         val MAX = BigDecimalSurrogate(1, ByteArray(INTEGER_SIZE) { 9 }, ByteArray(FRACTION_SIZE) { 9 }).toOriginal()
@@ -51,20 +51,23 @@ data class BigDecimalSurrogate(
             val sign = bigDecimal.signum().toByte()
 
             val integer = ByteArray(INTEGER_SIZE - integerPart.length) { 0 } +
-                integerPart.map {
-                    // Experimental: prefer plain java version.
-                    // it.digitToInt()
-                    Character.getNumericValue(it).toByte()
-                }
+                integerPart.toListOfDecimals()
 
-            val fraction = ByteArray(FRACTION_SIZE - (fractionalPart?.length ?: 0)) { 0 } +
-                (
-                    fractionalPart?.map {
-                        Character.getNumericValue(it).toByte()
-                    } ?: List(0) { 0 }
-                    )
+            val fraction = fractionalPart?.toListOfDecimals() ?: emptyByteArray() +
+                ByteArray(FRACTION_SIZE - (fractionalPart?.length ?: 0)) { 0 }
 
-            return BigDecimalSurrogate(sign, integer, fraction)
+            val bigDecimalSurrogate = BigDecimalSurrogate(sign, integer, fraction)
+            println("surrogate: $bigDecimalSurrogate")
+            return bigDecimalSurrogate
+        }
+
+        private fun emptyByteArray(): ByteArray = ByteArray(0) { 0 }
+        private fun String.toListOfDecimals(): ByteArray {
+            return this.map {
+                // Experimental: prefer plain java version.
+                // it.digitToInt()
+                Character.getNumericValue(it).toByte()
+            }.toByteArray()
         }
 
         internal fun from(float: Float) =

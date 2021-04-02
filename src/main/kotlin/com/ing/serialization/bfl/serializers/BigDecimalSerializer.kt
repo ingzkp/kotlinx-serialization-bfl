@@ -28,6 +28,15 @@ data class BigDecimalSurrogate(
     @FixedLength([INTEGER_SIZE]) val integer: ByteArray,
     @FixedLength([FRACTION_SIZE]) val fraction: ByteArray
 ) {
+    init {
+        require(integer.size == INTEGER_SIZE) {
+            "integer part must have size $INTEGER_SIZE, but has ${integer.size}"
+        }
+        require(fraction.size == FRACTION_SIZE) {
+            "fraction part must have size $FRACTION_SIZE, but has ${fraction.size}"
+        }
+    }
+
     fun toOriginal(): BigDecimal {
         val integer = this.integer.joinToString(separator = "") { "$it" }.trimStart('0')
         val fraction = this.fraction.joinToString(separator = "") { "$it" }.trimEnd('0')
@@ -53,7 +62,7 @@ data class BigDecimalSurrogate(
             val integer = ByteArray(INTEGER_SIZE - integerPart.length) { 0 } +
                 integerPart.toListOfDecimals()
 
-            val fraction = fractionalPart?.toListOfDecimals() ?: emptyByteArray() +
+            val fraction = (fractionalPart?.toListOfDecimals() ?: emptyByteArray()) +
                 ByteArray(FRACTION_SIZE - (fractionalPart?.length ?: 0)) { 0 }
 
             val bigDecimalSurrogate = BigDecimalSurrogate(sign, integer, fraction)

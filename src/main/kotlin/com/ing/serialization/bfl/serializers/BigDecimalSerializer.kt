@@ -65,9 +65,7 @@ data class BigDecimalSurrogate(
             val fraction = (fractionalPart?.toListOfDecimals() ?: emptyByteArray()) +
                 ByteArray(FRACTION_SIZE - (fractionalPart?.length ?: 0)) { 0 }
 
-            val bigDecimalSurrogate = BigDecimalSurrogate(sign, integer, fraction)
-            println("surrogate: $bigDecimalSurrogate")
-            return bigDecimalSurrogate
+            return BigDecimalSurrogate(sign, integer, fraction)
         }
 
         private fun emptyByteArray(): ByteArray = ByteArray(0) { 0 }

@@ -9,8 +9,6 @@ import kotlin.reflect.KClass
 
 sealed class SerdeError(message: String) : IllegalStateException(message) {
 
-    class Unreachable(message: String) : SerdeError("Panic. Unreachable code. $message")
-
     class NonPrimitive(kind: SerialKind) : SerdeError("$kind is not a primitive type")
 
     class UnexpectedElement(expected: String, actual: Element) : SerdeError("Expected $expected, actual ${actual.name}")

@@ -36,8 +36,8 @@ tasks.test {
 
 task("checkJavaVersion") {
     if (!JavaVersion.current().isJava8) {
-        throw IllegalStateException(
-                "ERROR: Java 1.8 required but " + JavaVersion.current() + " found. Change your JAVA_HOME environment variable."
+        error(
+            "ERROR: Java 1.8 required but " + JavaVersion.current() + " found. Change your JAVA_HOME environment variable."
         )
     }
 }

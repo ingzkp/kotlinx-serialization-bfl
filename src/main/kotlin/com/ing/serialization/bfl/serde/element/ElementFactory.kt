@@ -115,7 +115,7 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
 
                 fromType(contextDescriptor, parentName)
             }
-            else -> throw SerdeError.Unreachable("Building element from type ${descriptor.serialName}")
+            else -> error("Do not know how to build element from type ${descriptor.serialName}")
         }
     }
 }

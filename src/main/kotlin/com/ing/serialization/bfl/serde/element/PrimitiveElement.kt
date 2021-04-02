@@ -3,7 +3,8 @@ package com.ing.serialization.bfl.serde.element
 import com.ing.serialization.bfl.api.reified.deserialize
 import com.ing.serialization.bfl.serde.SerdeError
 import com.ing.serialization.bfl.serde.isTrulyPrimitive
-import com.ing.serialization.bfl.serializers.BigDecimalSurrogate
+import com.ing.serialization.bfl.serializers.DoubleSurrogate
+import com.ing.serialization.bfl.serializers.DoubleSurrogate.Companion.DOUBLE_SIZE
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialKind
 import java.io.DataInput
@@ -51,11 +52,11 @@ class PrimitiveElement(
                 kind is PrimitiveKind.LONG && value is Long -> writeLong(value)
                 kind is PrimitiveKind.CHAR && value is Char -> writeChar(value.toInt())
                 kind is PrimitiveKind.FLOAT && value is Float -> {
-                    val surrogate = BigDecimalSurrogate.from(value)
+                    val surrogate = DoubleSurrogate.from(value)
                     writeBigDecimal(stream, surrogate)
                 }
                 kind is PrimitiveKind.DOUBLE && value is Double -> {
-                    val surrogate = BigDecimalSurrogate.from(value)
+                    val surrogate = DoubleSurrogate.from(value)
                     writeBigDecimal(stream, surrogate)
                 }
                 else -> error("$serialName cannot encode $value of type ${value::class.simpleName}")
@@ -93,17 +94,17 @@ class PrimitiveElement(
             } as? T ?: error("$serialName cannot decode required type")
         }
 
-    private fun writeBigDecimal(output: DataOutput, surrogate: BigDecimalSurrogate?) {
+    private fun writeBigDecimal(output: DataOutput, surrogate: DoubleSurrogate?) {
         val serialization = surrogate?.let { inlinedSerialize(surrogate) }
-            ?: ByteArray(BigDecimalSurrogate.DOUBLE_SIZE) { 0 }
+            ?: ByteArray(DOUBLE_SIZE) { 0 }
         output.write(serialization)
     }
 
     private fun readBigDecimal(input: DataInput): BigDecimal {
-        val surrogateInput = ByteArray(BigDecimalSurrogate.DOUBLE_SIZE)
+        val surrogateInput = ByteArray(DOUBLE_SIZE)
         input.readFully(surrogateInput)
 
-        val surrogate = deserialize<BigDecimalSurrogate>(surrogateInput)
+        val surrogate = deserialize<DoubleSurrogate>(surrogateInput)
 
         return surrogate.toOriginal()
     }

@@ -7,6 +7,8 @@ import com.ing.serialization.bfl.serde.roundTrip
 import com.ing.serialization.bfl.serde.roundTripInlined
 import com.ing.serialization.bfl.serde.sameSize
 import com.ing.serialization.bfl.serde.sameSizeInlined
+import com.ing.serialization.bfl.serializers.DoubleSurrogate.Companion.DOUBLE_FRACTION_SIZE
+import com.ing.serialization.bfl.serializers.DoubleSurrogate.Companion.DOUBLE_INTEGER_SIZE
 import com.ing.serialization.bfl.serializers.BFLSerializers
 import com.ing.serialization.bfl.serializers.BigDecimalSurrogate
 import io.kotest.matchers.shouldBe
@@ -23,8 +25,8 @@ class FloatTest {
         val mask = listOf(
             Pair("nonNull", 1),
             Pair("sign", 1),
-            Pair("integer", 4 + BigDecimalSurrogate.DOUBLE_INTEGER_SIZE),
-            Pair("fraction", 4 + BigDecimalSurrogate.DOUBLE_FRACTION_SIZE)
+            Pair("integer", 4 + DOUBLE_INTEGER_SIZE),
+            Pair("fraction", 4 + DOUBLE_FRACTION_SIZE)
         )
 
         val data = Data(4.33.toFloat())

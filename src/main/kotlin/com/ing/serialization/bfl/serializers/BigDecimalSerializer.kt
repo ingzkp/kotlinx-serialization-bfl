@@ -27,15 +27,6 @@ data class BigDecimalSurrogate(
     val integer: ByteArray,
     val fraction: ByteArray
 ) {
-    init {
-//        require(integer.size == INTEGER_SIZE) {
-//            "integer part must have size $INTEGER_SIZE, but has ${integer.size}"
-//        }
-//        require(fraction.size == FRACTION_SIZE) {
-//            "fraction part must have size $FRACTION_SIZE, but has ${fraction.size}"
-//        }
-    }
-
     fun toOriginal(): BigDecimal {
         val integer = this.integer.joinToString(separator = "") { "$it" }.trimStart('0')
         val fraction = this.fraction.joinToString(separator = "") { "$it" }.trimEnd('0')
@@ -47,10 +38,6 @@ data class BigDecimalSurrogate(
     }
 
     companion object {
-        const val DOUBLE_INTEGER_SIZE: Int = 100
-        const val DOUBLE_FRACTION_SIZE: Int = 20
-        const val DOUBLE_SIZE = 1 + (4 + DOUBLE_INTEGER_SIZE) + (4 + DOUBLE_FRACTION_SIZE)
-
         fun from(bigDecimal: BigDecimal): BigDecimalSurrogate {
             val (integerPart, fractionalPart) = representOrThrow(bigDecimal)
 
@@ -63,39 +50,13 @@ data class BigDecimalSurrogate(
             return BigDecimalSurrogate(sign, integer, fraction)
         }
 
-        fun fromDouble(bigDecimal: BigDecimal): BigDecimalSurrogate {
-            val (integerPart, fractionalPart) = representOrThrow(bigDecimal)
-
-            val sign = bigDecimal.signum().toByte()
-
-            val integer = ByteArray(DOUBLE_INTEGER_SIZE - integerPart.length) { 0 } +
-                integerPart.toListOfDecimals()
-
-            val fraction = (fractionalPart?.toListOfDecimals() ?: ByteArray(0)) +
-                ByteArray(DOUBLE_FRACTION_SIZE - (fractionalPart?.length ?: 0)) { 0 }
-
-            return BigDecimalSurrogate(sign, integer, fraction)
-        }
-
-        private fun String.toListOfDecimals() = map {
+        private fun emptyByteArray(): ByteArray = ByteArray(0) { 0 }
+        private fun String.toListOfDecimals(): ByteArray {
+            return this.map {
             // Experimental: prefer plain java version.
             // it.digitToInt()
             Character.getNumericValue(it).toByte()
         }.toByteArray()
-
-        internal fun from(float: Float) =
-            try {
-                fromDouble(float.toBigDecimal())
-            } catch (e: IllegalArgumentException) {
-                throw IllegalArgumentException("Float is too large for BigDecimalSurrogate", e)
-            }
-
-        internal fun from(double: Double) =
-            try {
-                fromDouble(double.toBigDecimal())
-            } catch (e: IllegalArgumentException) {
-                throw IllegalArgumentException("Double is too large for BigDecimalSurrogate", e)
-            }
 
         private fun representOrThrow(bigDecimal: BigDecimal): Pair<String, String?> {
             val integerFractionPair = bigDecimal.toPlainString().removePrefix("-").split(".")

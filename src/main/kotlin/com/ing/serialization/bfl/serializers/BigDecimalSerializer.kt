@@ -1,6 +1,5 @@
 package com.ing.serialization.bfl.serializers
 
-import com.ing.serialization.bfl.annotations.FixedLength
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -25,16 +24,16 @@ object BigDecimalSerializer : KSerializer<BigDecimal> {
 @Serializable
 data class BigDecimalSurrogate(
     val sign: Byte,
-    @FixedLength([INTEGER_SIZE]) val integer: ByteArray,
-    @FixedLength([FRACTION_SIZE]) val fraction: ByteArray
+    val integer: ByteArray,
+    val fraction: ByteArray
 ) {
     init {
-        require(integer.size == INTEGER_SIZE) {
-            "Integer part must have size no longer than $INTEGER_SIZE, but has ${integer.size}"
-        }
-        require(fraction.size == FRACTION_SIZE) {
-            "Fraction part must have size no longer than $FRACTION_SIZE, but has ${fraction.size}"
-        }
+//        require(integer.size == INTEGER_SIZE) {
+//            "integer part must have size $INTEGER_SIZE, but has ${integer.size}"
+//        }
+//        require(fraction.size == FRACTION_SIZE) {
+//            "fraction part must have size $FRACTION_SIZE, but has ${fraction.size}"
+//        }
     }
 
     fun toOriginal(): BigDecimal {
@@ -48,20 +47,32 @@ data class BigDecimalSurrogate(
     }
 
     companion object {
-        const val INTEGER_SIZE: Int = 100
-        const val FRACTION_SIZE: Int = 20
-        const val SIZE = 1 + (4 + INTEGER_SIZE) + (4 + FRACTION_SIZE)
+        const val DOUBLE_INTEGER_SIZE: Int = 100
+        const val DOUBLE_FRACTION_SIZE: Int = 20
+        const val DOUBLE_SIZE = 1 + (4 + DOUBLE_INTEGER_SIZE) + (4 + DOUBLE_FRACTION_SIZE)
 
         fun from(bigDecimal: BigDecimal): BigDecimalSurrogate {
             val (integerPart, fractionalPart) = representOrThrow(bigDecimal)
 
             val sign = bigDecimal.signum().toByte()
 
-            val integer = ByteArray(INTEGER_SIZE - integerPart.length) { 0 } +
+            val integer = integerPart.toListOfDecimals()
+
+            val fraction = (fractionalPart?.toListOfDecimals() ?: emptyByteArray())
+
+            return BigDecimalSurrogate(sign, integer, fraction)
+        }
+
+        fun fromDouble(bigDecimal: BigDecimal): BigDecimalSurrogate {
+            val (integerPart, fractionalPart) = representOrThrow(bigDecimal)
+
+            val sign = bigDecimal.signum().toByte()
+
+            val integer = ByteArray(DOUBLE_INTEGER_SIZE - integerPart.length) { 0 } +
                 integerPart.toListOfDecimals()
 
             val fraction = (fractionalPart?.toListOfDecimals() ?: ByteArray(0)) +
-                ByteArray(FRACTION_SIZE - (fractionalPart?.length ?: 0)) { 0 }
+                ByteArray(DOUBLE_FRACTION_SIZE - (fractionalPart?.length ?: 0)) { 0 }
 
             return BigDecimalSurrogate(sign, integer, fraction)
         }
@@ -74,14 +85,14 @@ data class BigDecimalSurrogate(
 
         internal fun from(float: Float) =
             try {
-                from(float.toBigDecimal())
+                fromDouble(float.toBigDecimal())
             } catch (e: IllegalArgumentException) {
                 throw IllegalArgumentException("Float is too large for BigDecimalSurrogate", e)
             }
 
         internal fun from(double: Double) =
             try {
-                from(double.toBigDecimal())
+                fromDouble(double.toBigDecimal())
             } catch (e: IllegalArgumentException) {
                 throw IllegalArgumentException("Double is too large for BigDecimalSurrogate", e)
             }
@@ -91,10 +102,6 @@ data class BigDecimalSurrogate(
 
             val integerPart = integerFractionPair[0]
             val fractionalPart = integerFractionPair.getOrNull(1)
-
-            require(integerPart.length <= INTEGER_SIZE && (fractionalPart?.length ?: 0) <= FRACTION_SIZE) {
-                "BigDecimal supports no more than $INTEGER_SIZE digits in integer part and $FRACTION_SIZE digits in fraction part"
-            }
 
             return Pair(integerPart, fractionalPart)
         }

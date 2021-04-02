@@ -23,8 +23,8 @@ class DoubleTest {
         val mask = listOf(
             Pair("nonNull", 1),
             Pair("sign", 1),
-            Pair("integer", 4 + BigDecimalSurrogate.INTEGER_SIZE),
-            Pair("fraction", 4 + BigDecimalSurrogate.FRACTION_SIZE)
+            Pair("integer", 4 + BigDecimalSurrogate.DOUBLE_INTEGER_SIZE),
+            Pair("fraction", 4 + BigDecimalSurrogate.DOUBLE_FRACTION_SIZE)
         )
 
         val data = Data(4.33)
@@ -46,8 +46,8 @@ class DoubleTest {
     fun `different Doubles should have same size after serialization`() {
         val data1 = Data(4.33)
         val double = (
-            List(BigDecimalSurrogate.INTEGER_SIZE / 10) { "1234567890" }.joinToString(separator = "") + "." +
-                List(BigDecimalSurrogate.FRACTION_SIZE / 10) { "1234567890" }.joinToString(separator = "")
+            List(BigDecimalSurrogate.DOUBLE_INTEGER_SIZE / 10) { "1234567890" }.joinToString(separator = "") + "." +
+                List(BigDecimalSurrogate.DOUBLE_FRACTION_SIZE / 10) { "1234567890" }.joinToString(separator = "")
             ).toDouble()
 
         val data2 = Data(double)

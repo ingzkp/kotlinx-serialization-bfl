@@ -1,6 +1,6 @@
 package com.ing.serialization.bfl.serde.serializers.custom
 
-import com.ing.serialization.bfl.api.serialize
+import com.ing.serialization.bfl.annotations.FixedLength
 import com.ing.serialization.bfl.serde.checkedSerialize
 import com.ing.serialization.bfl.serde.checkedSerializeInlined
 import com.ing.serialization.bfl.serde.roundTrip
@@ -18,7 +18,7 @@ import java.math.BigDecimal
 
 class BigDecimalSerializerTest {
     @Serializable
-    data class Data(val value: @Contextual BigDecimal)
+    data class Data(@FixedLength([20, 4]) val value: @Contextual BigDecimal)
 
     @Test
     fun `BigDecimalSurrogate should convert to BigDecimal`() {
@@ -71,8 +71,8 @@ class BigDecimalSerializerTest {
     fun `BigDecimal should be serialized successfully`() {
         val mask = listOf(
             Pair("sign", 1),
-            Pair("integer", 4 + BigDecimalSurrogate.INTEGER_SIZE),
-            Pair("fraction", 4 + BigDecimalSurrogate.FRACTION_SIZE)
+            Pair("integer", 4 + 20),
+            Pair("fraction", 4 + 4)
         )
 
         val data = Data(4.33.toBigDecimal())
@@ -96,8 +96,7 @@ class BigDecimalSerializerTest {
     @Test
     fun `different BigDecimals should have same size after serialization`() {
         val data1 = Data(4.33.toBigDecimal())
-        val maxBigDecimal = BigDecimal("${"9".repeat(BigDecimalSurrogate.INTEGER_SIZE)}.${"9".repeat(BigDecimalSurrogate.FRACTION_SIZE)}")
-        val data2 = Data(maxBigDecimal)
+        val data2 = Data(BigDecimal("0.01"))
 
         sameSizeInlined(data1, data2)
         sameSize(data1, data2)

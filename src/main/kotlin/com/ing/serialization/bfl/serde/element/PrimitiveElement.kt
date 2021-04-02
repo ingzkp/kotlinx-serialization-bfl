@@ -33,7 +33,7 @@ class PrimitiveElement(
             is PrimitiveKind.INT -> 4
             is PrimitiveKind.LONG -> 8
             is PrimitiveKind.CHAR -> 2
-            is PrimitiveKind.FLOAT, PrimitiveKind.DOUBLE -> BigDecimalSurrogate.SIZE
+            is PrimitiveKind.FLOAT, PrimitiveKind.DOUBLE -> BigDecimalSurrogate.DOUBLE_SIZE
             else -> error("Do not know how to compute layout for primitive $kind")
         }
 
@@ -95,12 +95,12 @@ class PrimitiveElement(
 
     private fun writeBigDecimal(output: DataOutput, surrogate: BigDecimalSurrogate?) {
         val serialization = surrogate?.let { inlinedSerialize(surrogate) }
-            ?: ByteArray(BigDecimalSurrogate.SIZE) { 0 }
+            ?: ByteArray(BigDecimalSurrogate.DOUBLE_SIZE) { 0 }
         output.write(serialization)
     }
 
     private fun readBigDecimal(input: DataInput): BigDecimal {
-        val surrogateInput = ByteArray(BigDecimalSurrogate.SIZE)
+        val surrogateInput = ByteArray(BigDecimalSurrogate.DOUBLE_SIZE)
         input.readFully(surrogateInput)
 
         val surrogate = deserialize<BigDecimalSurrogate>(surrogateInput)

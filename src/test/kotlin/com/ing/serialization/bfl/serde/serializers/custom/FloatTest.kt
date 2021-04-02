@@ -23,8 +23,8 @@ class FloatTest {
         val mask = listOf(
             Pair("nonNull", 1),
             Pair("sign", 1),
-            Pair("integer", 4 + BigDecimalSurrogate.INTEGER_SIZE),
-            Pair("fraction", 4 + BigDecimalSurrogate.FRACTION_SIZE)
+            Pair("integer", 4 + BigDecimalSurrogate.DOUBLE_INTEGER_SIZE),
+            Pair("fraction", 4 + BigDecimalSurrogate.DOUBLE_FRACTION_SIZE)
         )
 
         val data = Data(4.33.toFloat())

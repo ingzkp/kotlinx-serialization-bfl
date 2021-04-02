@@ -14,11 +14,7 @@ import java.math.BigDecimal
 
 class BigDecimalSerializerTest {
     @Serializable
-    data class Data(val value: @Contextual BigDecimal) {
-        override fun toString(): String {
-            return "Data(value=${value.toPlainString()})"
-        }
-    }
+    data class Data(val value: @Contextual BigDecimal)
 
     @Test
     fun `serialize BigDecimal`() {

@@ -2,6 +2,7 @@ package com.ing.serialization.bfl.serde.element
 
 import com.ing.serialization.bfl.api.reified.deserialize
 import com.ing.serialization.bfl.serde.SerdeError
+import com.ing.serialization.bfl.serde.isTrulyPrimitive
 import com.ing.serialization.bfl.serializers.BigDecimalSurrogate
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialKind
@@ -21,7 +22,7 @@ class PrimitiveElement(
     override val isNullable: Boolean
 ) : Element(serialName, propertyName) {
     init {
-        if (kind !is PrimitiveKind || kind is PrimitiveKind.STRING) throw SerdeError.NotFixedPrimitive(kind)
+        if (!kind.isTrulyPrimitive) throw SerdeError.NotFixedPrimitive(kind)
     }
 
     override val inherentLayout by lazy {

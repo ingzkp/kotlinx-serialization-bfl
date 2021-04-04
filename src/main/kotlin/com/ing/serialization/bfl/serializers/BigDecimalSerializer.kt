@@ -62,20 +62,17 @@ data class BigDecimalSurrogate(
             val integer = ByteArray(INTEGER_SIZE - integerPart.length) { 0 } +
                 integerPart.toListOfDecimals()
 
-            val fraction = (fractionalPart?.toListOfDecimals() ?: emptyByteArray()) +
+            val fraction = (fractionalPart?.toListOfDecimals() ?: ByteArray(0)) +
                 ByteArray(FRACTION_SIZE - (fractionalPart?.length ?: 0)) { 0 }
 
             return BigDecimalSurrogate(sign, integer, fraction)
         }
 
-        private fun emptyByteArray(): ByteArray = ByteArray(0) { 0 }
-        private fun String.toListOfDecimals(): ByteArray {
-            return this.map {
-                // Experimental: prefer plain java version.
-                // it.digitToInt()
-                Character.getNumericValue(it).toByte()
-            }.toByteArray()
-        }
+        private fun String.toListOfDecimals() = map {
+            // Experimental: prefer plain java version.
+            // it.digitToInt()
+            Character.getNumericValue(it).toByte()
+        }.toByteArray()
 
         internal fun from(float: Float) =
             try {

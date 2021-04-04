@@ -2,7 +2,12 @@ package com.ing.serialization.bfl.serde.element
 
 import java.io.DataOutput
 
-class StructureElement(name: String, inner: List<Element>, override val isNullable: Boolean) : Element(name, inner) {
+class StructureElement(
+    serialName: String,
+    propertyName: String,
+    inner: List<Element>,
+    override val isNullable: Boolean
+) : Element(serialName, propertyName, inner) {
     override val inherentLayout by lazy {
         listOf(Pair("length", constituentsSize))
     }

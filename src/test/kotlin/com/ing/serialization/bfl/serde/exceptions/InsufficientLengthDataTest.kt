@@ -15,11 +15,13 @@ class InsufficientLengthDataTest {
     @Test
     fun `direct property insufficient length`() {
         val data = Data(mapOf("a" to listOf(2)))
-        val exception = assertThrows<SerdeError> {
+        val exception = assertThrows<SerdeError.InsufficientLengthData> {
             serializeInlined(data)
         }
 
-        exception.message shouldBe "Insufficient length data along the chain Data.myMap.ArrayList"
+        exception.message shouldBe "Could not determine fixed length information for every item " +
+            "in the chain of Data.myMap. Please verify that all collections and strings in that " +
+            "chain are sufficiently annotated"
     }
 
     @Serializable
@@ -28,25 +30,30 @@ class InsufficientLengthDataTest {
     @Test
     fun `Insufficient length deep along the hierarchy`() {
         val data = ComplexData(listOf(Data(mapOf("a" to listOf(2)))))
-        val exception = assertThrows<SerdeError> {
+        val exception = assertThrows<SerdeError.InsufficientLengthData> {
             serializeInlined(data)
         }
 
-        exception.message shouldBe "Insufficient length data along the chain ComplexData.myList.myMap.ArrayList"
+        exception.message shouldBe "Could not determine fixed length information for every item " +
+            "in the chain of ComplexData.myList.myMap. Please verify that all collections and " +
+            "strings in that chain are sufficiently annotated"
     }
 
     @Serializable
     data class LocalData(val participants: List<Int>)
+
     @Serializable
     data class Wrapper(val localData: LocalData)
 
     @Test
     fun `Insufficient length shallow along the hierarchy`() {
         val data = Wrapper(LocalData(listOf(1)))
-        val exception = assertThrows<SerdeError> {
+        val exception = assertThrows<SerdeError.InsufficientLengthData> {
             serializeInlined(data)
         }
 
-        exception.message shouldBe "Insufficient length data along the chain Wrapper.localData.participants.ArrayList"
+        exception.message shouldBe "Could not determine fixed length information for every " +
+            "item in the chain of Wrapper.localData.participants. Please verify that all " +
+            "collections and strings in that chain are sufficiently annotated"
     }
 }

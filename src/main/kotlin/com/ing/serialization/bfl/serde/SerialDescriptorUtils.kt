@@ -13,7 +13,7 @@ val SerialDescriptor.isString: Boolean
     get() = kind is PrimitiveKind.STRING
 
 val SerialDescriptor.isTrulyPrimitive: Boolean
-    get() = kind is PrimitiveKind && kind !is PrimitiveKind.STRING
+    get() = kind.isTrulyPrimitive
 
 val SerialDescriptor.isStructure: Boolean
     get() = kind is StructureKind.CLASS
@@ -26,3 +26,6 @@ val SerialDescriptor.isContextual: Boolean
 
 val SerialDescriptor.simpleSerialName: String
     get() = serialName.split(".").last()
+
+val SerialKind.isTrulyPrimitive: Boolean
+    get() = this is PrimitiveKind && this !is PrimitiveKind.STRING

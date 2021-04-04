@@ -44,7 +44,7 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
 
                         fromType(descriptor.getElementDescriptor(idx), "$parentName.$propertyName")
                     }
-                StructureElement(descriptor.serialName, children, descriptor.isNullable)
+                StructureElement(descriptor.serialName, parentName, children, descriptor.isNullable)
             }
             descriptor.isPolymorphic -> fromType(descriptor, parentName)
             else -> error("${descriptor.serialName} is not supported")
@@ -52,21 +52,22 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
     }
 
     private fun fromType(descriptor: SerialDescriptor, parentName: String): Element {
-        val name = descriptor.serialName
+        val serialName = descriptor.serialName
 
         return when {
-            descriptor.isTrulyPrimitive -> PrimitiveElement(name, descriptor.kind, descriptor.isNullable)
+            descriptor.isTrulyPrimitive -> PrimitiveElement(serialName, parentName, descriptor.kind, descriptor.isNullable)
             descriptor.isString -> {
                 val requiredLength = dfQueue.removeFirstOrNull()
                     ?: throw SerdeError.InsufficientLengthData(descriptor, parentName)
-                StringElement(name, requiredLength, descriptor.isNullable)
+                StringElement(serialName, parentName, requiredLength, descriptor.isNullable)
             }
             descriptor.isCollection -> {
                 val requiredLength = dfQueue.removeFirstOrNull()
                     ?: throw SerdeError.InsufficientLengthData(descriptor, parentName)
                 val children = descriptor.elementDescriptors.map { fromType(it, parentName) }
                 CollectionElement(
-                    name,
+                    serialName,
+                    parentName,
                     children,
                     CollectionSizingInfo(requiredLength = requiredLength),
                     descriptor.isNullable
@@ -83,7 +84,7 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
                         val propertyName = descriptor.getElementName(idx)
                         fromType(element, "$parentName.$propertyName")
                     }
-                    StructureElement(name, children, descriptor.isNullable)
+                    StructureElement(serialName, parentName, children, descriptor.isNullable)
                 }
             }
             descriptor.isPolymorphic -> {
@@ -107,7 +108,7 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
 
                 val children = listOf(type, value).map { fromType(it, parentName) }
 
-                StructureElement(name, children, descriptor.isNullable)
+                StructureElement(serialName, parentName, children, descriptor.isNullable)
             }
             descriptor.isContextual -> {
                 val contextDescriptor = serializersModule.getContextualDescriptor(descriptor)
@@ -115,7 +116,7 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
 
                 fromType(contextDescriptor, parentName)
             }
-            else -> throw SerdeError.Unreachable("Building element from type ${descriptor.serialName}")
+            else -> error("Do not know how to build element from type ${descriptor.serialName}")
         }
     }
 }

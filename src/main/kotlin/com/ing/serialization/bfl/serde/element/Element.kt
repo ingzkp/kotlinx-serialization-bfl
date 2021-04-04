@@ -8,7 +8,7 @@ import java.io.DataOutput
  * The basic abstraction of each object being serialized.
  */
 
-abstract class Element(val name: String, val inner: List<Element> = listOf()) {
+abstract class Element(val serialName: String, val propertyName: String, val inner: List<Element> = listOf()) {
     abstract val isNullable: Boolean
 
     protected abstract val inherentLayout: List<Pair<String, Int>>
@@ -25,7 +25,7 @@ abstract class Element(val name: String, val inner: List<Element> = listOf()) {
     }
 
     val layout: Layout by lazy {
-        Layout(name, nullLayout + inherentLayout, inner.map { it.layout })
+        Layout(serialName, nullLayout + inherentLayout, inner.map { it.layout })
     }
 
     val size by lazy {

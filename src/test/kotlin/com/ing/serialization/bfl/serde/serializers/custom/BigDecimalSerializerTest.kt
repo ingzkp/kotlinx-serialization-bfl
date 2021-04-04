@@ -31,9 +31,14 @@ class BigDecimalSerializerTest {
 
     @Test
     fun `serialize and deserialize BigDecimal`() {
-        val data = Data(4.33.toBigDecimal())
-        roundTripInlined(data)
-        roundTrip(data, data::class)
+        listOf(
+            Data(4.33.toBigDecimal()),
+            Data(BigDecimal.TEN),
+            Data(BigDecimal("0.01"))
+        ).forEach { data ->
+            roundTripInlined(data)
+            roundTrip(data, data::class)
+        }
     }
 
     @Test

@@ -1,17 +1,16 @@
 package com.ing.serialization.bfl.serde.serializers.custom
 
 import com.ing.serialization.bfl.api.serialize
+import com.ing.serialization.bfl.serde.SerdeError
 import com.ing.serialization.bfl.serde.checkedSerialize
 import com.ing.serialization.bfl.serde.checkedSerializeInlined
 import com.ing.serialization.bfl.serde.roundTrip
 import com.ing.serialization.bfl.serde.roundTripInlined
 import com.ing.serialization.bfl.serde.sameSize
 import com.ing.serialization.bfl.serde.sameSizeInlined
+import com.ing.serialization.bfl.serializers.BFLSerializers
 import com.ing.serialization.bfl.serializers.DoubleSurrogate.Companion.DOUBLE_FRACTION_SIZE
 import com.ing.serialization.bfl.serializers.DoubleSurrogate.Companion.DOUBLE_INTEGER_SIZE
-import com.ing.serialization.bfl.serializers.BFLSerializers
-import com.ing.serialization.bfl.serializers.BigDecimalSurrogate
-import io.kotest.matchers.shouldBe
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -58,10 +57,8 @@ class FloatTest {
     fun `serialize Float should throw IllegalArgumentException when size limit is not respected`() {
         val floatOverSized = Float.MIN_VALUE
 
-        assertThrows<IllegalArgumentException> {
+        assertThrows<SerdeError.CollectionTooLarge> {
             serialize(Data(floatOverSized), BFLSerializers)
-        }.also {
-            it.message shouldBe "Float is too large for BigDecimalSurrogate"
         }
     }
 }

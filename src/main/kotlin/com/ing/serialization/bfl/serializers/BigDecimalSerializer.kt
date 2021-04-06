@@ -53,10 +53,11 @@ data class BigDecimalSurrogate(
         private fun emptyByteArray(): ByteArray = ByteArray(0) { 0 }
         private fun String.toListOfDecimals(): ByteArray {
             return this.map {
-            // Experimental: prefer plain java version.
-            // it.digitToInt()
-            Character.getNumericValue(it).toByte()
-        }.toByteArray()
+                // Experimental: prefer plain java version.
+                // it.digitToInt()
+                Character.getNumericValue(it).toByte()
+            }.toByteArray()
+        }
 
         private fun representOrThrow(bigDecimal: BigDecimal): Pair<String, String?> {
             val integerFractionPair = bigDecimal.toPlainString().removePrefix("-").split(".")

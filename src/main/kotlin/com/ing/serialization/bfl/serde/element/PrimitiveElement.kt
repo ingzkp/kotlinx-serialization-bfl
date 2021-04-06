@@ -34,7 +34,7 @@ class PrimitiveElement(
             is PrimitiveKind.INT -> 4
             is PrimitiveKind.LONG -> 8
             is PrimitiveKind.CHAR -> 2
-            is PrimitiveKind.FLOAT, PrimitiveKind.DOUBLE -> BigDecimalSurrogate.DOUBLE_SIZE
+            is PrimitiveKind.FLOAT, PrimitiveKind.DOUBLE -> DOUBLE_SIZE
             else -> error("Do not know how to compute layout for primitive $kind")
         }
 

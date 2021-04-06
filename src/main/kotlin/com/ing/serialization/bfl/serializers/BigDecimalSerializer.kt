@@ -30,10 +30,10 @@ data class BigDecimalSurrogate(
 ) {
     init {
         require(integer.size == INTEGER_SIZE) {
-            "integer part must have size $INTEGER_SIZE, but has ${integer.size}"
+            "Integer part must have size no longer than $INTEGER_SIZE, but has ${integer.size}"
         }
         require(fraction.size == FRACTION_SIZE) {
-            "fraction part must have size $FRACTION_SIZE, but has ${fraction.size}"
+            "Fraction part must have size no longer than $FRACTION_SIZE, but has ${fraction.size}"
         }
     }
 
@@ -94,7 +94,7 @@ data class BigDecimalSurrogate(
             val fractionalPart = integerFractionPair.getOrNull(1)
 
             require(integerPart.length <= INTEGER_SIZE && (fractionalPart?.length ?: 0) <= FRACTION_SIZE) {
-                "Zinc supports only $INTEGER_SIZE digits in integer part and $FRACTION_SIZE digits in fraction part"
+                "BigDecimal supports no more than $INTEGER_SIZE digits in integer part and $FRACTION_SIZE digits in fraction part"
             }
 
             return Pair(integerPart, fractionalPart)

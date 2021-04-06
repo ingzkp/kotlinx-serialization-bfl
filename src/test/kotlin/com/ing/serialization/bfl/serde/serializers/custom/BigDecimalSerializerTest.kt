@@ -50,7 +50,7 @@ class BigDecimalSerializerTest {
                 byteArrayOf(3, 3)
             )
         }.also {
-            it.message shouldBe "integer part must have size ${BigDecimalSurrogate.INTEGER_SIZE}, but has ${byteArrayOf(4).size}"
+            it.message shouldBe "Integer part must have size no longer than ${BigDecimalSurrogate.INTEGER_SIZE}, but has ${byteArrayOf(4).size}"
         }
     }
 
@@ -63,7 +63,7 @@ class BigDecimalSerializerTest {
                 byteArrayOf(3, 3)
             )
         }.also {
-            it.message shouldBe "fraction part must have size ${BigDecimalSurrogate.FRACTION_SIZE}, but has ${byteArrayOf(3, 3).size}"
+            it.message shouldBe "Fraction part must have size no longer than ${BigDecimalSurrogate.FRACTION_SIZE}, but has ${byteArrayOf(3, 3).size}"
         }
     }
 
@@ -110,7 +110,7 @@ class BigDecimalSerializerTest {
         assertThrows<IllegalArgumentException> {
             serialize(Data(integerOverSized), BFLSerializers)
         }.also {
-            it.message shouldBe "Zinc supports only ${BigDecimalSurrogate.INTEGER_SIZE} digits in integer part " +
+            it.message shouldBe "BigDecimal supports no more than ${BigDecimalSurrogate.INTEGER_SIZE} digits in integer part " +
                 "and ${BigDecimalSurrogate.FRACTION_SIZE} digits in fraction part"
         }
     }
@@ -122,7 +122,7 @@ class BigDecimalSerializerTest {
         assertThrows<IllegalArgumentException> {
             serialize(Data(fractionOverSized), BFLSerializers)
         }.also {
-            it.message shouldBe "Zinc supports only ${BigDecimalSurrogate.INTEGER_SIZE} digits in integer part " +
+            it.message shouldBe "BigDecimal supports no more than ${BigDecimalSurrogate.INTEGER_SIZE} digits in integer part " +
                 "and ${BigDecimalSurrogate.FRACTION_SIZE} digits in fraction part"
         }
     }

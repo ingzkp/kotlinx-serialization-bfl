@@ -3,6 +3,7 @@ package com.ing.serialization.bfl.serde
 import com.ing.serialization.bfl.serde.element.CollectionElement
 import com.ing.serialization.bfl.serde.element.Element
 import com.ing.serialization.bfl.serde.element.StringElement
+import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.SerialKind
 import kotlin.reflect.KClass
@@ -12,6 +13,8 @@ sealed class SerdeError(message: String) : IllegalStateException(message) {
     class NotFixedPrimitive(kind: SerialKind) : SerdeError("$kind is not a fixed length primitive type")
 
     class UnexpectedElement(expected: String, actual: Element) : SerdeError("Expected $expected, actual ${actual.serialName}")
+
+    class UnexpectedPrimitive(expected: PrimitiveKind, actual: KClass<*>) : SerdeError("Expected $expected, actual ${actual.simpleName}")
 
     class StringTooLarge(actualLength: Int, element: StringElement) :
         SerdeError("Size of ${element.propertyName} (${element.serialName}) ($actualLength) is larger than required (${element.requiredLength})")

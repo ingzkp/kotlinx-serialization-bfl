@@ -52,8 +52,6 @@ data class BigDecimalSurrogate(
         const val FRACTION_SIZE: Int = 20
         const val SIZE = 1 + (4 + INTEGER_SIZE) + (4 + FRACTION_SIZE)
 
-        val MAX = BigDecimalSurrogate(1, ByteArray(INTEGER_SIZE) { 9 }, ByteArray(FRACTION_SIZE) { 9 }).toOriginal()
-
         fun from(bigDecimal: BigDecimal): BigDecimalSurrogate {
             val (integerPart, fractionalPart) = representOrThrow(bigDecimal)
 

@@ -7,7 +7,7 @@ import kotlinx.serialization.modules.SerializersModule
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 
-fun <T : Any> genericSerialize(data: T, serializersModule: SerializersModule, serializer: KSerializer<T>) =
+fun <T : Any> genericSerialize(data: T, serializersModule: SerializersModule, serializer: KSerializer<T>): ByteArray =
     ByteArrayOutputStream().use { output ->
         DataOutputStream(output).use { stream ->
             BinaryFixedLengthOutputEncoder(stream, serializersModule).encodeSerializableValue(serializer, data)

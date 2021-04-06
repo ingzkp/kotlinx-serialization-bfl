@@ -58,7 +58,7 @@ class PrimitiveElement(
                     val surrogate = BigDecimalSurrogate.from(value)
                     writeBigDecimal(stream, surrogate)
                 }
-                else -> error("$serialName cannot encode $value of type ${value::class.simpleName}")
+                else -> throw SerdeError.UnexpectedPrimitive(kind as PrimitiveKind, value::class)
             }
         }
     }

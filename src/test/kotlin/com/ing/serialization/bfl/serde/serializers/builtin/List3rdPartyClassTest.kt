@@ -1,6 +1,9 @@
 package com.ing.serialization.bfl.serde.serializers.builtin
 
 import com.ing.serialization.bfl.annotations.FixedLength
+import com.ing.serialization.bfl.api.serialize
+import com.ing.serialization.bfl.serde.SerdeError
+import com.ing.serialization.bfl.serde.checkedSerialize
 import com.ing.serialization.bfl.serde.checkedSerializeInlined
 import com.ing.serialization.bfl.serde.roundTrip
 import com.ing.serialization.bfl.serde.roundTripInlined
@@ -10,6 +13,7 @@ import com.ing.serialization.bfl.serializers.DateSerializer
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.text.SimpleDateFormat
 import java.util.Date
 
@@ -18,7 +22,7 @@ class List3rdPartyClassTest {
     data class Data(@FixedLength([2]) val dates: List<@Serializable(with = DateSerializer::class) Date>)
 
     @Test
-    fun `serialize list of 3rd party class`() {
+    fun `List of 3rd party class should be serialized successfully`() {
         val mask = listOf(
             Pair("dates.length", 4),
             Pair("dates[0]", 8),
@@ -26,16 +30,24 @@ class List3rdPartyClassTest {
         )
 
         var data = Data(listOf(SimpleDateFormat("yyyy-MM-ddX").parse("2016-02-15+00")))
-        var bytes = checkedSerializeInlined(data, mask)
-        bytes[3].toInt() shouldBe data.dates.size
+        listOf(
+            checkedSerializeInlined(data, mask),
+            checkedSerialize(data, mask),
+        ).forEach { bytes ->
+            bytes[3].toInt() shouldBe data.dates.size
+        }
 
         data = Data(listOf())
-        bytes = checkedSerializeInlined(data, mask)
-        bytes shouldBe ByteArray(mask.sumBy { it.second }) { 0 }
+        listOf(
+            checkedSerializeInlined(data, mask),
+            checkedSerialize(data, mask),
+        ).forEach { bytes ->
+            bytes shouldBe ByteArray(mask.sumBy { it.second }) { 0 }
+        }
     }
 
     @Test
-    fun `serialize and deserialize list of 3rd party class`() {
+    fun `List of 3rd party class should be the same after serialization and deserialization`() {
         val data = Data(listOf(SimpleDateFormat("yyyy-MM-ddX").parse("2016-02-15+00")))
 
         roundTripInlined(data)
@@ -43,7 +55,7 @@ class List3rdPartyClassTest {
     }
 
     @Test
-    fun `serialization has fixed length`() {
+    fun `different Lists of 3rd party class should have same size after serialization`() {
         val date1 = SimpleDateFormat("yyyy-MM-ddX").parse("2016-02-15+00")
         val date2 = SimpleDateFormat("yyyy-MM-ddX").parse("2017-02-15+00")
 
@@ -55,5 +67,20 @@ class List3rdPartyClassTest {
         sameSize(empty, data1)
         sameSizeInlined(data2, data1)
         sameSize(data2, data1)
+    }
+
+    @Test
+    fun `too long List of 3rd party class should throw CollectionTooLarge`() {
+        assertThrows<SerdeError.CollectionTooLarge> {
+            serialize(
+                Data(
+                    listOf(
+                        SimpleDateFormat("yyyy-MM-ddX").parse("2016-02-15+00"),
+                        SimpleDateFormat("yyyy-MM-ddX").parse("2016-02-15+00"),
+                        SimpleDateFormat("yyyy-MM-ddX").parse("2016-02-15+00")
+                    )
+                )
+            )
+        }
     }
 }

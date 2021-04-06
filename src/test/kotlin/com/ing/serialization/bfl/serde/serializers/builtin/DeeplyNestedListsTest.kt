@@ -1,6 +1,9 @@
 package com.ing.serialization.bfl.serde.serializers.builtin
 
 import com.ing.serialization.bfl.annotations.FixedLength
+import com.ing.serialization.bfl.api.serialize
+import com.ing.serialization.bfl.serde.SerdeError
+import com.ing.serialization.bfl.serde.checkedSerialize
 import com.ing.serialization.bfl.serde.checkedSerializeInlined
 import com.ing.serialization.bfl.serde.roundTrip
 import com.ing.serialization.bfl.serde.roundTripInlined
@@ -9,6 +12,7 @@ import com.ing.serialization.bfl.serde.sameSizeInlined
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 
 class DeeplyNestedListsTest {
     @Serializable
@@ -18,7 +22,7 @@ class DeeplyNestedListsTest {
     )
 
     @Test
-    fun `serialize deeply nested lists`() {
+    fun `deeply nested Lists should be serialized successfully`() {
         val mask = listOf(
             Pair("nested.length", 4),
             Pair("nested[0].length", 4),
@@ -51,16 +55,24 @@ class DeeplyNestedListsTest {
         )
 
         var data = Data(listOf(listOf(listOf(2))))
-        var bytes = checkedSerializeInlined(data, mask)
-        bytes.filter { it.toInt() != 0 }.sorted().distinct().toByteArray() shouldBe ByteArray(2) { (it + 1).toByte() }
+        listOf(
+            checkedSerializeInlined(data, mask),
+            checkedSerialize(data, mask),
+        ).forEach { bytes ->
+            bytes.filter { it.toInt() != 0 }.sorted().distinct().toByteArray() shouldBe ByteArray(2) { (it + 1).toByte() }
+        }
 
         data = Data(listOf())
-        bytes = checkedSerializeInlined(data, mask)
-        bytes shouldBe ByteArray(mask.sumBy { it.second }) { 0 }
+        listOf(
+            checkedSerializeInlined(data, mask),
+            checkedSerialize(data, mask),
+        ).forEach { bytes ->
+            bytes shouldBe ByteArray(mask.sumBy { it.second }) { 0 }
+        }
     }
 
     @Test
-    fun `serialize and deserialize deeply nested lists`() {
+    fun `deeply nested Lists should be the same after serialization and deserialization`() {
         val data = Data(listOf(listOf(listOf(2))))
 
         roundTripInlined(data)
@@ -68,8 +80,8 @@ class DeeplyNestedListsTest {
     }
 
     @Test
-    fun `serialization has fixed length`() {
-        val empty = Data(listOf(listOf(listOf<Int>())))
+    fun `different deeply nested Lists should have same size after serialization`() {
+        val empty = Data(listOf(listOf(listOf())))
         val data1 = Data(listOf(listOf(listOf(2))))
         val data2 = Data(listOf(listOf(listOf(2)), listOf(listOf(4))))
 
@@ -77,5 +89,18 @@ class DeeplyNestedListsTest {
         sameSize(empty, data1)
         sameSizeInlined(data2, data1)
         sameSize(data2, data1)
+    }
+
+    @Test
+    fun `too long deep nested Lists should throw CollectionTooLarge in any nesting level`() {
+        listOf(
+            Data(listOf(listOf(listOf(1, 2, 3, 4, 5, 6)))),
+            Data(listOf((1..5).map { listOf(it) })),
+            Data((1..4).map { listOf(listOf(it)) }),
+        ).forEach {
+            assertThrows<SerdeError.CollectionTooLarge> {
+                serialize(it)
+            }
+        }
     }
 }

@@ -4,57 +4,138 @@
 
 Binary Fixed Length (BFL) serialization format for [kotlinx.serialization](https://github.com/Kotlin/kotlinx.serialization).
 
-Binary fixed length protocol is dedicated to provide to particular data type the binary representation of fixed
-length. It is achieved by specifying the max length of each structure of variable length (i.e.  List, Map, String, etc)
-and padding bytes in the end.
+Binary fixed length protocol is dedicated to provide the binary representation of fixed
+length to particular data type. 
 
-Protocol supports the following data types:
+Protocol supports primitive types, compounds and collections thereof, and allows for defining custom
+serialization strategies.
 
+##TOC
+[Primitive types](#primitive-types)
+[Compound types](#compound-types)
+[Collections](#collections)
+[Polymorphic types](#polymorphic-types)
+[Configuring and Running](#configuring-serializers-and-running)
+
+###Primitive types
+Protocol supports the following primitive data types:
 * bool
 * byte
 * short
 * integer
 * long
 * char
-* all their compound types
-
-# Examples
-
-#### String
-
+   
+###Compound types 
+Types constituted of the primitive types. For example,
 ```kotlin
 @Serializable
-data class DataClassWithString(@FixedLength([20])val name: String, val sugar: Int)
+data class Compound(val int: Int, val byte: Byte)
 ```
 
-If class has string of length less than 20, it will write its length to short variable, then will write each string
-character, and finally add two zero bytes for each "unused" characters, and then write `sugar` as a regular integer.
-This protocol does not do variable-length encoding as Protobuf, thus, all variables of the same type have the same
-length.
+###Collections   
+Collections of the primitive types. To guarantee fixed length of a collection serialization,
+max length of the collection must be specified. All collections, such as `String`, `List`, `Map`, must be annotated
+with `FixedLength` annotation. This annotation specifies in a left-to-right (or, in other words, depth-first) fashion
+length of the encountered collections. For example,
+```kotlin
+@Suppress("ArrayInDataClass")
+@Serializable
+data class ComplexType(
+    @FixedLength([10]) // Number of elements in `ints` can be at most 10.
+    val ints: IntArray,
+    
+    @FixedLength([5]) // String can contain at most 5 characters.
+    val string: String,
+    
+    @FixedLength([4,     6,            8]) // Map - at most 4 elements, ByteArray - at most 6, String - at most 8 characters.
+    val complex: Map<ByteArray, Pair<String, Int>>
+)
+```
 
-If class has a string longer than 20, the serialization will fail with error.
+###Polymorphic types
+To ensure that each variant of a polymorphic type serializes to a fixed length byte array, each variant **MUST** use
+the same representation or, called differently, surrogate. To aid the development, this module features several tools,
+here we discuss how to use them.
 
-#### List
+Consider a third party class allowing for two variants:
+```kotlin
+interface Poly
+data class VariantA(val myInt: Int) : Poly
+data class VariantB(val myLong: Long) : Poly
+```
+
+A successful serialization strategy must define a surrogate accounting for both options.
+```kotlin
+abstract class PolyBaseSurrogate {
+    abstract val myLong: Long?
+    abstract val myInt: Int?
+}
+
+@Serializable
+class VariantASucceedingSurrogate(
+    override val myLong: Long? = null,
+    override val myInt: Int?
+) : PolyBaseSurrogate(), Surrogate<VariantA> {
+    override fun toOriginal() = VariantA(myInt!!)
+}
+
+@Serializable
+class VariantBSucceedingSurrogate(
+    override val myLong: Long?,
+    override val myInt: Int? = null
+) : PolyBaseSurrogate(), Surrogate<VariantB> {
+    override fun toOriginal() = VariantB(myLong!!)
+}
+```
+Importantly, the type definitions within actual implementations (e.g., `VariantBSucceedingSurrogate`) **MUST NOT** override
+those of the base surrogate (`PolyBaseSurrogate`), default values may be overridden. 
+
+Finally, implementation of serializers is derived via a minor configuration.
+```kotlin
+object VariantASucceedingSerializer : KSerializer<VariantA> by (
+    BaseSerializer(VariantASucceedingSurrogate.serializer()) {
+        VariantASucceedingSurrogate(myInt = it.myInt)
+    })
+
+object VariantBSucceedingSerializer : KSerializer<VariantB> by (
+    BaseSerializer(VariantBSucceedingSurrogate.serializer()) {
+        VariantBSucceedingSurrogate(myLong = it.myLong)
+    })
+```
+
+##Configuring serializers and running
+After all serializers have been defined they must be grouped in the serializers module and passed further
+to the BFL serializer. Consider the case of a polymorphic type [above](#polymorphic-types).  
+```kotlin
+val serializersModule = SerializersModule {
+    polymorphic(Poly::class) {
+        subclass(VariantA::class, VariantASucceedingSerializer)
+        subclass(VariantB::class, VariantBSucceedingSerializer)
+    }
+    contextual(VariantASucceedingSerializer)
+    contextual(VariantBSucceedingSerializer)
+}
+```
+Both serializers for `Poly` are registered as polymorphic variants to allow type definitions such as `List<Poly>`
+and as contextual types `List<VariantA>`.
+
+The package has two version of serialization API -- using `reified` and accepting `Class<T>`.
+They are invoked as follows
+```kotlin
+import com.ing.serialization.bfl.api.reified.serialize
+
+val data = Data(/**/)
+serialize(data, serializersModule)
+```
 
 ```kotlin
-@Serializable
-data class DataClassWithList(@FixedLength([42])val name: List<Int>, val sugar: Int)
+import com.ing.serialization.bfl.api.serialize
+
+val data = Data(/**/)
+serialize(data, Data::class, serializersModule)
 ```
 
-Sizing logic is the same as in previous example, but the length of list is stored as an integer, but short.
-
-#### Map
-
-```kotlin
-@Serializable
-data class DataClassWithList(@FixedLength([20, 10])val name: Map<String, Int>, val sugar: Int)
-```
-
-`@FixedLength` has two parameters. First - `20` - is a length of Map itself, number of key-value pairs that should be
-stored in it. Second - `10` - is a length of string key. Basically, you should declare lengths in order of
-serialization. Map will be serialized firstly (obviously), then its first key, then its first value, etc.
-
-Map can store any types, their length will be computed recursively and used to calculate the number of padding bytes.
 
 # How to release
 

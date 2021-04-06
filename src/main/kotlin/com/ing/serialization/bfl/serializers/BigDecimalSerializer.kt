@@ -30,10 +30,10 @@ data class BigDecimalSurrogate(
 ) {
     init {
         require(integer.size == INTEGER_SIZE) {
-            "integer part must have size $INTEGER_SIZE, but has ${integer.size}"
+            "Integer part must have size no longer than $INTEGER_SIZE, but has ${integer.size}"
         }
         require(fraction.size == FRACTION_SIZE) {
-            "fraction part must have size $FRACTION_SIZE, but has ${fraction.size}"
+            "Fraction part must have size no longer than $FRACTION_SIZE, but has ${fraction.size}"
         }
     }
 
@@ -51,8 +51,6 @@ data class BigDecimalSurrogate(
         const val INTEGER_SIZE: Int = 100
         const val FRACTION_SIZE: Int = 20
         const val SIZE = 1 + (4 + INTEGER_SIZE) + (4 + FRACTION_SIZE)
-
-        val MAX = BigDecimalSurrogate(1, ByteArray(INTEGER_SIZE) { 9 }, ByteArray(FRACTION_SIZE) { 9 }).toOriginal()
 
         fun from(bigDecimal: BigDecimal): BigDecimalSurrogate {
             val (integerPart, fractionalPart) = representOrThrow(bigDecimal)
@@ -91,12 +89,11 @@ data class BigDecimalSurrogate(
         private fun representOrThrow(bigDecimal: BigDecimal): Pair<String, String?> {
             val integerFractionPair = bigDecimal.toPlainString().removePrefix("-").split(".")
 
-            val integerPart = integerFractionPair.getOrNull(0)
-                ?: error("Cannot convert BigDecimal ${bigDecimal.toPlainString()} to its integer and fractional parts")
+            val integerPart = integerFractionPair[0]
             val fractionalPart = integerFractionPair.getOrNull(1)
 
             require(integerPart.length <= INTEGER_SIZE && (fractionalPart?.length ?: 0) <= FRACTION_SIZE) {
-                "Zinc supports only $INTEGER_SIZE digits in integer part and $FRACTION_SIZE digits in fraction part"
+                "BigDecimal supports no more than $INTEGER_SIZE digits in integer part and $FRACTION_SIZE digits in fraction part"
             }
 
             return Pair(integerPart, fractionalPart)

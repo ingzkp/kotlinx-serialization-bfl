@@ -89,8 +89,7 @@ data class BigDecimalSurrogate(
         private fun representOrThrow(bigDecimal: BigDecimal): Pair<String, String?> {
             val integerFractionPair = bigDecimal.toPlainString().removePrefix("-").split(".")
 
-            val integerPart = integerFractionPair.getOrNull(0)
-                ?: error("Cannot convert BigDecimal ${bigDecimal.toPlainString()} to its integer and fractional parts")
+            val integerPart = integerFractionPair[0]
             val fractionalPart = integerFractionPair.getOrNull(1)
 
             require(integerPart.length <= INTEGER_SIZE && (fractionalPart?.length ?: 0) <= FRACTION_SIZE) {

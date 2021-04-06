@@ -104,10 +104,10 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
                 //  In principle it is possible to validate that all surrogates are derived
                 //  from the same base class and even parse th base class together with
                 //  the respective annotations.
-                polyDescriptors.forEach {
-                    val clazz = Class.forName(it.serialName)
-                    println(clazz.canonicalName)
-                }
+                // polyDescriptors.forEach {
+                //     val clazz = Class.forName(it.serialName)
+                //     println(clazz.canonicalName)
+                // }
 
                 // Polymorphic type consists of a string describing type and a structure.
                 // Bound the serialName of the polymorphic type.

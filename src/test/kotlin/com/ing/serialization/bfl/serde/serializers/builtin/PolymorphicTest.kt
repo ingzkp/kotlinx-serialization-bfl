@@ -7,6 +7,7 @@ import com.ing.serialization.bfl.serde.roundTrip
 import com.ing.serialization.bfl.serde.roundTripInlined
 import com.ing.serialization.bfl.serde.sameSize
 import com.ing.serialization.bfl.serde.sameSizeInlined
+import com.ing.serialization.bfl.serializers.PublicKeyBaseSurrogate
 import org.junit.jupiter.api.Test
 
 @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
@@ -18,10 +19,10 @@ class PolymorphicTest {
 
         println(data.encoded.joinToString(separator = ","))
 
-        var mask = listOf(
+        val mask = listOf(
             Pair("serialName", 2 + 2 * ElementFactory.polySerialNameLength),
             Pair("length", 4),
-            Pair("value", 294)
+            Pair("value", PublicKeyBaseSurrogate.encodedSize)
         )
         checkedSerializeInlined(data, mask)
 

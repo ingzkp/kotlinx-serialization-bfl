@@ -3,11 +3,13 @@ package com.ing.serialization.bfl.serde.serializers.builtin
 import com.ing.serialization.bfl.serde.checkedSerialize
 import com.ing.serialization.bfl.serde.checkedSerializeInlined
 import com.ing.serialization.bfl.serde.element.ElementFactory
+import com.ing.serialization.bfl.serde.generateDSAPubKey
 import com.ing.serialization.bfl.serde.generateRSAPubKey
 import com.ing.serialization.bfl.serde.roundTrip
 import com.ing.serialization.bfl.serde.roundTripInlined
 import com.ing.serialization.bfl.serde.sameSize
 import com.ing.serialization.bfl.serde.sameSizeInlined
+import com.ing.serialization.bfl.serializers.PublicKeyBaseSurrogate
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 import java.security.PublicKey
@@ -25,20 +27,13 @@ class NestedClassesPolymorphicTest {
     fun `Polymorphic type within nested compound type should be serialized successfully`() {
         val data = Data(Some(generateRSAPubKey()))
 
-        var mask = listOf(
+        val mask = listOf(
             Pair("some.pk.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
             Pair("some.pk.length", 4),
-            Pair("some.nested.value", 294)
+            Pair("some.nested.value", PublicKeyBaseSurrogate.encodedSize)
         )
 
         checkedSerializeInlined(data, mask)
-
-        mask = listOf(
-            Pair("some.pk.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
-            Pair("some.pk.length", 4),
-            Pair("some.nested.value", 294)
-        )
-
         checkedSerialize(data, mask)
     }
 
@@ -53,7 +48,7 @@ class NestedClassesPolymorphicTest {
     @Test
     fun `different data objects of Polymorphic type within nested compound type should have same size after serialization`() {
         val data1 = Data(Some(generateRSAPubKey()))
-        val data2 = Data(Some(generateRSAPubKey()))
+        val data2 = Data(Some(generateDSAPubKey()))
 
         sameSizeInlined(data1, data2)
         sameSize(data1, data2)

@@ -24,6 +24,12 @@ fun generateRSAPubKey(): PublicKey {
     return generator.genKeyPair().public
 }
 
+fun generateDSAPubKey(): PublicKey {
+    val generator: KeyPairGenerator = KeyPairGenerator.getInstance("DSA")
+    generator.initialize(2048, SecureRandom())
+    return generator.genKeyPair().public
+}
+
 @Serializable
 data class Own(val int: Int = 100) {
     override fun toString() = "Own(int= $int)"

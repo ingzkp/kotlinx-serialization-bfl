@@ -11,6 +11,7 @@ import com.ing.serialization.bfl.serde.roundTrip
 import com.ing.serialization.bfl.serde.roundTripInlined
 import com.ing.serialization.bfl.serde.sameSize
 import com.ing.serialization.bfl.serde.sameSizeInlined
+import com.ing.serialization.bfl.serializers.PublicKeyBaseSurrogate
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -28,10 +29,10 @@ class ListPolymorphicTest {
             Pair("nested.length", 4),
             Pair("nested[0].serialName", 2 + 2 * ElementFactory.polySerialNameLength),
             Pair("nested[0].length", 4),
-            Pair("nested[0].value", 294),
+            Pair("nested[0].value", PublicKeyBaseSurrogate.encodedSize),
             Pair("nested[0].serialName", 2 + 2 * ElementFactory.polySerialNameLength),
             Pair("nested[0].length", 4),
-            Pair("nested[1].value", 294)
+            Pair("nested[1].value", PublicKeyBaseSurrogate.encodedSize)
         )
 
         val data = Data(listOf(generateRSAPubKey()))

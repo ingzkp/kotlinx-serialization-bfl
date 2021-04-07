@@ -39,7 +39,7 @@ class DoubleTest {
 
         data = Data(null)
         roundTripInlined(data)
-        roundTrip(data, data::class)
+        roundTrip(data)
     }
 
     @Test

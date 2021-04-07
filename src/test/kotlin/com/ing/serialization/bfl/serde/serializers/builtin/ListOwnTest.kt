@@ -46,7 +46,7 @@ class ListOwnTest {
         val data = Data(listOf(Own()))
 
         roundTripInlined(data)
-        roundTrip(data, data::class)
+        roundTrip(data)
     }
 
     @Test

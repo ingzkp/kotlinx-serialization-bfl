@@ -50,7 +50,7 @@ class ListStringTest {
         val data = Data()
 
         roundTripInlined(data)
-        roundTrip(data, data::class)
+        roundTrip(data)
     }
 
     @Test

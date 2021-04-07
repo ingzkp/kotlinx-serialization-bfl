@@ -29,7 +29,7 @@ class DateSerializerTest {
     fun `Date should be the same after serialization and deserialization`() {
         val data = Data(SimpleDateFormat("yyyy-MM-ddX").parse("2016-02-15+00"))
         roundTripInlined(data)
-        roundTrip(data, data::class)
+        roundTrip(data)
     }
 
     @Test

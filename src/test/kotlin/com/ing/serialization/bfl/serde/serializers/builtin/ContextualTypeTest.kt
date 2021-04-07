@@ -48,7 +48,7 @@ class ContextualTypeTest {
         val data = Data(SecureHash.allOnesHash)
 
         roundTripInlined(data, serializers)
-        roundTrip(data, data::class, serializers)
+        roundTrip(data, serializers)
     }
 
     @Test

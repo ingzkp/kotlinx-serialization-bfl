@@ -41,7 +41,7 @@ class PolymorphicTest {
         val data2 = generateRSAPubKey()
 
         roundTripInlined(data1, PolySerializers)
-        roundTrip(data1, data1::class, PolySerializers)
+        roundTrip(data1, PolySerializers)
 
         sameSizeInlined(data1, data2, PolySerializers)
         sameSize(data1, data2, PolySerializers)

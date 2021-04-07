@@ -80,7 +80,7 @@ data class CustomDataSurrogate(
 }
 ```
 
-Then we define the serializer, using `BaseSerializer`. The constructor of `BaseSerializer` takes a lambda that is used
+Next we define the serializer, using `BaseSerializer`. The constructor of `BaseSerializer` takes a lambda that is used
 to convert the actual value into the surrogate type before serialization.
 ```kotlin
 object CustomDataSerializer : KSerializer<CustomData>
@@ -98,7 +98,7 @@ val customDataSerializationModule = SerializersModule {
 }
 ```
 
-And finally we can serialize and deserialize `CustomData` instances.
+Finally, we can serialize and deserialize `CustomData` instances.
 ```kotlin
 import com.ing.serialization.bfl.api.reified.deserialize
 import com.ing.serialization.bfl.api.reified.serialize
@@ -110,9 +110,10 @@ deserialized shouldBe original
 ```
 
 ### Polymorphic types
-To ensure that each variant of a polymorphic type serializes to a fixed length byte array, each variant **MUST** use
-the same representation or, called differently, surrogate. To aid the development, this module features several tools,
-here we discuss how to use them.
+Fixed length serialization of polymorphic types is non-trivial. Concrete implementations of a polymorphic type
+can have different sets of properties and thus in general, by construction, will not be serialized into the same length
+sequence of bytes. One way to address this limitation is to use the same surrogate for all required variants of the polymorphic type.
+To aid the development, this module features several tools, which we discuss below.
 
 Consider a third party class allowing for two variants:
 ```kotlin
@@ -144,8 +145,11 @@ class VariantBSucceedingSurrogate(
     override fun toOriginal() = VariantB(myLong!!)
 }
 ```
-Importantly, the type definitions within actual implementations (e.g., `VariantBSucceedingSurrogate`) **MUST NOT** override
-those of the base surrogate (`PolyBaseSurrogate`), default values may be overridden. 
+Importantly, the type definitions of the properties within actual implementations (e.g., `VariantBSucceedingSurrogate`)
+**MUST NOT** override those of the base surrogate (`PolyBaseSurrogate`), this both applies to the type signature *and* nullability;
+default values may be overridden. Type definitions (including nullability specification) affect the size of the serialized
+variant, e.g., removal of a `?` from `Int?` for `VariantASucceedingSurrogate` in the example above will result in
+a smaller size serialization (by 1 byte) than for `VariantBSucceedingSurrogate`.
 
 Finally, implementation of serializers is derived via a minor configuration.
 ```kotlin
@@ -159,6 +163,8 @@ object VariantBSucceedingSerializer : KSerializer<VariantB> by (
         VariantBSucceedingSurrogate(myLong = it.myLong)
     })
 ```
+
+This and a more realistic example can be found in [tests][1].
 
 ## Configuring serializers and running
 After all serializers have been defined they must be grouped in the serializers module and passed further
@@ -204,3 +210,6 @@ In the github workflow `on-tag-publish.yml`, the version is parsed from the git 
 For more information checkout the following files
 
 - [on-tag-publish.yml](.github/workflows/on-tag-publish.yml)
+
+[1]: src/test/kotlin/com/ing/serialization/bfl/serde/serializers/custom/polymorphic
+

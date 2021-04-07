@@ -39,7 +39,7 @@ class MapNullableOwnTest {
         val data = Data(mapOf("a" to Own(1), "b" to null))
 
         roundTripInlined(data)
-        roundTrip(data, data::class)
+        roundTrip(data)
     }
 
     @Test

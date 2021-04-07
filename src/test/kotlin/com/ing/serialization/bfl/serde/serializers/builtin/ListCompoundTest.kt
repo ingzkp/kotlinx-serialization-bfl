@@ -48,7 +48,7 @@ class ListCompoundTest {
         val data = Data(listOf(Pair(10, 20)))
 
         roundTripInlined(data)
-        roundTrip(data, data::class)
+        roundTrip(data)
     }
 
     @Test

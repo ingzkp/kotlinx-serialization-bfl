@@ -27,7 +27,7 @@ class CompoundTypeTest {
         val data = Data(Pair(10, 20))
 
         roundTripInlined(data)
-        roundTrip(data, data::class)
+        roundTrip(data)
     }
 
     @Test

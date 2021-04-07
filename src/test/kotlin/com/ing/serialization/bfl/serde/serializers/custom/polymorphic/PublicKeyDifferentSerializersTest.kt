@@ -17,7 +17,7 @@ class PublicKeyDifferentSerializersTest {
     fun `serialize different variants of a polymorphic type`() {
         val data = Data(listOf(generateRSAPubKey(), generateDSAPubKey()))
 
-        roundTrip(data, data::class, PolySerializers)
+        roundTrip(data, PolySerializers)
         roundTripInlined(data, PolySerializers)
     }
 }

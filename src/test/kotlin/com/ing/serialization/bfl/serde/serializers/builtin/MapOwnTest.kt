@@ -48,7 +48,7 @@ class MapOwnTest {
         val data = Data(mapOf("a" to Own(1), "b" to Own(2)))
 
         roundTripInlined(data)
-        roundTrip(data, data::class)
+        roundTrip(data)
     }
 
     @Test

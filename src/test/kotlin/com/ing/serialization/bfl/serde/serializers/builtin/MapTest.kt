@@ -43,7 +43,7 @@ class MapTest {
         val data = Data(mapOf(1 to 2))
 
         roundTripInlined(data)
-        roundTrip(data, data::class)
+        roundTrip(data)
     }
 
     @Test

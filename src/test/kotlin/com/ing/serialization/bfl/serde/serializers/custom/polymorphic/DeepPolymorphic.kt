@@ -57,7 +57,7 @@ class DeepPolymorphic {
         val data2 = Data(listOf(VariantB(2)))
 
         println(debugSerialize(data1, serializersModule = successSerializers).second)
-        roundTrip(data1, Data::class, successSerializers)
+        roundTrip(data1, successSerializers)
         sameSize(data1, data2, successSerializers)
     }
 
@@ -67,7 +67,7 @@ class DeepPolymorphic {
         val data2 = DataA(listOf(VariantA(2)))
 
         println(debugSerialize(data1, serializersModule = successSerializers).second)
-        roundTrip(data1, DataA::class, successSerializers)
+        roundTrip(data1, successSerializers)
         sameSize(data1, data2, successSerializers)
     }
 }

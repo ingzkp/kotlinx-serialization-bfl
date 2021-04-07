@@ -44,7 +44,7 @@ class ListPolymorphicTest {
         val data = Data(listOf(generateRSAPubKey()))
 
         roundTripInlined(data, PolySerializers)
-        roundTrip(data, data::class, PolySerializers)
+        roundTrip(data, PolySerializers)
     }
 
     @Test

@@ -26,7 +26,7 @@ class ImplementationTest {
     @Test
     fun serializeWithSurrogateShouldSucceed() {
         val original = CustomData("Hello World!")
-        val serializedBytes = serialize(original, customDataSerializationModule)
+        val serializedBytes = serialize(original, serializersModule = customDataSerializationModule)
         val deserialized: CustomData = deserialize(serializedBytes, customDataSerializationModule)
         deserialized shouldBe original
     }

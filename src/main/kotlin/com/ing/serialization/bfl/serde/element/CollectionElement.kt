@@ -11,9 +11,10 @@ class CollectionElement(
     serialName: String,
     propertyName: String,
     inner: List<Element>,
-    private val sizingInfo: CollectionSizingInfo,
+    var actualLength: Int? = null,
+    val requiredLength: Int,
     override val isNullable: Boolean
-) : CollectionElementSizingInfo by sizingInfo, Element(serialName, propertyName, inner) {
+) : Element(serialName, propertyName, inner) {
     /**
      * INT (collection length) + number_of_elements * sum_i { size(inner_i) }
      * = 4 + n * sum_i { size(inner_i) }
@@ -32,12 +33,14 @@ class CollectionElement(
     /**
      * The number of bytes the collection to be padded. It is always different and depends on the state.
      *
-     * @throws SerdeError.CollectionNoActualLength exception when length of a collection is not specified.
      * @throws SerdeError.CollectionTooLarge exception when collection doesn't fit into the given limit
      */
     val padding: Int
         get() {
-            val actualLength = actualLength ?: throw SerdeError.CollectionNoActualLength(this)
+            // a null actual length should never occur - encodeNull should have been called instead
+            val actualLength = requireNotNull(actualLength) {
+                "CollectionElement `$propertyName` ($serialName) does not specify its actual length"
+            }
 
             if (requiredLength < actualLength) {
                 throw SerdeError.CollectionTooLarge(this)
@@ -48,13 +51,3 @@ class CollectionElement(
     override fun encodeNull(output: DataOutput) =
         repeat(4 + requiredLength * elementSize) { output.writeByte(0) }
 }
-
-interface CollectionElementSizingInfo {
-    var actualLength: Int?
-    val requiredLength: Int
-}
-
-data class CollectionSizingInfo(
-    override var actualLength: Int? = null,
-    override val requiredLength: Int,
-) : CollectionElementSizingInfo

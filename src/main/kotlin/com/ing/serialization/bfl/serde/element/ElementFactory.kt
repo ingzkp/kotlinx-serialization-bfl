@@ -66,11 +66,11 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
                     ?: throw SerdeError.InsufficientLengthData(descriptor, parentName)
                 val children = descriptor.elementDescriptors.map { fromType(it, parentName) }
                 CollectionElement(
-                    serialName,
-                    parentName,
-                    children,
-                    CollectionSizingInfo(requiredLength = requiredLength),
-                    descriptor.isNullable
+                    serialName = serialName,
+                    propertyName = parentName,
+                    inner = children,
+                    requiredLength = requiredLength,
+                    isNullable = descriptor.isNullable
                 )
             }
             descriptor.isStructure -> {

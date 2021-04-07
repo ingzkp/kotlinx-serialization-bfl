@@ -7,8 +7,13 @@ import com.ing.serialization.bfl.serde.element.PrimitiveElement
 import com.ing.serialization.bfl.serde.element.StringElement
 import com.ing.serialization.bfl.serde.element.StructureElement
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PolymorphicKind
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.StructureKind
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 
 class ElementTest {
     @Serializable
@@ -94,5 +99,34 @@ class ElementTest {
         val layout = element.layout
 
         println(layout)
+    }
+
+    @Test
+    fun `initialization of non-fixed primitive should fail`() {
+        listOf(
+            PrimitiveKind.STRING,
+            StructureKind.LIST,
+            PolymorphicKind.OPEN
+        ).forEach {
+            assertThrows<SerdeError.NotFixedPrimitive> {
+                PrimitiveElement("", "", it, false)
+            }
+        }
+    }
+
+    @Test
+    fun `padding of collection element with missing actual length should fail`() {
+        assertThrows<IllegalArgumentException> {
+            CollectionElement(
+                "",
+                "",
+                listOf(),
+                null,
+                1,
+                false
+            ).padding
+        }.also {
+            it.message shouldContain "does not specify its actual length"
+        }
     }
 }

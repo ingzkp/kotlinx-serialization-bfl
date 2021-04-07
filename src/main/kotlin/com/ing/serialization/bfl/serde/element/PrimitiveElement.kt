@@ -49,7 +49,7 @@ class PrimitiveElement(
                 kind is PrimitiveKind.SHORT && value is Short -> writeShort(value.toInt())
                 kind is PrimitiveKind.INT && value is Int -> writeInt(value)
                 kind is PrimitiveKind.LONG && value is Long -> writeLong(value)
-                kind is PrimitiveKind.CHAR && value is Char -> writeChar('\u0000'.toInt())
+                kind is PrimitiveKind.CHAR && value is Char -> writeChar(value.toInt())
                 kind is PrimitiveKind.FLOAT && value is Float -> {
                     val surrogate = BigDecimalSurrogate.from(value)
                     writeBigDecimal(stream, surrogate)
@@ -71,7 +71,7 @@ class PrimitiveElement(
                 is PrimitiveKind.SHORT -> writeShort(0)
                 is PrimitiveKind.INT -> writeInt(0)
                 is PrimitiveKind.LONG -> writeLong(0)
-                is PrimitiveKind.CHAR -> writeChar('\u0000'.toInt())
+                is PrimitiveKind.CHAR -> writeChar(0)
                 is PrimitiveKind.FLOAT, PrimitiveKind.DOUBLE -> writeBigDecimal(this, null)
                 else -> error("Encoding null for primitive $kind.")
             }

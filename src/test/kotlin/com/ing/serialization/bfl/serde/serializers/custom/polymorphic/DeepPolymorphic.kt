@@ -46,7 +46,7 @@ class DeepPolymorphic {
 
         println(
             assertThrows<SerdeError.UnexpectedPrimitive> {
-                serialize(data, failSerializers)
+                serialize(data, serializersModule = failSerializers)
             }
         )
     }
@@ -56,7 +56,7 @@ class DeepPolymorphic {
         val data1 = Data(listOf(VariantA(1), VariantB(2)))
         val data2 = Data(listOf(VariantB(2)))
 
-        println(debugSerialize(data1, successSerializers).second)
+        println(debugSerialize(data1, serializersModule = successSerializers).second)
         roundTrip(data1, Data::class, successSerializers)
         sameSize(data1, data2, successSerializers)
     }
@@ -66,7 +66,7 @@ class DeepPolymorphic {
         val data1 = DataA(listOf(VariantA(1), VariantA(2)))
         val data2 = DataA(listOf(VariantA(2)))
 
-        println(debugSerialize(data1, successSerializers).second)
+        println(debugSerialize(data1, serializersModule = successSerializers).second)
         roundTrip(data1, DataA::class, successSerializers)
         sameSize(data1, data2, successSerializers)
     }

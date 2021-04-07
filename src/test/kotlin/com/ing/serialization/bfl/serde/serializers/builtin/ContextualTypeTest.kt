@@ -31,7 +31,7 @@ class ContextualTypeTest {
     fun `Contextual types are directly serializable`() {
         val data = SecureHash.allOnesHash
 
-        val serialization = debugSerializeInlined(data, serializers)
+        val serialization = debugSerializeInlined(data, serializersModule = serializers)
         println(serialization.second)
     }
 
@@ -39,7 +39,7 @@ class ContextualTypeTest {
     fun `Contextual types as fields are serializable`() {
         val data = Data(SecureHash.allOnesHash)
 
-        val serialization = debugSerializeInlined(data, serializers)
+        val serialization = debugSerializeInlined(data, serializersModule = serializers)
         println(serialization.second)
     }
 

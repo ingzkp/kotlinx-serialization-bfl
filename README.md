@@ -11,12 +11,12 @@ Protocol supports primitive types, compounds and collections thereof, and allows
 serialization strategies.
 
 ## TOC
-[Primitive types](#primitive-types)
-[Compound types](#compound-types)
-[Collections](#collections)
-[Implementing Serializers for existing types](#implementing-serializers-for-existing-types)
-[Polymorphic types](#polymorphic-types)
-[Configuring and Running](#configuring-serializers-and-running)
+- [Primitive types](#primitive-types)
+- [Compound types](#compound-types)
+- [Collections](#collections)
+- [Implementing Serializers for existing types](#implementing-serializers-for-existing-types)
+- [Polymorphic types](#polymorphic-types)
+- [Configuring and Running](#configuring-serializers-and-running)
 
 ### Primitive types
 Protocol supports the following primitive data types:

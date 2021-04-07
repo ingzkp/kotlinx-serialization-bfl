@@ -68,7 +68,7 @@ fun <T : Any> checkedSerialize(
 /**
  * Test if value survives serialization/deserialization.
  */
-fun <T : Any> roundTrip(value: T, klass: KClass<out T>, serializers: SerializersModule = EmptySerializersModule) {
+fun <T : Any> roundTrip(value: T, klass: KClass<out T> = value::class, serializers: SerializersModule = EmptySerializersModule) {
     val serialization = serialize(value, BFLSerializers + serializers)
     val deserialization = deserialize(serialization, klass, BFLSerializers + serializers)
 

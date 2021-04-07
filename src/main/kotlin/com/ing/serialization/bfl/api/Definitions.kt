@@ -7,7 +7,7 @@ import kotlinx.serialization.encoding.Encoder
 
 open class BaseSerializer<T, S : Surrogate<T>>(
     private val strategy: KSerializer<S>,
-    private val make: (T) -> S
+    private val toSurrogate: (T) -> S
 ) : KSerializer<T> {
     override val descriptor: SerialDescriptor = strategy.descriptor
 
@@ -17,7 +17,7 @@ open class BaseSerializer<T, S : Surrogate<T>>(
     }
 
     override fun serialize(encoder: Encoder, value: T) {
-        val surrogate = make(value)
+        val surrogate = toSurrogate(value)
         encoder.encodeSerializableValue(strategy, surrogate)
     }
 }

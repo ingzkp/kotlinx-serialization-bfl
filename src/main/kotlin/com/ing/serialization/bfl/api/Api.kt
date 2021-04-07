@@ -26,7 +26,7 @@ fun <T : Any> debugSerialize(data: T, serializersModule: SerializersModule = Emp
 
 fun <T : Any> deserialize(data: ByteArray, klass: KClass<T>, serializersModule: SerializersModule = EmptySerializersModule): T {
     val deserializer = serializersModule.serializerOrNull(klass.java)
-        ?: throw SerdeError.NoTopLevelSerializer(data::class)
+        ?: throw SerdeError.NoTopLevelSerializer(klass)
 
     return ByteArrayInputStream(data).use { input ->
         DataInputStream(input).use { stream ->

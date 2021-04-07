@@ -56,4 +56,14 @@ class InsufficientLengthDataTest {
             "item in the chain of Wrapper.localData.participants. Please verify that all " +
             "collections and strings in that chain are sufficiently annotated"
     }
+
+    @Test
+    fun `Insufficient length in String should throw InsufficientLengthData`() {
+        @Serializable
+        data class Data(val s: String)
+
+        assertThrows<SerdeError.InsufficientLengthData> {
+            serializeInlined(Data(""))
+        }
+    }
 }

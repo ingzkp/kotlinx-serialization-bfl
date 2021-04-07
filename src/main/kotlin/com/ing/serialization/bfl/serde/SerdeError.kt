@@ -16,9 +16,6 @@ sealed class SerdeError(message: String) : IllegalStateException(message) {
     class StringTooLarge(actualLength: Int, element: StringElement) :
         SerdeError("Size of ${element.propertyName} (${element.serialName}) ($actualLength) is larger than required (${element.requiredLength})")
 
-    class CollectionNoActualLength(element: CollectionElement) :
-        SerdeError("StructureElement `${element.propertyName}` (${element.serialName}) does not specify its actual length")
-
     class CollectionTooLarge(element: CollectionElement) :
         SerdeError("Size of ${element.propertyName} (${element.serialName}) (${element.actualLength}) is larger than required (${element.requiredLength})")
 

@@ -1,8 +1,8 @@
-package com.ing.serialization.bfl.serializers
+package com.ing.serialization.bfl.serde.serializers.custom.polymorphic
 
 import com.ing.serialization.bfl.annotations.FixedLength
-import com.ing.serialization.bfl.api.SurrogateSerializer
 import com.ing.serialization.bfl.api.Surrogate
+import com.ing.serialization.bfl.api.SurrogateSerializer
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import sun.security.provider.DSAPublicKeyImpl
@@ -11,11 +11,11 @@ import java.security.KeyFactory
 import java.security.spec.X509EncodedKeySpec
 
 abstract class PublicKeyBaseSurrogate {
-    @FixedLength([encodedSize])
+    @FixedLength([ENCODED_SIZE])
     abstract val encoded: ByteArray
 
     companion object {
-        const val encodedSize = 900
+        const val ENCODED_SIZE = 900
     }
 }
 
@@ -28,7 +28,7 @@ by (SurrogateSerializer(DSASurrogate.serializer()) { DSASurrogate(it.encoded) })
 @Suppress("ArrayInDataClass")
 @Serializable
 data class RSASurrogate(
-    @FixedLength([encodedSize])
+    @FixedLength([ENCODED_SIZE])
     override val encoded: ByteArray
 ) : Surrogate<RSAPublicKeyImpl>, PublicKeyBaseSurrogate() {
     override fun toOriginal(): RSAPublicKeyImpl =
@@ -38,7 +38,7 @@ data class RSASurrogate(
 @Suppress("ArrayInDataClass")
 @Serializable
 data class DSASurrogate(
-    @FixedLength([encodedSize])
+    @FixedLength([ENCODED_SIZE])
     override val encoded: ByteArray
 ) : Surrogate<DSAPublicKeyImpl>, PublicKeyBaseSurrogate() {
     override fun toOriginal(): DSAPublicKeyImpl =

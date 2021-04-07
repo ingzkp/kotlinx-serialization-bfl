@@ -1,4 +1,4 @@
-package com.ing.serialization.bfl.serde.serializers.custom
+package com.ing.serialization.bfl.serde.serializers.custom.polymorphic
 
 import com.ing.serialization.bfl.annotations.FixedLength
 import com.ing.serialization.bfl.serde.generateDSAPubKey
@@ -17,7 +17,7 @@ class PublicKeyDifferentSerializersTest {
     fun `serialize different variants of a polymorphic type`() {
         val data = Data(listOf(generateRSAPubKey(), generateDSAPubKey()))
 
-        roundTrip(data, data::class)
-        roundTripInlined(data)
+        roundTrip(data, data::class, PolySerializers)
+        roundTripInlined(data, PolySerializers)
     }
 }

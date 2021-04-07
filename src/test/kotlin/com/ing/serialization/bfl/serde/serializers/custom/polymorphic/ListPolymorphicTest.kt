@@ -1,4 +1,4 @@
-package com.ing.serialization.bfl.serde.serializers.builtin
+package com.ing.serialization.bfl.serde.serializers.custom.polymorphic
 
 import com.ing.serialization.bfl.annotations.FixedLength
 import com.ing.serialization.bfl.api.serialize
@@ -11,7 +11,6 @@ import com.ing.serialization.bfl.serde.roundTrip
 import com.ing.serialization.bfl.serde.roundTripInlined
 import com.ing.serialization.bfl.serde.sameSize
 import com.ing.serialization.bfl.serde.sameSizeInlined
-import com.ing.serialization.bfl.serializers.PublicKeyBaseSurrogate
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -29,23 +28,23 @@ class ListPolymorphicTest {
             Pair("nested.length", 4),
             Pair("nested[0].serialName", 2 + 2 * ElementFactory.polySerialNameLength),
             Pair("nested[0].length", 4),
-            Pair("nested[0].value", PublicKeyBaseSurrogate.encodedSize),
-            Pair("nested[0].serialName", 2 + 2 * ElementFactory.polySerialNameLength),
-            Pair("nested[0].length", 4),
-            Pair("nested[1].value", PublicKeyBaseSurrogate.encodedSize)
+            Pair("nested[0].value", PublicKeyBaseSurrogate.ENCODED_SIZE),
+            Pair("nested[1].serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("nested[1].length", 4),
+            Pair("nested[1].value", PublicKeyBaseSurrogate.ENCODED_SIZE)
         )
 
         val data = Data(listOf(generateRSAPubKey()))
-        checkedSerializeInlined(data, mask)
-        checkedSerialize(data, mask)
+        checkedSerializeInlined(data, mask, PolySerializers)
+        checkedSerialize(data, mask, PolySerializers)
     }
 
     @Test
     fun `List of polymorphic type should be the same after serialization and deserialization`() {
         val data = Data(listOf(generateRSAPubKey()))
 
-        roundTripInlined(data)
-        roundTrip(data, data::class)
+        roundTripInlined(data, PolySerializers)
+        roundTrip(data, data::class, PolySerializers)
     }
 
     @Test
@@ -54,10 +53,10 @@ class ListPolymorphicTest {
         val data1 = Data(listOf(generateRSAPubKey()))
         val data2 = Data(listOf(generateRSAPubKey()))
 
-        sameSizeInlined(empty, data1)
-        sameSize(empty, data1)
-        sameSizeInlined(data2, data1)
-        sameSize(data2, data1)
+        sameSizeInlined(empty, data1, PolySerializers)
+        sameSize(empty, data1, PolySerializers)
+        sameSizeInlined(data2, data1, PolySerializers)
+        sameSize(data2, data1, PolySerializers)
     }
 
     @Test

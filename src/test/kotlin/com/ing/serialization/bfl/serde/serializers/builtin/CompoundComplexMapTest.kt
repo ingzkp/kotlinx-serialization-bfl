@@ -1,6 +1,7 @@
 package com.ing.serialization.bfl.serde.serializers.builtin
 
 import com.ing.serialization.bfl.annotations.FixedLength
+import com.ing.serialization.bfl.serde.checkedSerialize
 import com.ing.serialization.bfl.serde.checkedSerializeInlined
 import com.ing.serialization.bfl.serde.roundTrip
 import com.ing.serialization.bfl.serde.roundTripInlined
@@ -19,7 +20,7 @@ class CompoundComplexMapTest {
     )
 
     @Test
-    fun `serialize complex map within a compound type`() {
+    fun `complex Map within a compound type should be serialized successfully`() {
         val mask = listOf(
             Pair("nested.1", 2 + 2 * 2),
             Pair("nested.2", 4),
@@ -30,15 +31,17 @@ class CompoundComplexMapTest {
             Pair("nested.3.map[1].value", 4 + 2 * 4),
         )
 
-        var data = Data(Triple("a", 1, mapOf("a" to listOf(2))))
-        checkedSerializeInlined(data, mask)
-
-        data = Data(Triple("a", 1, mapOf()))
-        checkedSerializeInlined(data, mask)
+        listOf(
+            Data(Triple("a", 1, mapOf("a" to listOf(2)))),
+            Data(Triple("a", 1, mapOf())),
+        ).forEach {
+            checkedSerializeInlined(it, mask)
+            checkedSerialize(it, mask)
+        }
     }
 
     @Test
-    fun `serialize and deserialize complex map within a compound type`() {
+    fun `complex Map within a compound type should be the same after serialization and deserialization`() {
         val data = Data(Triple("a", 1, mapOf("a" to listOf(2))))
 
         roundTripInlined(data)
@@ -46,7 +49,7 @@ class CompoundComplexMapTest {
     }
 
     @Test
-    fun `serialization has fixed length`() {
+    fun `different complex Maps within a compound type should have same size after serialization`() {
         val empty = Data(Triple("", 0, mapOf()))
         val data1 = Data(Triple("a", 1, mapOf("a" to listOf(2))))
         val data2 = Data(Triple("ba", 2, mapOf("ah" to listOf(2, 4))))

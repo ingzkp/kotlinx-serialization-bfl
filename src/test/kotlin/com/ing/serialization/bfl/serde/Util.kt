@@ -12,8 +12,8 @@ fun log(bytes: ByteArray, splitMask: List<Pair<String, Int>>) {
     var start = 0
     splitMask.forEach {
         val range = bytes.copyOfRange(start, start + it.second)
-        val repr = range.joinToString(separator = ",") { d -> String.format("%2d", d) }
-        println("${it.first} [$start, ${start + it.second}]\t: $repr")
+        val repr = range.joinToString(separator = ",") { d -> " $d" }
+        println("${it.first} [$start, ${start + it.second}]\t:$repr")
         start += it.second
     }
 }

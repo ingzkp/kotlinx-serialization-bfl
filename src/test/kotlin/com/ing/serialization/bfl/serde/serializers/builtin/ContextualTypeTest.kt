@@ -44,7 +44,7 @@ class ContextualTypeTest {
     }
 
     @Test
-    fun `serialize and deserialize contextual type`() {
+    fun `Contextual type should be the same after serialization and deserialization`() {
         val data = Data(SecureHash.allOnesHash)
 
         roundTripInlined(data, serializers)
@@ -52,7 +52,7 @@ class ContextualTypeTest {
     }
 
     @Test
-    fun `serialization has fixed length`() {
+    fun `different Contextual data objects should have same size after serialization`() {
         val data1 = Data(SecureHash.allOnesHash)
         val data2 = Data(SecureHash.zeroHash)
 

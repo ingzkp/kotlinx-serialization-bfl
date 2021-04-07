@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test
 
 class PolymorphicTest {
     @Test
-    fun `serialize polymorphic type itself`() {
+    fun `Polymorphic type itself should be serialized successfully`() {
         val data = generateRSAPubKey()
 
         println(data.encoded.joinToString(separator = ","))
@@ -33,12 +33,17 @@ class PolymorphicTest {
     }
 
     @Test
-    fun `serialize and deserialize polymorphic type itself`() {
+    fun `Polymorphic type should be the same after serialization and deserialization`() {
+        val data = generateRSAPubKey()
+
+        roundTripInlined(data)
+        roundTrip(data, data::class)
+    }
+
+    @Test
+    fun `different Polymorphic data objects should have same size after serialization`() {
         val data1 = generateRSAPubKey()
         val data2 = generateRSAPubKey()
-
-        roundTripInlined(data1)
-        roundTrip(data1, data1::class)
 
         sameSizeInlined(data1, data2)
         sameSize(data1, data2)

@@ -1,6 +1,8 @@
 package com.ing.serialization.bfl.serde.serializers.builtin
 
 import com.ing.serialization.bfl.annotations.FixedLength
+import com.ing.serialization.bfl.api.serialize
+import com.ing.serialization.bfl.serde.SerdeError
 import com.ing.serialization.bfl.serde.checkedSerialize
 import com.ing.serialization.bfl.serde.checkedSerializeInlined
 import com.ing.serialization.bfl.serde.element.ElementFactory
@@ -11,6 +13,7 @@ import com.ing.serialization.bfl.serde.sameSize
 import com.ing.serialization.bfl.serde.sameSizeInlined
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.security.PublicKey
 
 @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
@@ -20,7 +23,7 @@ class ListPolymorphicTest {
     data class Data(@FixedLength([2]) val nested: List<PublicKey>)
 
     @Test
-    fun `serialize polymorphic type within collection`() {
+    fun `List of polymorphic type should be serialized successfully`() {
         val mask = listOf(
             Pair("nested.length", 4),
             Pair("nested[0].serialName", 2 + 2 * ElementFactory.polySerialNameLength),
@@ -37,7 +40,7 @@ class ListPolymorphicTest {
     }
 
     @Test
-    fun `serialize and deserialize polymorphic type within collection`() {
+    fun `List of polymorphic type should be the same after serialization and deserialization`() {
         val data = Data(listOf(generateRSAPubKey()))
 
         roundTripInlined(data)
@@ -45,7 +48,7 @@ class ListPolymorphicTest {
     }
 
     @Test
-    fun `serialization has fixed length`() {
+    fun `different Lists of polymorphic type should have same size after serialization`() {
         val empty = Data(listOf())
         val data1 = Data(listOf(generateRSAPubKey()))
         val data2 = Data(listOf(generateRSAPubKey()))
@@ -54,5 +57,20 @@ class ListPolymorphicTest {
         sameSize(empty, data1)
         sameSizeInlined(data2, data1)
         sameSize(data2, data1)
+    }
+
+    @Test
+    fun `too long List of compound type should throw CollectionTooLarge`() {
+        assertThrows<SerdeError.CollectionTooLarge> {
+            serialize(
+                Data(
+                    listOf(
+                        generateRSAPubKey(),
+                        generateRSAPubKey(),
+                        generateRSAPubKey()
+                    )
+                )
+            )
+        }
     }
 }

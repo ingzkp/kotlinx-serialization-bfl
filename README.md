@@ -10,14 +10,15 @@ length to particular data type.
 Protocol supports primitive types, compounds and collections thereof, and allows for defining custom
 serialization strategies.
 
-##TOC
+## TOC
 [Primitive types](#primitive-types)
 [Compound types](#compound-types)
 [Collections](#collections)
 [Polymorphic types](#polymorphic-types)
 [Configuring and Running](#configuring-serializers-and-running)
+[Implementing Serializers for existing types](#implementing-serializers-for-existing-types)
 
-###Primitive types
+### Primitive types
 Protocol supports the following primitive data types:
 * bool
 * byte
@@ -26,14 +27,14 @@ Protocol supports the following primitive data types:
 * long
 * char
    
-###Compound types 
+### Compound types
 Types constituted of the primitive types. For example,
 ```kotlin
 @Serializable
 data class Compound(val int: Int, val byte: Byte)
 ```
 
-###Collections   
+### Collections
 Collections of the primitive types. To guarantee fixed length of a collection serialization,
 max length of the collection must be specified. All collections, such as `String`, `List`, `Map`, must be annotated
 with `FixedLength` annotation. This annotation specifies in a left-to-right (or, in other words, depth-first) fashion
@@ -53,7 +54,62 @@ data class ComplexType(
 )
 ```
 
-###Polymorphic types
+### Implementing Serializers for existing types
+In cases where a pre-defined type needs to be serialized, meaning that you cannot add `@Serializable` or `@FixedLength`
+annotations, one can introduce a surrogate class, and transform to and from that type. This library offers the
+`Surrogate` and `BaseSerializer` classes to aid with this implementation.
+
+Consider the following type:
+```kotlin
+data class CustomData(val value: String)
+```
+
+There are two things that this class is missing:
+1. An `@Serializable` annotation
+2. A `@FixedLength` annotation on the `String` field
+
+First we define the surrogate class, note that this implements `Surrogate<CustomData>`. The `toOriginal()` method is
+used to convert the surrogate back to the original type after deserialization.
+```kotlin
+@Serializable
+data class CustomDataSurrogate(
+        @FixedLength([42])
+        val value: String
+) : Surrogate<CustomData> {
+    override fun toOriginal(): CustomData = CustomData(value)
+}
+```
+
+Then we define the serializer, using `BaseSerializer`. The constructor of `BaseSerializer` takes a lambda that is used
+to convert the actual value into the surrogate type before serialization.
+```kotlin
+object CustomDataSerializer : KSerializer<CustomData>
+by (BaseSerializer(CustomDataSurrogate.serializer()) {
+    CustomDataSurrogate(it.value)
+})
+```
+
+Then we add the serializer to a `SerializersModule`.
+```kotlin
+import kotlinx.serialization.modules.contextual
+
+val customDataSerializationModule = SerializersModule {
+    contextual(CustomDataSerializer)
+}
+```
+
+And finally we can serialize and deserialize `CustomData` instances.
+```kotlin
+import com.ing.serialization.bfl.api.reified.deserialize
+import com.ing.serialization.bfl.api.reified.serialize
+
+val original = CustomData("Hello World!")
+val serializedBytes = serialize(original, customDataSerializationModule)
+val deserialized: CustomData = deserialize(serializedBytes, customDataSerializationModule)
+deserialized shouldBe original
+```
+
+### Polymorphic types
 To ensure that each variant of a polymorphic type serializes to a fixed length byte array, each variant **MUST** use
 the same representation or, called differently, surrogate. To aid the development, this module features several tools,
 here we discuss how to use them.
@@ -104,7 +160,7 @@ object VariantBSucceedingSerializer : KSerializer<VariantB> by (
     })
 ```
 
-##Configuring serializers and running
+## Configuring serializers and running
 After all serializers have been defined they must be grouped in the serializers module and passed further
 to the BFL serializer. Consider the case of a polymorphic type [above](#polymorphic-types).  
 ```kotlin

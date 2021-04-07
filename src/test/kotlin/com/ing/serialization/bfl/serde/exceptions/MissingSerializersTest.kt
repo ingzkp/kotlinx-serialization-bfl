@@ -1,5 +1,7 @@
 package com.ing.serialization.bfl.serde.exceptions
 
+import com.ing.serialization.bfl.api.debugSerialize
+import com.ing.serialization.bfl.api.deserialize
 import com.ing.serialization.bfl.api.serialize
 import com.ing.serialization.bfl.serde.SerdeError
 import io.kotest.matchers.string.shouldContain
@@ -29,6 +31,23 @@ class MissingSerializersTest {
 
         assertThrows<SerdeError.NoPolymorphicSerializers> {
             serialize(Data(1))
+        }
+    }
+
+    @Test
+    fun `serialization and deserialization with missing top level serializer should fail`() {
+        data class Data(val value: Int)
+
+        assertThrows<SerdeError.NoTopLevelSerializer> {
+            serialize(Data(1))
+        }
+
+        assertThrows<SerdeError.NoTopLevelSerializer> {
+            debugSerialize(Data(1))
+        }
+
+        assertThrows<SerdeError.NoTopLevelSerializer> {
+            deserialize(byteArrayOf(), Data::class)
         }
     }
 

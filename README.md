@@ -57,7 +57,7 @@ data class ComplexType(
 ### Implementing Serializers for existing types
 In cases where a pre-defined type needs to be serialized, meaning that you cannot add `@Serializable` or `@FixedLength`
 annotations, one can introduce a surrogate class, and transform to and from that type. This library offers the
-`Surrogate` and `BaseSerializer` classes to aid with this implementation.
+`Surrogate` and `SurrogateSerializer` classes to aid with this implementation.
 
 Consider the following type:
 ```kotlin
@@ -80,11 +80,11 @@ data class CustomDataSurrogate(
 }
 ```
 
-Next we define the serializer, using `BaseSerializer`. The constructor of `BaseSerializer` takes a lambda that is used
+Next we define the serializer, using `SurrogateSerializer`. The constructor of `SurrogateSerializer` takes a lambda that is used
 to convert the actual value into the surrogate type before serialization.
 ```kotlin
 object CustomDataSerializer : KSerializer<CustomData>
-by (BaseSerializer(CustomDataSurrogate.serializer()) {
+by (SurrogateSerializer(CustomDataSurrogate.serializer()) {
     CustomDataSurrogate(it.value)
 })
 ```
@@ -154,12 +154,12 @@ a smaller size serialization (by 1 byte) than for `VariantBSucceedingSurrogate`.
 Finally, implementation of serializers is derived via a minor configuration.
 ```kotlin
 object VariantASucceedingSerializer : KSerializer<VariantA> by (
-    BaseSerializer(VariantASucceedingSurrogate.serializer()) {
+    SurrogateSerializer(VariantASucceedingSurrogate.serializer()) {
         VariantASucceedingSurrogate(myInt = it.myInt)
     })
 
 object VariantBSucceedingSerializer : KSerializer<VariantB> by (
-    BaseSerializer(VariantBSucceedingSurrogate.serializer()) {
+    SurrogateSerializer(VariantBSucceedingSurrogate.serializer()) {
         VariantBSucceedingSurrogate(myLong = it.myLong)
     })
 ```

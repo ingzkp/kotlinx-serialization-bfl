@@ -1,7 +1,7 @@
 package com.ing.serialization.bfl.serializers
 
 import com.ing.serialization.bfl.annotations.FixedLength
-import com.ing.serialization.bfl.api.BaseSerializer
+import com.ing.serialization.bfl.api.SurrogateSerializer
 import com.ing.serialization.bfl.api.Surrogate
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -20,10 +20,10 @@ abstract class PublicKeyBaseSurrogate {
 }
 
 object RSAPublicKeySerializer : KSerializer<RSAPublicKeyImpl>
-by (BaseSerializer(RSASurrogate.serializer()) { RSASurrogate(it.encoded) })
+by (SurrogateSerializer(RSASurrogate.serializer()) { RSASurrogate(it.encoded) })
 
 object DSAPublicKeySerializer : KSerializer<DSAPublicKeyImpl>
-by (BaseSerializer(DSASurrogate.serializer()) { DSASurrogate(it.encoded) })
+by (SurrogateSerializer(DSASurrogate.serializer()) { DSASurrogate(it.encoded) })
 
 @Suppress("ArrayInDataClass")
 @Serializable

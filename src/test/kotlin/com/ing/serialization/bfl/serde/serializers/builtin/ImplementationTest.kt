@@ -1,7 +1,7 @@
 package com.ing.serialization.bfl.serde.serializers.builtin
 
 import com.ing.serialization.bfl.annotations.FixedLength
-import com.ing.serialization.bfl.api.BaseSerializer
+import com.ing.serialization.bfl.api.SurrogateSerializer
 import com.ing.serialization.bfl.api.Surrogate
 import com.ing.serialization.bfl.api.reified.deserialize
 import com.ing.serialization.bfl.api.reified.serialize
@@ -44,7 +44,7 @@ data class CustomDataSurrogate(
 
 object CustomDataSerializer : KSerializer<CustomData>
 by (
-    BaseSerializer(CustomDataSurrogate.serializer()) {
+    SurrogateSerializer(CustomDataSurrogate.serializer()) {
         CustomDataSurrogate(it.value)
     }
     )

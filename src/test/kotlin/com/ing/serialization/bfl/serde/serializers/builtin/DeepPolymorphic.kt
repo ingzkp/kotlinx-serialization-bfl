@@ -1,7 +1,7 @@
 package com.ing.serialization.bfl.serde.serializers.builtin
 
 import com.ing.serialization.bfl.annotations.FixedLength
-import com.ing.serialization.bfl.api.BaseSerializer
+import com.ing.serialization.bfl.api.SurrogateSerializer
 import com.ing.serialization.bfl.api.Surrogate
 import com.ing.serialization.bfl.api.reified.debugSerialize
 import com.ing.serialization.bfl.api.reified.serialize
@@ -80,10 +80,10 @@ data class VariantB(val myLong: Long) : Poly
 
 // This is a failing serializing strategy, because variant serializers use surrogates resulting in different lengths -->
 object VariantAFailingSerializer : KSerializer<VariantA>
-by (BaseSerializer(VariantAFailingSurrogate.serializer()) { VariantAFailingSurrogate(it.myInt) })
+by (SurrogateSerializer(VariantAFailingSurrogate.serializer()) { VariantAFailingSurrogate(it.myInt) })
 
 object VariantBFailingSerializer : KSerializer<VariantB>
-by (BaseSerializer(VariantBFailingSurrogate.serializer()) { VariantBFailingSurrogate(it.myLong) })
+by (SurrogateSerializer(VariantBFailingSurrogate.serializer()) { VariantBFailingSurrogate(it.myLong) })
 
 @Suppress("ArrayInDataClass")
 @Serializable
@@ -100,14 +100,14 @@ data class VariantBFailingSurrogate(val value: Long) : Surrogate<VariantB> {
 
 object VariantASucceedingSerializer : KSerializer<VariantA>
 by (
-    BaseSerializer(VariantASucceedingSurrogate.serializer()) {
+    SurrogateSerializer(VariantASucceedingSurrogate.serializer()) {
         VariantASucceedingSurrogate(myInt = it.myInt)
     }
     )
 
 object VariantBSucceedingSerializer : KSerializer<VariantB>
 by (
-    BaseSerializer(VariantBSucceedingSurrogate.serializer()) {
+    SurrogateSerializer(VariantBSucceedingSurrogate.serializer()) {
         VariantBSucceedingSurrogate(myLong = it.myLong)
     }
     )

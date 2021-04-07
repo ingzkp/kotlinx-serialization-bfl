@@ -14,9 +14,9 @@ serialization strategies.
 [Primitive types](#primitive-types)
 [Compound types](#compound-types)
 [Collections](#collections)
+[Implementing Serializers for existing types](#implementing-serializers-for-existing-types)
 [Polymorphic types](#polymorphic-types)
 [Configuring and Running](#configuring-serializers-and-running)
-[Implementing Serializers for existing types](#implementing-serializers-for-existing-types)
 
 ### Primitive types
 Protocol supports the following primitive data types:

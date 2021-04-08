@@ -32,7 +32,7 @@ class CurrencySerializerTest {
     fun `Currency should be the same after serialization and deserialization`() {
         val data = Data(Currency.getInstance(Locale.CANADA))
         roundTripInlined(data)
-        roundTrip(data, data::class)
+        roundTrip(data)
     }
 
     @Test

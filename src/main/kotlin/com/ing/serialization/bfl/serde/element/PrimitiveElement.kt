@@ -53,7 +53,7 @@ class PrimitiveElement(
                 kind is PrimitiveKind.CHAR && value is Char -> writeChar(value.toInt())
                 kind is PrimitiveKind.FLOAT && value is Float -> writeFloat(stream, value)
                 kind is PrimitiveKind.DOUBLE && value is Double -> writeDouble(stream, value)
-                else -> error("$serialName cannot encode $value of type ${value::class.simpleName}")
+                else -> throw SerdeError.UnexpectedPrimitive(kind as PrimitiveKind, value::class)
             }
         }
     }

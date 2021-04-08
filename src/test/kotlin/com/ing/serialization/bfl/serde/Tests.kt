@@ -5,10 +5,10 @@ import com.ing.serialization.bfl.api.serialize
 import com.ing.serialization.bfl.serializers.BFLSerializers
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.modules.EmptySerializersModule
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.plus
-import kotlin.reflect.KClass
 import com.ing.serialization.bfl.api.reified.deserialize as deserializeInlined
 import com.ing.serialization.bfl.api.reified.serialize as serializeInlined
 
@@ -18,9 +18,10 @@ import com.ing.serialization.bfl.api.reified.serialize as serializeInlined
 inline fun <reified T : Any> checkedSerializeInlined(
     data: T,
     mask: List<Pair<String, Int>>,
-    serializers: SerializersModule = EmptySerializersModule
+    serializers: SerializersModule = EmptySerializersModule,
+    strategy: KSerializer<T>? = null
 ): ByteArray {
-    val bytes = serializeInlined(data, BFLSerializers + serializers)
+    val bytes = serializeInlined(data, strategy, serializersModule = BFLSerializers + serializers)
     log(bytes, mask)
     bytes.size shouldBe mask.sumBy { it.second }
 
@@ -30,9 +31,13 @@ inline fun <reified T : Any> checkedSerializeInlined(
 /**
  * Test if value survives serialization/deserialization.
  */
-inline fun <reified T : Any> roundTripInlined(value: T, serializers: SerializersModule = EmptySerializersModule) {
-    val serialization = serializeInlined(value, BFLSerializers + serializers)
-    val deserialization = deserializeInlined<T>(serialization, BFLSerializers + serializers)
+inline fun <reified T : Any> roundTripInlined(
+    value: T,
+    serializers: SerializersModule = EmptySerializersModule,
+    strategy: KSerializer<T>? = null
+) {
+    val serialization = serializeInlined(value, strategy, serializersModule = BFLSerializers + serializers)
+    val deserialization = deserializeInlined<T>(serialization, serializersModule = BFLSerializers + serializers)
 
     deserialization shouldBe value
 }
@@ -40,11 +45,16 @@ inline fun <reified T : Any> roundTripInlined(value: T, serializers: Serializers
 /**
  * Test if serializations of different instances have the same size.
  */
-inline fun <reified T : Any> sameSizeInlined(value1: T, value2: T, serializers: SerializersModule = EmptySerializersModule) {
+inline fun <reified T : Any> sameSizeInlined(
+    value1: T,
+    value2: T,
+    serializers: SerializersModule = EmptySerializersModule,
+    strategy: KSerializer<T>? = null
+) {
     value1 shouldNotBe value2
 
-    val serialization1 = serializeInlined(value1, BFLSerializers + serializers)
-    val serialization2 = serializeInlined(value2, BFLSerializers + serializers)
+    val serialization1 = serializeInlined(value1, strategy, serializersModule = BFLSerializers + serializers)
+    val serialization2 = serializeInlined(value2, strategy, serializersModule = BFLSerializers + serializers)
 
     serialization1 shouldNotBe serialization2
     serialization1.size shouldBe serialization2.size
@@ -56,9 +66,10 @@ inline fun <reified T : Any> sameSizeInlined(value1: T, value2: T, serializers: 
 fun <T : Any> checkedSerialize(
     data: T,
     mask: List<Pair<String, Int>>,
-    serializers: SerializersModule = EmptySerializersModule
+    serializers: SerializersModule = EmptySerializersModule,
+    strategy: KSerializer<T>? = null
 ): ByteArray {
-    val bytes = serialize(data, BFLSerializers + serializers)
+    val bytes = serialize(data, strategy, serializersModule = BFLSerializers + serializers)
     log(bytes, mask)
     bytes.size shouldBe mask.sumBy { it.second }
 
@@ -68,9 +79,13 @@ fun <T : Any> checkedSerialize(
 /**
  * Test if value survives serialization/deserialization.
  */
-fun <T : Any> roundTrip(value: T, klass: KClass<out T>, serializers: SerializersModule = EmptySerializersModule) {
-    val serialization = serialize(value, BFLSerializers + serializers)
-    val deserialization = deserialize(serialization, klass, BFLSerializers + serializers)
+fun <T : Any> roundTrip(
+    value: T,
+    serializers: SerializersModule = EmptySerializersModule,
+    strategy: KSerializer<T>? = null
+) {
+    val serialization = serialize(value, strategy, serializersModule = BFLSerializers + serializers)
+    val deserialization = deserialize(serialization, value::class, strategy, BFLSerializers + serializers)
 
     deserialization shouldBe value
 }
@@ -78,11 +93,16 @@ fun <T : Any> roundTrip(value: T, klass: KClass<out T>, serializers: Serializers
 /**
  * Test if serializations of different instances have the same size.
  */
-fun <T : Any> sameSize(value1: T, value2: T, serializers: SerializersModule = EmptySerializersModule) {
+fun <T : Any> sameSize(
+    value1: T,
+    value2: T,
+    serializers: SerializersModule = EmptySerializersModule,
+    strategy: KSerializer<T>? = null
+) {
     value1 shouldNotBe value2
 
-    val serialization1 = serialize(value1, BFLSerializers + serializers)
-    val serialization2 = serialize(value2, BFLSerializers + serializers)
+    val serialization1 = serialize(value1, strategy, serializersModule = BFLSerializers + serializers)
+    val serialization2 = serialize(value2, strategy, serializersModule = BFLSerializers + serializers)
 
     serialization1 shouldNotBe serialization2
     serialization1.size shouldBe serialization2.size

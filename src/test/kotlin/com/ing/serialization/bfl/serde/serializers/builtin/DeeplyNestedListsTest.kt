@@ -76,7 +76,7 @@ class DeeplyNestedListsTest {
         val data = Data(listOf(listOf(listOf(2))))
 
         roundTripInlined(data)
-        roundTrip(data, data::class)
+        roundTrip(data)
     }
 
     @Test

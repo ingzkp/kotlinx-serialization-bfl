@@ -50,7 +50,7 @@ class StringNullableTest {
         val data = NullableData(null)
 
         roundTripInlined(data)
-        roundTrip(data, data::class)
+        roundTrip(data)
     }
 
     @Test

@@ -29,7 +29,7 @@ class CharTest {
         val data = Data('a')
 
         roundTripInlined(data)
-        roundTrip(data, data::class)
+        roundTrip(data)
     }
 
     @Test

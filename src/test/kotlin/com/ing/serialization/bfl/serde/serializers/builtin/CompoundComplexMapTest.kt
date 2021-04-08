@@ -45,7 +45,7 @@ class CompoundComplexMapTest {
         val data = Data(Triple("a", 1, mapOf("a" to listOf(2))))
 
         roundTripInlined(data)
-        roundTrip(data, data::class)
+        roundTrip(data)
     }
 
     @Test

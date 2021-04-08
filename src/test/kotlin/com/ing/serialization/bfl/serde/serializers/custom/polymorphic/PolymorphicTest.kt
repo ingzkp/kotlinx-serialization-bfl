@@ -1,4 +1,4 @@
-package com.ing.serialization.bfl.serde.serializers.builtin
+package com.ing.serialization.bfl.serde.serializers.custom.polymorphic
 
 import com.ing.serialization.bfl.serde.checkedSerializeInlined
 import com.ing.serialization.bfl.serde.element.ElementFactory
@@ -10,7 +10,6 @@ import com.ing.serialization.bfl.serde.sameSizeInlined
 import org.junit.jupiter.api.Test
 
 @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
-
 class PolymorphicTest {
     @Test
     fun `Polymorphic type itself should be serialized successfully`() {
@@ -18,26 +17,20 @@ class PolymorphicTest {
 
         println(data.encoded.joinToString(separator = ","))
 
-        var mask = listOf(
+        val mask = listOf(
             Pair("serialName", 2 + 2 * ElementFactory.polySerialNameLength),
             Pair("length", 4),
-            Pair("value", 294)
+            Pair("value", PublicKeyBaseSurrogate.ENCODED_SIZE)
         )
-        checkedSerializeInlined(data, mask)
-
-        // mask = listOf(
-        //     Pair("length", 4),
-        //     Pair("value", 294)
-        // )
-        // checkedSerialize(data, mask)
+        checkedSerializeInlined(data, mask, PolySerializers)
     }
 
     @Test
     fun `Polymorphic type should be the same after serialization and deserialization`() {
         val data = generateRSAPubKey()
 
-        roundTripInlined(data)
-        roundTrip(data, data::class)
+        roundTripInlined(data, PolySerializers)
+        roundTrip(data, PolySerializers)
     }
 
     @Test
@@ -45,7 +38,10 @@ class PolymorphicTest {
         val data1 = generateRSAPubKey()
         val data2 = generateRSAPubKey()
 
-        sameSizeInlined(data1, data2)
-        sameSize(data1, data2)
+        roundTripInlined(data1, PolySerializers)
+        roundTrip(data1, PolySerializers)
+
+        sameSizeInlined(data1, data2, PolySerializers)
+        sameSize(data1, data2, PolySerializers)
     }
 }

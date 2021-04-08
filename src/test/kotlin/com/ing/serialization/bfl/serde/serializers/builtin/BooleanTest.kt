@@ -29,7 +29,7 @@ class BooleanTest {
         val data = Data(true)
 
         roundTripInlined(data)
-        roundTrip(data, data::class)
+        roundTrip(data)
     }
 
     @Test

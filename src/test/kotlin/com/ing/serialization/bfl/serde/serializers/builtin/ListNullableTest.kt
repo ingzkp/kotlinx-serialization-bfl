@@ -38,7 +38,7 @@ class ListNullableTest {
         val data = NullableData(listOf(25, null))
 
         roundTripInlined(data)
-        roundTrip(data, data::class)
+        roundTrip(data)
     }
 
     @Test

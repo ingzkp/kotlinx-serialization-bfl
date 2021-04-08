@@ -39,7 +39,7 @@ class FloatTest {
 
         data = Data(null)
         roundTripInlined(data)
-        roundTrip(data, data::class)
+        roundTrip(data)
     }
 
     @Test
@@ -59,7 +59,7 @@ class FloatTest {
             Float.MAX_VALUE,
             Float.MIN_VALUE,
         ).forEach { expected ->
-            val serialized = serialize(Data(expected), BFLSerializers)
+            val serialized = serialize(Data(expected), serializersModule = BFLSerializers)
             val actual = deserialize<Data>(serialized)
             actual.value!! shouldBeExactly expected
         }

@@ -70,7 +70,7 @@ class BigDecimalSerializerTest {
             Data(BigDecimal("0.01"))
         ).forEach { data ->
             roundTripInlined(data)
-            roundTrip(data, data::class)
+            roundTrip(data)
         }
     }
 

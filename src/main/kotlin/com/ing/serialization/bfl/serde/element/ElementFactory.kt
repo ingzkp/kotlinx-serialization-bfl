@@ -88,22 +88,25 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
                 }
             }
             descriptor.isPolymorphic -> {
-                // Polymorphic type consists of a string and a structure.
-
-                // Bound the serialName of the polymorphic type.
-                val type = descriptor.elementDescriptors.first()
-                dfQueue.prepend(polySerialNameLength)
-
                 // Get the descriptor for the polymorphic type.
                 val polyDescriptors = serializersModule.getPolymorphicDescriptors(descriptor)
 
                 if (polyDescriptors.isEmpty()) {
                     throw SerdeError.NoPolymorphicSerializers(descriptor)
                 }
-                // TODO validate
-                //  We work with fixed length serialization, thus
-                //  we assume that all interfaces are serialized through the same surrogate or descriptor.
-                //  thus any descriptor will do.
+
+                // To ensure fixed length serialization for a polymorphic type,
+                // all variants of the polymorphic must have the same serialization size.
+                // A robust way to achieve that is to use the same serializable surrogate class.
+                // **We accept this as a hard requirement!**
+
+                // Polymorphic type consists of a string describing type and a structure.
+                // Bound the serialName of the polymorphic type.
+                val type = descriptor.elementDescriptors.first()
+                dfQueue.prepend(polySerialNameLength)
+
+                // The hard requirement above implies that any descriptor independently of a variant
+                // will good enough for a respective polymorphic type.
                 val value = polyDescriptors.first()
 
                 val children = listOf(type, value).map { fromType(it, parentName) }

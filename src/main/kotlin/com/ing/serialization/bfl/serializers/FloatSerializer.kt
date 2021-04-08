@@ -20,7 +20,7 @@ data class FloatSurrogate(
         const val FLOAT_INTEGER_SIZE: Int = 39
         const val FLOAT_FRACTION_SIZE: Int = 46
 
-        // TODO: @Victor: What are these magic numbers? Let's make constants for them somewhere
+        // TODO: introduce constants for these magic numbers, also in PrimitiveElement.kt, tests and any other places they occur.
         const val FLOAT_SIZE = 1 + (4 + FLOAT_INTEGER_SIZE) + (4 + FLOAT_FRACTION_SIZE)
 
         fun from(double: Float): FloatSurrogate {

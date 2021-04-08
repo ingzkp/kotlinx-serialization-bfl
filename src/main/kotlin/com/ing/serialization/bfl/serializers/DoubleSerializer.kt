@@ -20,7 +20,7 @@ data class DoubleSurrogate(
         const val DOUBLE_INTEGER_SIZE: Int = 309
         const val DOUBLE_FRACTION_SIZE: Int = 325
 
-        // TODO: introduce constants for these magic numbers, also in PrimitiveElement.kt
+        // TODO: introduce constants for these magic numbers, also in PrimitiveElement.kt, tests and any other places they occur.
         const val DOUBLE_SIZE = 1 + (4 + DOUBLE_INTEGER_SIZE) + (4 + DOUBLE_FRACTION_SIZE)
 
         fun from(double: Double): DoubleSurrogate {

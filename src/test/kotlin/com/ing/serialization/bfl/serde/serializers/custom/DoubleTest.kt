@@ -9,8 +9,7 @@ import com.ing.serialization.bfl.serde.roundTripInlined
 import com.ing.serialization.bfl.serde.sameSize
 import com.ing.serialization.bfl.serde.sameSizeInlined
 import com.ing.serialization.bfl.serializers.BFLSerializers
-import com.ing.serialization.bfl.serializers.DoubleSurrogate.Companion.DOUBLE_FRACTION_SIZE
-import com.ing.serialization.bfl.serializers.DoubleSurrogate.Companion.DOUBLE_INTEGER_SIZE
+import com.ing.serialization.bfl.serializers.DoubleSurrogate
 import io.kotest.matchers.doubles.shouldBeExactly
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
@@ -24,8 +23,8 @@ class DoubleTest {
         val mask = listOf(
             Pair("nonNull", 1),
             Pair("sign", 1),
-            Pair("integer", 4 + DOUBLE_INTEGER_SIZE),
-            Pair("fraction", 4 + DOUBLE_FRACTION_SIZE)
+            Pair("integer", 4 + DoubleSurrogate.DOUBLE_INTEGER_SIZE),
+            Pair("fraction", 4 + DoubleSurrogate.DOUBLE_FRACTION_SIZE)
         )
 
         val data = Data(4.33)
@@ -46,8 +45,8 @@ class DoubleTest {
     @Test
     fun `different Doubles should have same size after serialization`() {
         val double = (
-            List(DOUBLE_INTEGER_SIZE / 10) { "1234567890" }.joinToString(separator = "") + "." +
-                List(DOUBLE_FRACTION_SIZE / 10) { "1234567890" }.joinToString(separator = "")
+            List(DoubleSurrogate.DOUBLE_INTEGER_SIZE / 10) { "1234567890" }.joinToString(separator = "") + "." +
+                List(DoubleSurrogate.DOUBLE_FRACTION_SIZE / 10) { "1234567890" }.joinToString(separator = "")
             ).toDouble()
 
         val data1 = Data(4.33)

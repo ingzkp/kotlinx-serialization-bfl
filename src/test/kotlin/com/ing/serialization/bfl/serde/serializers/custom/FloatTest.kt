@@ -9,8 +9,7 @@ import com.ing.serialization.bfl.serde.roundTripInlined
 import com.ing.serialization.bfl.serde.sameSize
 import com.ing.serialization.bfl.serde.sameSizeInlined
 import com.ing.serialization.bfl.serializers.BFLSerializers
-import com.ing.serialization.bfl.serializers.FloatSurrogate.Companion.FLOAT_FRACTION_SIZE
-import com.ing.serialization.bfl.serializers.FloatSurrogate.Companion.FLOAT_INTEGER_SIZE
+import com.ing.serialization.bfl.serializers.FloatSurrogate
 import io.kotest.matchers.floats.shouldBeExactly
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
@@ -24,8 +23,8 @@ class FloatTest {
         val mask = listOf(
             Pair("nonNull", 1),
             Pair("sign", 1),
-            Pair("integer", 4 + FLOAT_INTEGER_SIZE),
-            Pair("fraction", 4 + FLOAT_FRACTION_SIZE)
+            Pair("integer", 4 + FloatSurrogate.FLOAT_INTEGER_SIZE),
+            Pair("fraction", 4 + FloatSurrogate.FLOAT_FRACTION_SIZE)
         )
 
         val data = Data(4.33.toFloat())

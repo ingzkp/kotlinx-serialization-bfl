@@ -5,9 +5,7 @@ import com.ing.serialization.bfl.api.reified.serialize
 import com.ing.serialization.bfl.serde.SerdeError
 import com.ing.serialization.bfl.serde.isTrulyPrimitive
 import com.ing.serialization.bfl.serializers.DoubleSurrogate
-import com.ing.serialization.bfl.serializers.DoubleSurrogate.Companion.DOUBLE_SIZE
 import com.ing.serialization.bfl.serializers.FloatSurrogate
-import com.ing.serialization.bfl.serializers.FloatSurrogate.Companion.FLOAT_SIZE
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialKind
 import java.io.DataInput
@@ -35,8 +33,8 @@ class PrimitiveElement(
             is PrimitiveKind.INT -> 4
             is PrimitiveKind.LONG -> 8
             is PrimitiveKind.CHAR -> 2
-            is PrimitiveKind.FLOAT -> FLOAT_SIZE
-            is PrimitiveKind.DOUBLE -> DOUBLE_SIZE
+            is PrimitiveKind.FLOAT -> FloatSurrogate.FLOAT_SIZE
+            is PrimitiveKind.DOUBLE -> DoubleSurrogate.DOUBLE_SIZE
             else -> error("Do not know how to compute layout for primitive $kind")
         }
 
@@ -61,17 +59,11 @@ class PrimitiveElement(
     }
 
     private fun writeFloat(stream: DataOutput, value: Float?) {
-        when (value) {
-            is Float -> serialize(FloatSurrogate.from(value))
-            else -> ByteArray(FLOAT_SIZE) { 0 }
-        }.also { stream.write(it) }
+        stream.write(value?.let { serialize(FloatSurrogate.from(it)) } ?: ByteArray(FloatSurrogate.FLOAT_SIZE) { 0 })
     }
 
     private fun writeDouble(stream: DataOutput, value: Double?) {
-        when (value) {
-            is Double -> serialize(DoubleSurrogate.from(value))
-            else -> ByteArray(DOUBLE_SIZE) { 0 }
-        }.also { stream.write(it) }
+        stream.write(value?.let { serialize(DoubleSurrogate.from(it)) } ?: ByteArray(DoubleSurrogate.DOUBLE_SIZE) { 0 })
     }
 
     override fun encodeNull(output: DataOutput) =
@@ -106,13 +98,13 @@ class PrimitiveElement(
         }
 
     private fun readFloat(input: DataInput): Float {
-        val surrogateInput = ByteArray(FLOAT_SIZE)
+        val surrogateInput = ByteArray(FloatSurrogate.FLOAT_SIZE)
         input.readFully(surrogateInput)
         return deserialize<FloatSurrogate>(surrogateInput).toOriginal()
     }
 
     private fun readDouble(input: DataInput): Double {
-        val surrogateInput = ByteArray(DOUBLE_SIZE)
+        val surrogateInput = ByteArray(DoubleSurrogate.DOUBLE_SIZE)
         input.readFully(surrogateInput)
         return deserialize<DoubleSurrogate>(surrogateInput).toOriginal()
     }

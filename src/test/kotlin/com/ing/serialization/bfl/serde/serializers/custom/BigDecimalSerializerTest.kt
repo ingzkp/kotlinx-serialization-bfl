@@ -1,5 +1,7 @@
 package com.ing.serialization.bfl.serde.serializers.custom
 
+import com.ing.serialization.bfl.api.reified.serialize
+import com.ing.serialization.bfl.serde.SerdeError
 import com.ing.serialization.bfl.serde.checkedSerialize
 import com.ing.serialization.bfl.serde.checkedSerializeInlined
 import com.ing.serialization.bfl.serde.roundTrip
@@ -13,10 +15,17 @@ import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
+import kotlin.test.assertFailsWith
 
 class BigDecimalSerializerTest {
+
     @Serializable
-    data class Data(@BigDecimalSizes([20, 4]) val value: @Contextual BigDecimal)
+    data class Data(@BigDecimalSizes([BD_INTEGER_SIZE, BD_FRACTION_SIZE]) val value: @Contextual BigDecimal) {
+        companion object {
+            const val BD_INTEGER_SIZE = 20
+            const val BD_FRACTION_SIZE = 4
+        }
+    }
 
     @Test
     fun `BigDecimalSurrogate should convert to BigDecimal`() {
@@ -43,8 +52,8 @@ class BigDecimalSerializerTest {
     fun `BigDecimal should be serialized successfully`() {
         val mask = listOf(
             Pair("sign", 1),
-            Pair("integer", 4 + 20),
-            Pair("fraction", 4 + 4)
+            Pair("integer", 4 + Data.BD_INTEGER_SIZE),
+            Pair("fraction", 4 + Data.BD_FRACTION_SIZE)
         )
 
         val data = Data(4.33.toBigDecimal())
@@ -72,5 +81,15 @@ class BigDecimalSerializerTest {
 
         sameSizeInlined(data1, data2)
         sameSize(data1, data2)
+    }
+
+    @Test
+    fun `Integer and fraction size overflows cause exception`() {
+        assertFailsWith(SerdeError.CollectionTooLarge::class) {
+            serialize(Data("1".repeat(Data.BD_INTEGER_SIZE + 1).toBigDecimal()))
+        }
+        assertFailsWith(SerdeError.CollectionTooLarge::class) {
+            serialize(Data("0.${"1".repeat(Data.BD_FRACTION_SIZE + 1)}".toBigDecimal()))
+        }
     }
 }

@@ -2,19 +2,14 @@ package com.ing.serialization.bfl.serializers
 
 import java.math.BigDecimal
 
-fun String.toListOfDecimals(): ByteArray {
-    return this.map {
-        // Experimental: prefer plain java version.
-        // it.digitToInt()
-        Character.getNumericValue(it).toByte()
-    }.toByteArray()
-}
+fun String.toListOfDecimals() = map {
+    Character.getNumericValue(it).toByte()
+}.toByteArray()
 
 fun BigDecimal.representOrThrow(): Pair<String, String?> {
     val integerFractionPair = toPlainString().removePrefix("-").split(".")
 
-    val integerPart = integerFractionPair.getOrNull(0)
-        ?: error("Cannot convert BigDecimal ${toPlainString()} to its integer and fractional parts")
+    val integerPart = integerFractionPair[0]
     val fractionalPart = integerFractionPair.getOrNull(1)
 
     return Pair(integerPart, fractionalPart)

@@ -57,7 +57,7 @@ class FloatTest {
         val floatOverSized = Float.MIN_VALUE
 
         assertThrows<IllegalArgumentException> {
-            serialize(Data(floatOverSized), BFLSerializers)
+            serialize(Data(floatOverSized), serializersModule = BFLSerializers)
         }.also {
             it.message shouldBe "Float is too large for BigDecimalSurrogate"
         }

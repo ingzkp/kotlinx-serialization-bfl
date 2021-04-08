@@ -64,7 +64,7 @@ class DoubleTest {
             Double.MIN_VALUE,
         ).forEach {
             assertThrows<IllegalArgumentException> {
-                serialize(Data(it), BFLSerializers)
+                serialize(Data(it), serializersModule = BFLSerializers)
             }.also {
                 it.message shouldBe "Double is too large for BigDecimalSurrogate"
             }

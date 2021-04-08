@@ -39,7 +39,7 @@ class CompoundNullableListTest {
         val data = NullableData(Pair(10, null))
 
         roundTripInlined(data)
-        roundTrip(data, data::class)
+        roundTrip(data)
     }
 
     @Test

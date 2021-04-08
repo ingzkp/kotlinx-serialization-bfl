@@ -108,7 +108,7 @@ class BigDecimalSerializerTest {
         val integerOverSized = BigDecimal("${"9".repeat(BigDecimalSurrogate.INTEGER_SIZE + 1)}.${"9".repeat(BigDecimalSurrogate.FRACTION_SIZE)}")
 
         assertThrows<IllegalArgumentException> {
-            serialize(Data(integerOverSized), BFLSerializers)
+            serialize(Data(integerOverSized), serializersModule = BFLSerializers)
         }.also {
             it.message shouldBe "BigDecimal supports no more than ${BigDecimalSurrogate.INTEGER_SIZE} digits in integer part " +
                 "and ${BigDecimalSurrogate.FRACTION_SIZE} digits in fraction part"
@@ -120,7 +120,7 @@ class BigDecimalSerializerTest {
         val fractionOverSized = BigDecimal("${"9".repeat(BigDecimalSurrogate.INTEGER_SIZE)}.${"9".repeat(BigDecimalSurrogate.FRACTION_SIZE + 1)}")
 
         assertThrows<IllegalArgumentException> {
-            serialize(Data(fractionOverSized), BFLSerializers)
+            serialize(Data(fractionOverSized), serializersModule = BFLSerializers)
         }.also {
             it.message shouldBe "BigDecimal supports no more than ${BigDecimalSurrogate.INTEGER_SIZE} digits in integer part " +
                 "and ${BigDecimalSurrogate.FRACTION_SIZE} digits in fraction part"

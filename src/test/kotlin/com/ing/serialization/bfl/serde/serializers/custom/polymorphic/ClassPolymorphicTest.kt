@@ -8,7 +8,6 @@ import com.ing.serialization.bfl.serde.roundTrip
 import com.ing.serialization.bfl.serde.roundTripInlined
 import com.ing.serialization.bfl.serde.sameSize
 import com.ing.serialization.bfl.serde.sameSizeInlined
-import com.ing.serialization.bfl.serializers.PublicKeyBaseSurrogate
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 import java.security.PublicKey

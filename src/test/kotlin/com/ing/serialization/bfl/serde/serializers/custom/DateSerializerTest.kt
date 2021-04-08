@@ -17,7 +17,7 @@ class DateSerializerTest {
     data class Data(val date: @Serializable(with = DateSerializer::class) Date)
 
     @Test
-    fun `serialize Date`() {
+    fun `Date should be serialized successfully`() {
         val mask = listOf(Pair("date", 8))
 
         val data = Data(SimpleDateFormat("yyyy-MM-ddX").parse("2016-02-15+00"))
@@ -26,14 +26,14 @@ class DateSerializerTest {
     }
 
     @Test
-    fun `serialize and deserialize Date`() {
+    fun `Date should be the same after serialization and deserialization`() {
         val data = Data(SimpleDateFormat("yyyy-MM-ddX").parse("2016-02-15+00"))
         roundTripInlined(data)
         roundTrip(data, data::class)
     }
 
     @Test
-    fun `same size Date`() {
+    fun `different Dates should have same size after serialization`() {
         val data1 = Data(SimpleDateFormat("yyyy-MM-ddX").parse("2016-02-15+00"))
         val data2 = Data(SimpleDateFormat("yyyy-MM-ddX").parse("2018-01-12+00"))
 

@@ -17,7 +17,7 @@ class CurrencySerializerTest {
     data class Data(val value: @Contextual Currency)
 
     @Test
-    fun `serialize Currency`() {
+    fun `Currency should be serialized successfully`() {
         val mask = listOf(
             Pair("length", 2),
             Pair("value", 2 * 3)
@@ -29,14 +29,14 @@ class CurrencySerializerTest {
     }
 
     @Test
-    fun `serialize and deserialize Currency`() {
+    fun `Currency should be the same after serialization and deserialization`() {
         val data = Data(Currency.getInstance(Locale.CANADA))
         roundTripInlined(data)
         roundTrip(data, data::class)
     }
 
     @Test
-    fun `same size Currency`() {
+    fun `different Currencies should have same size after serialization`() {
         val data1 = Data(Currency.getInstance(Locale.CANADA))
         val data2 = Data(Currency.getInstance("RUB"))
 

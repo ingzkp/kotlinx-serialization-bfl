@@ -3,8 +3,6 @@ package com.ing.serialization.bfl.serde.serializers.doc
 import com.ing.serialization.bfl.annotations.FixedLength
 import com.ing.serialization.bfl.api.Surrogate
 import com.ing.serialization.bfl.api.SurrogateSerializer
-import com.ing.serialization.bfl.api.reified.deserialize
-import com.ing.serialization.bfl.api.serialize
 import com.ing.serialization.bfl.serde.SerdeError
 import io.kotest.assertions.throwables.shouldThrow
 import kotlinx.serialization.Contextual
@@ -13,29 +11,31 @@ import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 import java.util.Currency
 import java.util.Locale
+import com.ing.serialization.bfl.api.reified.deserialize as deserializeInlined
+import com.ing.serialization.bfl.api.reified.serialize as serializeInlined
 
-class GenericsTest {
+class ThirdPartyGenericsTest {
     @Test
     fun serializeDirectlyShouldFail() {
         shouldThrow<SerdeError.NoTopLevelSerializer> {
             val original = CustomData("Hello World!")
-            serialize(original)
+            serializeInlined(original)
         }
     }
 
     @Test
     fun serializeStringDataWithSurrogateShouldSucceed() {
         val original = CustomData("Hello World!")
-        val serializedBytes = serialize(original, CustomDataStringSerializer)
-        val deserialized: CustomData<String> = deserialize(serializedBytes, CustomDataStringSerializer)
+        val serializedBytes = serializeInlined(original, CustomDataStringSerializer)
+        val deserialized: CustomData<String> = deserializeInlined(serializedBytes, CustomDataStringSerializer)
         assert(deserialized == original) { "Expected $deserialized to be $original" }
     }
 
     @Test
     fun serializeCurrencyDataWithSurrogateShouldSucceed() {
         val original = CustomData(Currency.getInstance(Locale.JAPAN))
-        val serializedBytes = serialize(original, CustomDataCurrencySerializer)
-        val deserialized: CustomData<Currency> = deserialize(serializedBytes, CustomDataCurrencySerializer)
+        val serializedBytes = serializeInlined(original, CustomDataCurrencySerializer)
+        val deserialized: CustomData<Currency> = deserializeInlined(serializedBytes, CustomDataCurrencySerializer)
         assert(deserialized == original) { "Expected $deserialized to be $original" }
     }
 

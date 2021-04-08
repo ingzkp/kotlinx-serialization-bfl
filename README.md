@@ -111,11 +111,22 @@ assert(deserialized == original) { "Expected $deserialized to be $original" }
 ```
 
 ### Classes with Generics
-For classes with generics there are two distinct cases, custom [serializable classes](#serializable-generics), and
-[existing classes without serializer](#generics-with-unserializable-base-class).
+For classes with generics there are two distinct cases, custom [classes that can be annotated with `@Serializable`](#project-classes), and
+[third-party classes that cannot be annotated with `@Serializable`](#third-party-classes).
+Kotlinx-serialization allows for configuring contextual serializers, e.g. 
+```kotlin
+val serializers = SerializersModule {
+    contextual(/* someSerializer */)
+}
+```
+Unfortunately in case of generics all serializers corresponding to different generic parameters will be attempted to be
+registered for the base generic class ([see](https://github.com/Kotlin/kotlinx.serialization/pull/1406)). For this
+reason, both reified and non-reified version for serialization and deserialization allow for explicit specification of
+the serialization strategy. Alternatively you can register a single contextual serializer for a specific variant of
+a generic class.
 
-#### Serializable Generics
-Consider a custom serializable class with generics, like the following:
+#### Project Classes 
+Consider a project class with generics, like the following:
 ```kotlin
 @Serializable
 data class CustomData<T>(
@@ -124,23 +135,42 @@ data class CustomData<T>(
 ```
 
 Instances of this class can be serialized and deserialized normally for standard supported types, like `Int`, and types
-for which the fixed serialized length can be automatically derived. The only difference is that the serializer has to
-be passed to the serialization methods explicitly:
+for which the fixed serialized length can be automatically derived. For the project classes it is recommended to use
+the `reified` versions of the serialization API.
 ```kotlin
+import com.ing.serialization.bfl.api.reified.deserialize
+import com.ing.serialization.bfl.api.reified.serialize
+
 val original = CustomData(42)
-val strategy = CustomData.serializer(Int.serializer())
-val serializedBytes = serialize(original, strategy)
-val deserialized: CustomData<Int> = deserialize(serializedBytes, strategy)
+val serializedBytes = serialize(original)
+val deserialized: CustomData<Int> = deserialize(serializedBytes)
 assert(deserialized == original) { "Expected $deserialized to be $original" }
 ```
 
-When the serialization length cannot be derived for the embedded type, like in `CustomData<String>`, one must resort
+When the serialization length cannot be derived for the embedded type, like in `CustomData<Currency>`, one must resort
 to the surrogate approach, as described in
-[Implementing Serializers for existing types](#implementing-serializers-for-existing-types), or in the next paragraph.
+[Implementing Serializers for existing types](#implementing-serializers-for-existing-types).
+Conveniently, for some Java types an appropriate serializer is implemented and registered in `BFLSerializers`. Below
+both approaches with a specific strategy and with a SerializersModule are presented.
 
-#### Generics with unserializable base class
-The surrogate approach can be followed when implementing serializers for classes with generics.
-Consider the following class:
+```kotlin
+import com.ing.serialization.bfl.api.reified.deserialize
+import com.ing.serialization.bfl.api.reified.serialize
+import com.ing.serialization.bfl.serializers.CurrencySerializer
+import com.ing.serialization.bfl.serializers.BFLSerializers
+
+val original = CustomData(Currency.getInstance(Locale.ITALY))
+val strategy = CustomData.serializer(CurrencySerializer)
+val serializedBytes = serialize(original, strategy = null, serializersModule = BFLSerializers)
+val deserialized: CustomData<Currency> = deserialize(serializedBytes, strategy = strategy, serializersModule = EmptySerializersModule)
+assert(deserialized == original) { "Expected $deserialized to be $original" }
+```
+
+For more information see [ProjectGenericsTest](2).
+
+#### Third-party Classes
+The surrogate approach can be followed when implementing serializers for third-party classes with generics.
+Consider the following class, which is out of our control and cannot be annotated with `@Serializable`: 
 
 ```kotlin
 data class CustomData<T>(
@@ -163,6 +193,7 @@ by (SurrogateSerializer(CustomDataStringSurrogate.serializer()) {
         CustomDataStringSurrogate(it.value)
 })
 ```
+This strategy must be explicitly provided when serializing or deserializing the respective type.
 
 For instances of `CustomData` using types that have no serializer, use `@Contextual`, as in the following example:
 ```kotlin
@@ -179,13 +210,18 @@ by (SurrogateSerializer(CustomDataCurrencySurrogate.serializer()) {
 })
 ```
 
-When serializing or deserializing object of classes with generics, pass the serializers explicitely.
+When serializing or deserializing object of classes with generics, pass the serializers explicitly.
 ```kotlin
+import com.ing.serialization.bfl.api.reified.deserialize
+import com.ing.serialization.bfl.api.reified.serialize
+
 val original = CustomData(Currency.getInstance(Locale.JAPAN))
 val serializedBytes = serialize(original, CustomDataCurrencySerializer)
 val deserialized: CustomData<Currency> = deserialize(serializedBytes, CustomDataCurrencySerializer)
 assert(deserialized == original) { "Expected $deserialized to be $original" }
 ```
+
+For more information see [ThirdPartyGenericsTest](3).
 
 ### Polymorphic types
 Fixed length serialization of polymorphic types is non-trivial. Concrete implementations of a polymorphic type
@@ -290,4 +326,5 @@ For more information checkout the following files
 - [on-tag-publish.yml](.github/workflows/on-tag-publish.yml)
 
 [1]: src/test/kotlin/com/ing/serialization/bfl/serde/serializers/custom/polymorphic
-
+[2]: src/test/kotlin/com/ing/serialization/bfl/serde/serializers/doc/ProjectGenericsTest.kt
+[3]: src/test/kotlin/com/ing/serialization/bfl/serde/serializers/doc/ThirdPartyGenericsTest.kt

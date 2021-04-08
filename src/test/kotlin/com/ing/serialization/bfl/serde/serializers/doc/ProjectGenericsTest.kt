@@ -1,17 +1,20 @@
 package com.ing.serialization.bfl.serde.serializers.doc
 
-import com.ing.serialization.bfl.api.reified.deserialize
 import com.ing.serialization.bfl.api.serialize
 import com.ing.serialization.bfl.serde.SerdeError
+import com.ing.serialization.bfl.serializers.BFLSerializers
 import com.ing.serialization.bfl.serializers.CurrencySerializer
 import io.kotest.assertions.throwables.shouldThrow
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.modules.EmptySerializersModule
 import org.junit.jupiter.api.Test
 import java.util.Currency
 import java.util.Locale
+import com.ing.serialization.bfl.api.reified.deserialize as deserializeInlined
+import com.ing.serialization.bfl.api.reified.serialize as serializeInlined
 
-class SerializableGenericsTest {
+class ProjectGenericsTest {
     @Test
     fun serializeDirectlyShouldFail() {
         shouldThrow<SerdeError.NoTopLevelSerializer> {
@@ -21,12 +24,12 @@ class SerializableGenericsTest {
     }
 
     @Test
-    fun serializeStringDataWithSurrogateFailsWithInsufficientLenght() {
+    fun serializeStringDataWithSurrogateFailsWithInsufficientLength() {
         shouldThrow<SerdeError.InsufficientLengthData> {
             val original = CustomData("Hello World!")
             val strategy = CustomData.serializer(String.serializer())
-            val serializedBytes = serialize(original, strategy)
-            val deserialized: CustomData<String> = deserialize(serializedBytes, strategy)
+            val serializedBytes = serializeInlined(original)
+            val deserialized: CustomData<String> = deserializeInlined(serializedBytes)
             assert(deserialized == original) { "Expected $deserialized to be $original" }
         }
     }
@@ -35,8 +38,8 @@ class SerializableGenericsTest {
     fun serializeIntDataWithSurrogateShouldSucceed() {
         val original = CustomData(42)
         val strategy = CustomData.serializer(Int.serializer())
-        val serializedBytes = serialize(original, strategy)
-        val deserialized: CustomData<Int> = deserialize(serializedBytes, strategy)
+        val serializedBytes = serializeInlined(original)
+        val deserialized: CustomData<Int> = deserializeInlined(serializedBytes)
         assert(deserialized == original) { "Expected $deserialized to be $original" }
     }
 
@@ -44,8 +47,8 @@ class SerializableGenericsTest {
     fun serializeCurrencyDataWithSurrogateShouldSucceed() {
         val original = CustomData(Currency.getInstance(Locale.ITALY))
         val strategy = CustomData.serializer(CurrencySerializer)
-        val serializedBytes = serialize(original, strategy)
-        val deserialized: CustomData<Currency> = deserialize(serializedBytes, strategy)
+        val serializedBytes = serializeInlined(original, strategy = null, serializersModule = BFLSerializers)
+        val deserialized: CustomData<Currency> = deserializeInlined(serializedBytes, strategy = strategy, serializersModule = EmptySerializersModule)
         assert(deserialized == original) { "Expected $deserialized to be $original" }
     }
 

@@ -5,10 +5,10 @@ import com.ing.serialization.bfl.api.Surrogate
 import com.ing.serialization.bfl.api.SurrogateSerializer
 import com.ing.serialization.bfl.api.reified.deserialize
 import com.ing.serialization.bfl.api.reified.serialize
+import com.ing.serialization.bfl.serde.SerdeError
 import io.kotest.assertions.throwables.shouldThrow
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.SerializationException
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.contextual
 import org.junit.jupiter.api.Test
@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test
 class ImplementationTest {
     @Test
     fun serializeDirectlyShouldFail() {
-        shouldThrow<SerializationException> {
+        shouldThrow<SerdeError.NoTopLevelSerializer> {
             val original = CustomData("Hello World!")
             serialize(original)
         }

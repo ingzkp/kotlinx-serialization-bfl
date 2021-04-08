@@ -25,7 +25,7 @@ abstract class Element(val serialName: String, val propertyName: String, val inn
     }
 
     val layout: Layout by lazy {
-        Layout(serialName, nullLayout + inherentLayout, inner.map { it.layout })
+        Layout(propertyName, serialName, nullLayout + inherentLayout, inner.map { it.layout })
     }
 
     val size by lazy {

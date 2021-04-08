@@ -38,7 +38,7 @@ class PrimitiveElement(
             else -> error("Do not know how to compute layout for primitive $kind")
         }
 
-        listOf(Pair("value", size))
+        listOf(Pair("[Primitive] value length", size))
     }
 
     @Suppress("ComplexMethod")

@@ -21,8 +21,8 @@ class CollectionElement(
      */
     override val inherentLayout by lazy {
         listOf(
-            Pair("length", 4),
-            Pair("value", requiredLength * elementSize)
+            Pair("[Collection] original length bytecount", 4),
+            Pair("[Collection] value length", requiredLength * elementSize)
         )
     }
 

@@ -27,7 +27,6 @@ class ProjectGenericsTest {
     fun serializeStringDataWithSurrogateFailsWithInsufficientLength() {
         shouldThrow<SerdeError.InsufficientLengthData> {
             val original = CustomData("Hello World!")
-            val strategy = CustomData.serializer(String.serializer())
             val serializedBytes = serializeInlined(original)
             val deserialized: CustomData<String> = deserializeInlined(serializedBytes)
             assert(deserialized == original) { "Expected $deserialized to be $original" }
@@ -37,7 +36,6 @@ class ProjectGenericsTest {
     @Test
     fun serializeIntDataWithSurrogateShouldSucceed() {
         val original = CustomData(42)
-        val strategy = CustomData.serializer(Int.serializer())
         val serializedBytes = serializeInlined(original)
         val deserialized: CustomData<Int> = deserializeInlined(serializedBytes)
         assert(deserialized == original) { "Expected $deserialized to be $original" }

@@ -40,7 +40,4 @@ sealed class SerdeError : IllegalStateException {
         constructor(klass: KClass<*>) : super("Top-level serializer absent for ${klass.simpleName}")
         constructor(klass: KClass<*>, cause: Throwable) : super("Top-level serializer absent for ${klass.simpleName}", cause)
     }
-
-    class CannotDeserializeAs(data: ByteArray, klass: KClass<*>) :
-        SerdeError("Cannot deserialize bytes as ${klass.simpleName}")
 }

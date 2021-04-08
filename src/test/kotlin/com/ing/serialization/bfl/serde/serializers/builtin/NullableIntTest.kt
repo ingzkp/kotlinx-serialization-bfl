@@ -1,5 +1,6 @@
 package com.ing.serialization.bfl.serde.serializers.builtin
 
+import com.ing.serialization.bfl.serde.checkedSerialize
 import com.ing.serialization.bfl.serde.checkedSerializeInlined
 import com.ing.serialization.bfl.serde.roundTrip
 import com.ing.serialization.bfl.serde.roundTripInlined
@@ -13,23 +14,31 @@ class NullableIntTest {
     data class NullableData(val int: Int?)
 
     @Test
-    fun `serialize nullable int`() {
+    fun `nullable Int should be serialized successfully`() {
         val mask = listOf(
             Pair("nonNull", 1),
             Pair("value", 4)
         )
 
         var data = NullableData(2)
-        var bytes = checkedSerializeInlined(data, mask)
-        assert(bytes[0] != 0.toByte()) { "A non-null value is expected" }
+        listOf(
+            checkedSerializeInlined(data, mask),
+            checkedSerialize(data, mask),
+        ).forEach { bytes ->
+            assert(bytes[0] != 0.toByte()) { "A non-null value is expected" }
+        }
 
         data = NullableData(null)
-        bytes = checkedSerializeInlined(data, mask)
-        assert(bytes[0] == 0.toByte()) { "A null value is expected" }
+        listOf(
+            checkedSerializeInlined(data, mask),
+            checkedSerialize(data, mask),
+        ).forEach { bytes ->
+            assert(bytes[0] == 0.toByte()) { "A null value is expected" }
+        }
     }
 
     @Test
-    fun `serialize and deserialize nullable int`() {
+    fun `nullable Int should be the same after serialization and deserialization`() {
         val data = NullableData(null)
 
         roundTripInlined(data)
@@ -37,7 +46,7 @@ class NullableIntTest {
     }
 
     @Test
-    fun `serialization has fixed length`() {
+    fun `different nullable Ints should have same size after serialization`() {
         val own1 = NullableData(null)
         val own2 = NullableData(1)
 

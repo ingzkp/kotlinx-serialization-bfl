@@ -14,20 +14,22 @@ class CollectionTooLargeTest {
     @Test
     fun `String too large fails with StringTooLarge`() {
         val data = Data(mapOf("aaaa" to listOf(2)))
-        println(
-            assertThrows<SerdeError.StringTooLarge> {
-                serializeInlined(data)
-            }
-        )
+
+        assertThrows<SerdeError.StringTooLarge> {
+            serializeInlined(data)
+        }.also {
+            println(it.message)
+        }
     }
 
     @Test
-    fun `String too large fails with`() {
+    fun `List too large fails with CollectionTooLarge`() {
         val data = Data(mapOf("aa" to listOf(1, 2, 3)))
-        println(
-            assertThrows<SerdeError.CollectionTooLarge> {
-                serializeInlined(data)
-            }
-        )
+
+        assertThrows<SerdeError.CollectionTooLarge> {
+            serializeInlined(data)
+        }.also {
+            println(it.message)
+        }
     }
 }

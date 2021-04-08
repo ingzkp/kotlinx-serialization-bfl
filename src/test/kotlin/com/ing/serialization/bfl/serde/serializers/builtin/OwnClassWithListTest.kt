@@ -1,6 +1,7 @@
 package com.ing.serialization.bfl.serde.serializers.builtin
 
 import com.ing.serialization.bfl.serde.OwnList
+import com.ing.serialization.bfl.serde.checkedSerialize
 import com.ing.serialization.bfl.serde.checkedSerializeInlined
 import com.ing.serialization.bfl.serde.roundTrip
 import com.ing.serialization.bfl.serde.roundTripInlined
@@ -16,7 +17,7 @@ class OwnClassWithListTest {
     data class Data(val own: OwnList)
 
     @Test
-    fun `serialize list with own (with list) serializable class`() {
+    fun `list with own (with list) serializable class should be serialized successfully`() {
         val mask = listOf(
             Pair("own.list.length", 4),
             Pair("own.list[0].value", 4),
@@ -24,15 +25,20 @@ class OwnClassWithListTest {
         )
 
         var data = Data(OwnList(listOf(10)))
-        var bytes = checkedSerializeInlined(data, mask)
-        //
+        checkedSerializeInlined(data, mask)
+        checkedSerialize(data, mask)
+
         data = Data(OwnList(listOf()))
-        bytes = checkedSerializeInlined(data, mask)
-        bytes shouldBe ByteArray(mask.sumBy { it.second }) { 0 }
+        listOf(
+            checkedSerializeInlined(data, mask),
+            checkedSerialize(data, mask),
+        ).forEach { bytes ->
+            bytes shouldBe ByteArray(mask.sumBy { it.second }) { 0 }
+        }
     }
 
     @Test
-    fun `serialize and deserialize list with own (with list) serializable class`() {
+    fun `list with own (with list) serializable class should be the same after serialization and deserialization`() {
         val data = Data(OwnList(listOf(10)))
 
         roundTripInlined(data)
@@ -40,7 +46,7 @@ class OwnClassWithListTest {
     }
 
     @Test
-    fun `serialization has fixed length`() {
+    fun `different lists with own (with list) serializable class should have same size after serialization`() {
         val empty = Data(OwnList(listOf()))
         val own1 = Data(OwnList(listOf(10)))
         val own2 = Data(OwnList(listOf(10, 2)))

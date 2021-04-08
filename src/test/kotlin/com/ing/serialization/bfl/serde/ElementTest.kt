@@ -94,7 +94,7 @@ class ElementTest {
     }
 
     @Test
-    fun `layout generation`() {
+    fun `layout generation should be possible`() {
         val element = ElementFactory().parse(Outer.serializer().descriptor)
         val layout = element.layout
 

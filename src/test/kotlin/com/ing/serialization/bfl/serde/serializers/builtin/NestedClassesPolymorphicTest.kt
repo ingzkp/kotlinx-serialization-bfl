@@ -22,7 +22,7 @@ class NestedClassesPolymorphicTest {
     data class Data(val some: Some)
 
     @Test
-    fun `serialize polymorphic type within nested compound type`() {
+    fun `Polymorphic type within nested compound type should be serialized successfully`() {
         val data = Data(Some(generateRSAPubKey()))
 
         var mask = listOf(
@@ -43,7 +43,7 @@ class NestedClassesPolymorphicTest {
     }
 
     @Test
-    fun `serialize and deserialize polymorphic type within nested compound type`() {
+    fun `Polymorphic type within nested compound type should be the same after serialization and deserialization`() {
         val data = Data(Some(generateRSAPubKey()))
 
         roundTripInlined(data)
@@ -51,7 +51,7 @@ class NestedClassesPolymorphicTest {
     }
 
     @Test
-    fun `serialization has fixed length`() {
+    fun `different data objects of Polymorphic type within nested compound type should have same size after serialization`() {
         val data1 = Data(Some(generateRSAPubKey()))
         val data2 = Data(Some(generateRSAPubKey()))
 

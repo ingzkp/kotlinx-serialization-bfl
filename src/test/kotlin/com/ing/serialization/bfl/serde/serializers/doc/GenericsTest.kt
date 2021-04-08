@@ -7,11 +7,14 @@ import com.ing.serialization.bfl.api.reified.deserialize
 import com.ing.serialization.bfl.api.serialize
 import com.ing.serialization.bfl.serde.SerdeError
 import io.kotest.assertions.throwables.shouldThrow
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
+import java.util.Currency
+import java.util.Locale
 
-class DeepGenericsTest {
+class GenericsTest {
     @Test
     fun serializeDirectlyShouldFail() {
         shouldThrow<SerdeError.NoTopLevelSerializer> {
@@ -29,10 +32,10 @@ class DeepGenericsTest {
     }
 
     @Test
-    fun serializeIntDataWithSurrogateShouldSucceed() {
-        val original = CustomData(42)
-        val serializedBytes = serialize(original, CustomDataIntSerializer)
-        val deserialized: CustomData<Int> = deserialize(serializedBytes, CustomDataIntSerializer)
+    fun serializeCurrencyDataWithSurrogateShouldSucceed() {
+        val original = CustomData(Currency.getInstance(Locale.JAPAN))
+        val serializedBytes = serialize(original, CustomDataCurrencySerializer)
+        val deserialized: CustomData<Currency> = deserialize(serializedBytes, CustomDataCurrencySerializer)
         assert(deserialized == original) { "Expected $deserialized to be $original" }
     }
 
@@ -56,15 +59,15 @@ class DeepGenericsTest {
         )
 
     @Serializable
-    private data class CustomDataIntSurrogate(
-        val value: Int
-    ) : Surrogate<CustomData<Int>> {
-        override fun toOriginal(): CustomData<Int> = CustomData(value)
+    private data class CustomDataCurrencySurrogate(
+        val value: @Contextual Currency
+    ) : Surrogate<CustomData<Currency>> {
+        override fun toOriginal(): CustomData<Currency> = CustomData(value)
     }
 
-    private object CustomDataIntSerializer : KSerializer<CustomData<Int>> by (
-        SurrogateSerializer(CustomDataIntSurrogate.serializer()) {
-            CustomDataIntSurrogate(it.value)
+    private object CustomDataCurrencySerializer : KSerializer<CustomData<Currency>> by (
+        SurrogateSerializer(CustomDataCurrencySurrogate.serializer()) {
+            CustomDataCurrencySurrogate(it.value)
         }
         )
 }

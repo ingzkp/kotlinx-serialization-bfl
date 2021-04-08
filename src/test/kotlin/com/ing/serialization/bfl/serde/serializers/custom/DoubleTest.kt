@@ -62,8 +62,8 @@ class DoubleTest {
     fun `Serialization is lossless for min and max values`() {
         listOf(
             4.33,
-//            Double.MAX_VALUE,
-//            Double.MIN_VALUE,
+            Double.MAX_VALUE,
+            Double.MIN_VALUE,
         ).forEach { expected ->
             val (serialized, layout) = debugSerialize(Data(expected), BFLSerializers)
             val actual = deserialize<Data>(serialized)

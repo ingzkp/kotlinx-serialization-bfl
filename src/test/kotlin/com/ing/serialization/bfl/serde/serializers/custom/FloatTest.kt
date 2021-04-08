@@ -1,7 +1,7 @@
 package com.ing.serialization.bfl.serde.serializers.custom
 
-import com.ing.serialization.bfl.api.serialize
-import com.ing.serialization.bfl.serde.SerdeError
+import com.ing.serialization.bfl.api.reified.debugSerialize
+import com.ing.serialization.bfl.api.reified.deserialize
 import com.ing.serialization.bfl.serde.checkedSerialize
 import com.ing.serialization.bfl.serde.checkedSerializeInlined
 import com.ing.serialization.bfl.serde.roundTrip
@@ -9,11 +9,11 @@ import com.ing.serialization.bfl.serde.roundTripInlined
 import com.ing.serialization.bfl.serde.sameSize
 import com.ing.serialization.bfl.serde.sameSizeInlined
 import com.ing.serialization.bfl.serializers.BFLSerializers
-import com.ing.serialization.bfl.serializers.DoubleSurrogate.Companion.DOUBLE_FRACTION_SIZE
-import com.ing.serialization.bfl.serializers.DoubleSurrogate.Companion.DOUBLE_INTEGER_SIZE
+import com.ing.serialization.bfl.serializers.FloatSurrogate.Companion.FLOAT_FRACTION_SIZE
+import com.ing.serialization.bfl.serializers.FloatSurrogate.Companion.FLOAT_INTEGER_SIZE
+import io.kotest.matchers.floats.shouldBeExactly
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 
 class FloatTest {
     @Serializable
@@ -24,8 +24,8 @@ class FloatTest {
         val mask = listOf(
             Pair("nonNull", 1),
             Pair("sign", 1),
-            Pair("integer", 4 + DOUBLE_INTEGER_SIZE),
-            Pair("fraction", 4 + DOUBLE_FRACTION_SIZE)
+            Pair("integer", 4 + FLOAT_INTEGER_SIZE),
+            Pair("fraction", 4 + FLOAT_FRACTION_SIZE)
         )
 
         val data = Data(4.33.toFloat())
@@ -54,11 +54,15 @@ class FloatTest {
     }
 
     @Test
-    fun `serialize Float should throw IllegalArgumentException when size limit is not respected`() {
-        val floatOverSized = Float.MIN_VALUE
-
-        assertThrows<SerdeError.CollectionTooLarge> {
-            serialize(Data(floatOverSized), BFLSerializers)
+    fun `Serialization is lossless for min and max values`() {
+        listOf(
+            4.33F,
+            Float.MAX_VALUE,
+            Float.MIN_VALUE,
+        ).forEach { expected ->
+            val (serialized, layout) = debugSerialize(FloatTest.Data(expected), BFLSerializers)
+            val actual = deserialize<FloatTest.Data>(serialized)
+            actual.value!! shouldBeExactly expected
         }
     }
 }

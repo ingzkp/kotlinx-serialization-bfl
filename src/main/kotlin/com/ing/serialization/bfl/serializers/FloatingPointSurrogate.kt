@@ -1,8 +1,9 @@
 package com.ing.serialization.bfl.serializers
 
+import com.ing.serialization.bfl.api.Surrogate
 import java.math.BigDecimal
 
-interface FloatingPointSurrogate {
+interface FloatingPointSurrogate<T> : Surrogate<T> {
     val sign: Byte
     val integer: ByteArray
     val fraction: ByteArray

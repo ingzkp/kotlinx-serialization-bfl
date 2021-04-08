@@ -1,24 +1,11 @@
 package com.ing.serialization.bfl.serializers
 
 import com.ing.serialization.bfl.annotations.FixedLength
+import com.ing.serialization.bfl.api.BaseSerializer
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
 
-object DoubleSerializer : KSerializer<Double> {
-    private val strategy = DoubleSurrogate.serializer()
-    override val descriptor: SerialDescriptor = strategy.descriptor
-    override fun serialize(encoder: Encoder, value: Double) {
-        encoder.encodeSerializableValue(strategy, DoubleSurrogate.from(value))
-    }
-
-    override fun deserialize(decoder: Decoder): Double {
-        val surrogate = decoder.decodeSerializableValue(strategy)
-        return surrogate.toOriginal()
-    }
-}
+object DoubleSerializer : KSerializer<Double> by (BaseSerializer(DoubleSurrogate.serializer()) { DoubleSurrogate.from(it) })
 
 @Suppress("ArrayInDataClass")
 @Serializable
@@ -26,8 +13,8 @@ data class DoubleSurrogate(
     override val sign: Byte,
     @FixedLength([DOUBLE_INTEGER_SIZE]) override val integer: ByteArray,
     @FixedLength([DOUBLE_FRACTION_SIZE]) override val fraction: ByteArray
-) : FloatingPointSurrogate {
-    fun toOriginal() = toBigDecimal().toDouble()
+) : FloatingPointSurrogate<Double> {
+    override fun toOriginal() = toBigDecimal().toDouble()
 
     companion object {
         const val DOUBLE_INTEGER_SIZE: Int = 309

@@ -6,6 +6,8 @@ import com.ing.serialization.bfl.serde.SerdeError
 import com.ing.serialization.bfl.serde.isTrulyPrimitive
 import com.ing.serialization.bfl.serializers.DoubleSurrogate
 import com.ing.serialization.bfl.serializers.DoubleSurrogate.Companion.DOUBLE_SIZE
+import com.ing.serialization.bfl.serializers.FloatSurrogate
+import com.ing.serialization.bfl.serializers.FloatSurrogate.Companion.FLOAT_SIZE
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialKind
 import java.io.DataInput
@@ -33,7 +35,7 @@ class PrimitiveElement(
             is PrimitiveKind.INT -> 4
             is PrimitiveKind.LONG -> 8
             is PrimitiveKind.CHAR -> 2
-            is PrimitiveKind.FLOAT -> TODO()
+            is PrimitiveKind.FLOAT -> FLOAT_SIZE
             is PrimitiveKind.DOUBLE -> DOUBLE_SIZE
             else -> error("Do not know how to compute layout for primitive $kind")
         }
@@ -51,11 +53,18 @@ class PrimitiveElement(
                 kind is PrimitiveKind.INT && value is Int -> writeInt(value)
                 kind is PrimitiveKind.LONG && value is Long -> writeLong(value)
                 kind is PrimitiveKind.CHAR && value is Char -> writeChar(value.toInt())
-                kind is PrimitiveKind.FLOAT && value is Float -> TODO()
+                kind is PrimitiveKind.FLOAT && value is Float -> writeFloat(stream, value)
                 kind is PrimitiveKind.DOUBLE && value is Double -> writeDouble(stream, value)
                 else -> error("$serialName cannot encode $value of type ${value::class.simpleName}")
             }
         }
+    }
+
+    private fun writeFloat(stream: DataOutput, value: Float?) {
+        when (value) {
+            is Float -> serialize(FloatSurrogate.from(value))
+            else -> ByteArray(FLOAT_SIZE) { 0 }
+        }.also { stream.write(it) }
     }
 
     private fun writeDouble(stream: DataOutput, value: Double?) {
@@ -74,8 +83,8 @@ class PrimitiveElement(
                 is PrimitiveKind.INT -> writeInt(0)
                 is PrimitiveKind.LONG -> writeLong(0)
                 is PrimitiveKind.CHAR -> writeChar(0)
-                is PrimitiveKind.FLOAT -> TODO()
-                is PrimitiveKind.DOUBLE -> this@PrimitiveElement.writeDouble(this, null)
+                is PrimitiveKind.FLOAT -> writeFloat(this, null)
+                is PrimitiveKind.DOUBLE -> writeDouble(this, null)
                 else -> error("Don't know how to encode null for primitive $kind.")
             }
         }
@@ -90,11 +99,17 @@ class PrimitiveElement(
                 is PrimitiveKind.INT -> readInt()
                 is PrimitiveKind.LONG -> readLong()
                 is PrimitiveKind.CHAR -> readChar()
-                is PrimitiveKind.FLOAT -> TODO()
+                is PrimitiveKind.FLOAT -> this@PrimitiveElement.readFloat(this)
                 is PrimitiveKind.DOUBLE -> this@PrimitiveElement.readDouble(this)
                 else -> error("Do not know how to decode primitive $kind")
             } as? T ?: error("$serialName cannot decode required type")
         }
+
+    private fun readFloat(input: DataInput): Float {
+        val surrogateInput = ByteArray(FLOAT_SIZE)
+        input.readFully(surrogateInput)
+        return deserialize<FloatSurrogate>(surrogateInput).toOriginal()
+    }
 
     private fun readDouble(input: DataInput): Double {
         val surrogateInput = ByteArray(DOUBLE_SIZE)

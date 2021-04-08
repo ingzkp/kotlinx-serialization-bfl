@@ -1,11 +1,11 @@
 package com.ing.serialization.bfl.serializers
 
 import com.ing.serialization.bfl.annotations.FixedLength
-import com.ing.serialization.bfl.api.BaseSerializer
+import com.ing.serialization.bfl.api.SurrogateSerializer
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 
-object DoubleSerializer : KSerializer<Double> by (BaseSerializer(DoubleSurrogate.serializer()) { DoubleSurrogate.from(it) })
+object DoubleSerializer : KSerializer<Double> by (SurrogateSerializer(DoubleSurrogate.serializer()) { DoubleSurrogate.from(it) })
 
 @Suppress("ArrayInDataClass")
 @Serializable

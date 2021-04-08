@@ -1,4 +1,4 @@
-package com.ing.serialization.bfl.serde.serializers.builtin
+package com.ing.serialization.bfl.serde.serializers.custom.polymorphic
 
 import com.ing.serialization.bfl.annotations.FixedLength
 import com.ing.serialization.bfl.api.Surrogate

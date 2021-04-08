@@ -23,49 +23,16 @@ object BigDecimalSerializer : KSerializer<BigDecimal> {
 @Suppress("ArrayInDataClass")
 @Serializable
 data class BigDecimalSurrogate(
-    val sign: Byte,
-    val integer: ByteArray,
-    val fraction: ByteArray
-) {
-    fun toOriginal(): BigDecimal {
-        val integer = this.integer.joinToString(separator = "") { "$it" }.trimStart('0')
-        val fraction = this.fraction.joinToString(separator = "") { "$it" }.trimEnd('0')
-        var digit = if (fraction.isEmpty()) integer else "$integer.$fraction"
-        if (this.sign == (-1).toByte()) {
-            digit = "-$digit"
-        }
-        return BigDecimal(digit)
-    }
+    override val sign: Byte,
+    override val integer: ByteArray,
+    override val fraction: ByteArray
+) : FloatingPointSurrogate {
+    fun toOriginal() = toBigDecimal()
 
     companion object {
         fun from(bigDecimal: BigDecimal): BigDecimalSurrogate {
-            val (integerPart, fractionalPart) = representOrThrow(bigDecimal)
-
-            val sign = bigDecimal.signum().toByte()
-
-            val integer = integerPart.toListOfDecimals()
-
-            val fraction = (fractionalPart?.toListOfDecimals() ?: emptyByteArray())
-
+            val (sign, integer, fraction) = bigDecimal.asByteTriple()
             return BigDecimalSurrogate(sign, integer, fraction)
-        }
-
-        private fun emptyByteArray(): ByteArray = ByteArray(0) { 0 }
-        private fun String.toListOfDecimals(): ByteArray {
-            return this.map {
-                // Experimental: prefer plain java version.
-                // it.digitToInt()
-                Character.getNumericValue(it).toByte()
-            }.toByteArray()
-        }
-
-        private fun representOrThrow(bigDecimal: BigDecimal): Pair<String, String?> {
-            val integerFractionPair = bigDecimal.toPlainString().removePrefix("-").split(".")
-
-            val integerPart = integerFractionPair[0]
-            val fractionalPart = integerFractionPair.getOrNull(1)
-
-            return Pair(integerPart, fractionalPart)
         }
     }
 }

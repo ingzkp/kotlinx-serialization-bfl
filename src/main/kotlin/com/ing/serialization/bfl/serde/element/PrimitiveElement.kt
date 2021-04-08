@@ -1,22 +1,15 @@
 package com.ing.serialization.bfl.serde.element
 
-import com.ing.serialization.bfl.annotations.FixedLength
 import com.ing.serialization.bfl.api.reified.deserialize
+import com.ing.serialization.bfl.api.reified.serialize
 import com.ing.serialization.bfl.serde.SerdeError
 import com.ing.serialization.bfl.serde.isTrulyPrimitive
 import com.ing.serialization.bfl.serializers.DoubleSurrogate
 import com.ing.serialization.bfl.serializers.DoubleSurrogate.Companion.DOUBLE_SIZE
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialKind
 import java.io.DataInput
 import java.io.DataOutput
-import kotlin.reflect.KClass
-import kotlin.reflect.KProperty1
-import kotlin.reflect.KVisibility
-import kotlin.reflect.full.hasAnnotation
-import kotlin.reflect.full.memberProperties
-import com.ing.serialization.bfl.api.reified.serialize as inlinedSerialize
 
 /**
  * The basic abstraction of each object being serialized.
@@ -41,28 +34,11 @@ class PrimitiveElement(
             is PrimitiveKind.LONG -> 8
             is PrimitiveKind.CHAR -> 2
             is PrimitiveKind.FLOAT -> TODO()
-//            is PrimitiveKind.DOUBLE -> DOUBLE_SIZE
-            is PrimitiveKind.DOUBLE -> serializedSizeOf(DoubleSurrogate::class)
+            is PrimitiveKind.DOUBLE -> DOUBLE_SIZE
             else -> error("Do not know how to compute layout for primitive $kind")
         }
 
         listOf(Pair("value", size))
-    }
-
-    private fun serializedSizeOf(kClass: KClass<*>): Int {
-        if (!kClass.hasAnnotation<Serializable>()) error("Can't determine serializable size of unserializable type. Please annotate with @Serializable.")
-
-        kClass.memberProperties.filter { it.visibility == KVisibility.PUBLIC }.sumBy { serializedSizeOf(it) }
-    }
-
-    private fun serializedSizeOf(kProperty1: KProperty1<out Any, *>): Int {
-        return if (!kProperty1.hasAnnotation<FixedLength>()) {
-
-        } else {
-
-        }
-
-
     }
 
     @Suppress("ComplexMethod")
@@ -82,20 +58,11 @@ class PrimitiveElement(
         }
     }
 
-    private fun writeFloat(stream: DataOutput, value: Float?) {
-        val serialization = when (value) {
-            is Float -> inlinedSerialize(FloatSurrogate.from(value))
-            else -> ByteArray(FLOAT_SIZE) { 0 }
-        }
-        stream.write(serialization)
-    }
-
     private fun writeDouble(stream: DataOutput, value: Double?) {
-        val serialization = when (value) {
-            is Double -> inlinedSerialize(DoubleSurrogate.from(value))
+        when (value) {
+            is Double -> serialize(DoubleSurrogate.from(value))
             else -> ByteArray(DOUBLE_SIZE) { 0 }
-        }
-        stream.write(serialization)
+        }.also { stream.write(it) }
     }
 
     override fun encodeNull(output: DataOutput) =

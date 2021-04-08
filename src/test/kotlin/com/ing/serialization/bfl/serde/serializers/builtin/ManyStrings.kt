@@ -52,7 +52,7 @@ class ManyStrings {
         )
 
         roundTripInlined(data)
-        roundTrip(data, data::class)
+        roundTrip(data)
     }
 
     @Test

@@ -7,11 +7,9 @@ import com.ing.serialization.bfl.serde.roundTrip
 import com.ing.serialization.bfl.serde.roundTripInlined
 import com.ing.serialization.bfl.serde.sameSize
 import com.ing.serialization.bfl.serde.sameSizeInlined
-import com.ing.serialization.bfl.serializers.PublicKeyBaseSurrogate
 import org.junit.jupiter.api.Test
 
 @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
-
 class PolymorphicTest {
     @Test
     fun `Polymorphic type itself should be serialized successfully`() {
@@ -31,8 +29,8 @@ class PolymorphicTest {
     fun `Polymorphic type should be the same after serialization and deserialization`() {
         val data = generateRSAPubKey()
 
-        roundTripInlined(data, PublicKeyBaseSurrogate)
-        roundTrip(data, data::class, PublicKeyBaseSurrogate)
+        roundTripInlined(data, PolySerializers)
+        roundTrip(data, PolySerializers)
     }
 
     @Test

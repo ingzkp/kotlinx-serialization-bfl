@@ -69,7 +69,8 @@ class ListPolymorphicTest {
                         generateRSAPubKey(),
                         generateRSAPubKey()
                     )
-                )
+                ),
+                serializersModule = PolySerializers
             )
         }
     }

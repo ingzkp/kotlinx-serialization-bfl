@@ -28,4 +28,5 @@ val SerialDescriptor.simpleSerialName: String
     get() = serialName.split(".").last()
 
 val SerialKind.isTrulyPrimitive: Boolean
-    get() = this is PrimitiveKind && this !is PrimitiveKind.STRING
+    get() = this is PrimitiveKind &&
+        this !is PrimitiveKind.STRING

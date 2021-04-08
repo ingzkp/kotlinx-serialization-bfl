@@ -1,6 +1,7 @@
 package com.ing.serialization.bfl.serde.serializers.custom
 
-import com.ing.serialization.bfl.api.serialize
+import com.ing.serialization.bfl.api.reified.deserialize
+import com.ing.serialization.bfl.api.reified.serialize
 import com.ing.serialization.bfl.serde.checkedSerialize
 import com.ing.serialization.bfl.serde.checkedSerializeInlined
 import com.ing.serialization.bfl.serde.roundTrip
@@ -8,11 +9,11 @@ import com.ing.serialization.bfl.serde.roundTripInlined
 import com.ing.serialization.bfl.serde.sameSize
 import com.ing.serialization.bfl.serde.sameSizeInlined
 import com.ing.serialization.bfl.serializers.BFLSerializers
-import com.ing.serialization.bfl.serializers.BigDecimalSurrogate
-import io.kotest.matchers.shouldBe
+import com.ing.serialization.bfl.serializers.DoubleSurrogate.Companion.DOUBLE_FRACTION_SIZE
+import com.ing.serialization.bfl.serializers.DoubleSurrogate.Companion.DOUBLE_INTEGER_SIZE
+import io.kotest.matchers.doubles.shouldBeExactly
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 
 class DoubleTest {
     @Serializable
@@ -23,8 +24,8 @@ class DoubleTest {
         val mask = listOf(
             Pair("nonNull", 1),
             Pair("sign", 1),
-            Pair("integer", 4 + BigDecimalSurrogate.INTEGER_SIZE),
-            Pair("fraction", 4 + BigDecimalSurrogate.FRACTION_SIZE)
+            Pair("integer", 4 + DOUBLE_INTEGER_SIZE),
+            Pair("fraction", 4 + DOUBLE_FRACTION_SIZE)
         )
 
         val data = Data(4.33)
@@ -44,12 +45,12 @@ class DoubleTest {
 
     @Test
     fun `different Doubles should have same size after serialization`() {
-        val data1 = Data(4.33)
         val double = (
-            List(BigDecimalSurrogate.INTEGER_SIZE / 10) { "1234567890" }.joinToString(separator = "") + "." +
-                List(BigDecimalSurrogate.FRACTION_SIZE / 10) { "1234567890" }.joinToString(separator = "")
+            List(DOUBLE_INTEGER_SIZE / 10) { "1234567890" }.joinToString(separator = "") + "." +
+                List(DOUBLE_FRACTION_SIZE / 10) { "1234567890" }.joinToString(separator = "")
             ).toDouble()
 
+        val data1 = Data(4.33)
         val data2 = Data(double)
         val data3 = Data(null)
 
@@ -58,16 +59,15 @@ class DoubleTest {
     }
 
     @Test
-    fun `serialize Double should throw IllegalArgumentException when size limit is not respected`() {
+    fun `Serialization is lossless for min and max values`() {
         listOf(
+            4.33,
             Double.MAX_VALUE,
             Double.MIN_VALUE,
-        ).forEach {
-            assertThrows<IllegalArgumentException> {
-                serialize(Data(it), BFLSerializers)
-            }.also {
-                it.message shouldBe "Double is too large for BigDecimalSurrogate"
-            }
+        ).forEach { expected ->
+            val serialized = serialize(Data(expected), BFLSerializers)
+            val actual = deserialize<Data>(serialized)
+            actual.value!! shouldBeExactly expected
         }
     }
 }

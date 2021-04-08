@@ -1,4 +1,4 @@
-package com.ing.serialization.bfl.serde.serializers.builtin
+package com.ing.serialization.bfl.serde.serializers.doc
 
 import com.ing.serialization.bfl.annotations.FixedLength
 import com.ing.serialization.bfl.api.Surrogate
@@ -7,7 +7,6 @@ import com.ing.serialization.bfl.api.reified.deserialize
 import com.ing.serialization.bfl.api.reified.serialize
 import com.ing.serialization.bfl.serde.SerdeError
 import io.kotest.assertions.throwables.shouldThrow
-import io.kotest.matchers.shouldBe
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
@@ -28,7 +27,7 @@ class ImplementationTest {
         val original = CustomData("Hello World!")
         val serializedBytes = serialize(original, serializersModule = customDataSerializationModule)
         val deserialized: CustomData = deserialize(serializedBytes, serializersModule = customDataSerializationModule)
-        deserialized shouldBe original
+        assert(deserialized == original) { "Expected $deserialized to be $original" }
     }
 }
 

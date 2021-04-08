@@ -17,7 +17,7 @@ import kotlinx.serialization.modules.polymorphic
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
-class DeepPolymorphic {
+class DeepPolymorphicTest {
     @Serializable
     data class Data(@FixedLength([2]) val myList: List<Poly>)
 

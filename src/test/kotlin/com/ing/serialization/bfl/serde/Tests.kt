@@ -37,7 +37,7 @@ inline fun <reified T : Any> roundTripInlined(
     strategy: KSerializer<T>? = null
 ) {
     val serialization = serializeInlined(value, strategy, serializersModule = BFLSerializers + serializers)
-    val deserialization = deserializeInlined<T>(serialization, BFLSerializers + serializers)
+    val deserialization = deserializeInlined<T>(serialization, serializersModule = BFLSerializers + serializers)
 
     deserialization shouldBe value
 }

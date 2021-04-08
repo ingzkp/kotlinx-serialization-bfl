@@ -8,7 +8,9 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.SerialKind
 import kotlin.reflect.KClass
 
-sealed class SerdeError(message: String) : IllegalStateException(message) {
+sealed class SerdeError : IllegalStateException {
+    constructor(message: String) : super(message)
+    constructor(message: String, cause: Throwable) : super(message, cause)
 
     class NotFixedPrimitive(kind: SerialKind) : SerdeError("$kind is not a fixed length primitive type")
 
@@ -34,8 +36,10 @@ sealed class SerdeError(message: String) : IllegalStateException(message) {
     class NoContextualSerializer(descriptor: SerialDescriptor) :
         SerdeError("Serializers module has no serializers for a context type ${descriptor.serialName}")
 
-    class NoTopLevelSerializer(klass: KClass<*>) :
-        SerdeError("Top-level serializer absent for ${klass.simpleName}")
+    class NoTopLevelSerializer : SerdeError {
+        constructor(klass: KClass<*>) : super("Top-level serializer absent for ${klass.simpleName}")
+        constructor(klass: KClass<*>, cause: Throwable) : super("Top-level serializer absent for ${klass.simpleName}", cause)
+    }
 
     class CannotDeserializeAs(data: ByteArray, klass: KClass<*>) :
         SerdeError("Cannot deserialize bytes as ${klass.simpleName}")

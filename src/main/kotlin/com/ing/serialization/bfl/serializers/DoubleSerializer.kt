@@ -8,16 +8,14 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import java.math.BigDecimal
 
-typealias DoubleBigDecimal = BigDecimal
-
-object DoubleSerializer : KSerializer<DoubleBigDecimal> {
+object DoubleSerializer : KSerializer<Double> {
     private val strategy = DoubleSurrogate.serializer()
     override val descriptor: SerialDescriptor = strategy.descriptor
-    override fun serialize(encoder: Encoder, value: DoubleBigDecimal) {
+    override fun serialize(encoder: Encoder, value: Double) {
         encoder.encodeSerializableValue(strategy, DoubleSurrogate.from(value))
     }
 
-    override fun deserialize(decoder: Decoder): DoubleBigDecimal {
+    override fun deserialize(decoder: Decoder): Double {
         val surrogate = decoder.decodeSerializableValue(strategy)
         return surrogate.toOriginal()
     }
@@ -30,34 +28,34 @@ data class DoubleSurrogate(
     @FixedLength([DOUBLE_INTEGER_SIZE]) val integer: ByteArray,
     @FixedLength([DOUBLE_FRACTION_SIZE]) val fraction: ByteArray
 ) {
-    fun toOriginal(): BigDecimal {
+    fun toOriginal(): Double {
         val integer = this.integer.joinToString(separator = "") { "$it" }.trimStart('0')
         val fraction = this.fraction.joinToString(separator = "") { "$it" }.trimEnd('0')
         var digit = if (fraction.isEmpty()) integer else "$integer.$fraction"
         if (this.sign == (-1).toByte()) {
             digit = "-$digit"
         }
-        return DoubleBigDecimal(digit)
+        return BigDecimal(digit).toDouble()
     }
 
     companion object {
-        const val DOUBLE_INTEGER_SIZE: Int = 100
-        const val DOUBLE_FRACTION_SIZE: Int = 20
+        const val DOUBLE_INTEGER_SIZE: Int = 309
+        const val DOUBLE_FRACTION_SIZE: Int = 325
+
+        // TODO: @Victor: What are these magic numbers? Let's make constants for them somewhere
         const val DOUBLE_SIZE = 1 + (4 + DOUBLE_INTEGER_SIZE) + (4 + DOUBLE_FRACTION_SIZE)
 
-        fun from(bigDecimal: DoubleBigDecimal): DoubleSurrogate {
-            val (integerPart, fractionalPart) = representOrThrow(bigDecimal)
+        fun from(double: Double): DoubleSurrogate {
+            val doubleAsBigDecimal = double.toBigDecimal()
+            val (integerPart, fractionalPart) = representOrThrow(doubleAsBigDecimal)
 
-            val sign = bigDecimal.signum().toByte()
-
+            val sign = doubleAsBigDecimal.signum().toByte()
             val integer = integerPart.toListOfDecimals()
-
-            val fraction = (fractionalPart?.toListOfDecimals() ?: emptyByteArray())
+            val fraction = (fractionalPart?.toListOfDecimals() ?: ByteArray(0))
 
             return DoubleSurrogate(sign, integer, fraction)
         }
 
-        private fun emptyByteArray(): ByteArray = ByteArray(0) { 0 }
         private fun String.toListOfDecimals(): ByteArray {
             return this.map {
                 // Experimental: prefer plain java version.
@@ -65,20 +63,6 @@ data class DoubleSurrogate(
                 Character.getNumericValue(it).toByte()
             }.toByteArray()
         }
-
-        internal fun from(float: Float) =
-            try {
-                from(float.toBigDecimal())
-            } catch (e: IllegalArgumentException) {
-                throw IllegalArgumentException("Float is too large for BigDecimalSurrogate", e)
-            }
-
-        internal fun from(double: Double) =
-            try {
-                from(double.toBigDecimal())
-            } catch (e: IllegalArgumentException) {
-                throw IllegalArgumentException("Double is too large for BigDecimalSurrogate", e)
-            }
 
         private fun representOrThrow(bigDecimal: BigDecimal): Pair<String, String?> {
             val integerFractionPair = bigDecimal.toPlainString().removePrefix("-").split(".")

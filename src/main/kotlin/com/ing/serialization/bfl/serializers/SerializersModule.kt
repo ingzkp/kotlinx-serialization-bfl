@@ -17,6 +17,8 @@ val BFLSerializers = SerializersModule {
     //
     // Contextual types.
     contextual(BigDecimalSerializer)
+    contextual(DoubleSerializer)
+    contextual(FloatSerializer)
     contextual(CurrencySerializer)
     contextual(DateSerializer)
     contextual(ZonedDateTimeSerializer)

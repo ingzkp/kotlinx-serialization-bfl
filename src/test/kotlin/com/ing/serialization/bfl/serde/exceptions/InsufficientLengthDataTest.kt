@@ -15,46 +15,49 @@ class InsufficientLengthDataTest {
     @Test
     fun `direct property insufficient length`() {
         val data = Data(mapOf("a" to listOf(2)))
-        val exception = assertThrows<SerdeError.InsufficientLengthData> {
+
+        assertThrows<SerdeError.InsufficientLengthData> {
             serializeInlined(data)
+        }.also {
+            it.message shouldBe "Could not determine fixed length information for every item " +
+                "in the chain of Data.myMap. Please verify that all collections and strings in that " +
+                "chain are sufficiently annotated"
         }
-
-        exception.message shouldBe "Could not determine fixed length information for every item " +
-            "in the chain of Data.myMap. Please verify that all collections and strings in that " +
-            "chain are sufficiently annotated"
     }
-
-    @Serializable
-    data class ComplexData(@FixedLength([2]) val myList: List<Data>)
 
     @Test
     fun `Insufficient length deep along the hierarchy`() {
+        @Serializable
+        data class ComplexData(@FixedLength([2]) val myList: List<Data>)
+
         val data = ComplexData(listOf(Data(mapOf("a" to listOf(2)))))
-        val exception = assertThrows<SerdeError.InsufficientLengthData> {
+
+        assertThrows<SerdeError.InsufficientLengthData> {
             serializeInlined(data)
+        }.also {
+            it.message shouldBe "Could not determine fixed length information for every item " +
+                "in the chain of ComplexData.myList.myMap. Please verify that all collections and " +
+                "strings in that chain are sufficiently annotated"
         }
-
-        exception.message shouldBe "Could not determine fixed length information for every item " +
-            "in the chain of ComplexData.myList.myMap. Please verify that all collections and " +
-            "strings in that chain are sufficiently annotated"
     }
-
-    @Serializable
-    data class LocalData(val participants: List<Int>)
-
-    @Serializable
-    data class Wrapper(val localData: LocalData)
 
     @Test
     fun `Insufficient length shallow along the hierarchy`() {
-        val data = Wrapper(LocalData(listOf(1)))
-        val exception = assertThrows<SerdeError.InsufficientLengthData> {
-            serializeInlined(data)
-        }
+        @Serializable
+        data class LocalData(val participants: List<Int>)
 
-        exception.message shouldBe "Could not determine fixed length information for every " +
-            "item in the chain of Wrapper.localData.participants. Please verify that all " +
-            "collections and strings in that chain are sufficiently annotated"
+        @Serializable
+        data class Wrapper(val localData: LocalData)
+
+        val data = Wrapper(LocalData(listOf(1)))
+
+        assertThrows<SerdeError.InsufficientLengthData> {
+            serializeInlined(data)
+        }.also {
+            it.message shouldBe "Could not determine fixed length information for every " +
+                "item in the chain of Wrapper.localData.participants. Please verify that all " +
+                "collections and strings in that chain are sufficiently annotated"
+        }
     }
 
     @Test

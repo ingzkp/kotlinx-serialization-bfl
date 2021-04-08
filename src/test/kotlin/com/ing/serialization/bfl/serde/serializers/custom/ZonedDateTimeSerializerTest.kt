@@ -13,19 +13,19 @@ class ZonedDateTimeSerializerTest {
     data class Data(val date: @Contextual ZonedDateTime)
 
     @Test
-    fun `serialize ZonedDateTime`() {
+    fun `ZonedDateTime should be serialized successfully`() {
         val data = Data(ZonedDateTime.now())
         println(debugSerializeInlined(data).second)
     }
 
     @Test
-    fun `serialize and deserialize ZonedDateTime`() {
+    fun `ZonedDateTime should be the same after serialization and deserialization`() {
         val data = Data(ZonedDateTime.now())
         roundTripInlined(data)
     }
 
     @Test
-    fun `same size ZonedDateTime`() {
+    fun `different ZonedDateTimes should have same size after serialization`() {
         val data1 = Data(ZonedDateTime.now())
         val data2 = Data(ZonedDateTime.now().minusDays(2))
 

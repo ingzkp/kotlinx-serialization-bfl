@@ -1,5 +1,6 @@
 package com.ing.serialization.bfl.serde.serializers.builtin
 
+import com.ing.serialization.bfl.serde.checkedSerialize
 import com.ing.serialization.bfl.serde.checkedSerializeInlined
 import com.ing.serialization.bfl.serde.element.ElementFactory
 import com.ing.serialization.bfl.serde.generateRSAPubKey
@@ -17,7 +18,7 @@ class ClassPolymorphicTest {
     data class Data(val pk: PublicKey)
 
     @Test
-    fun `serialize polymorphic type within structure`() {
+    fun `Polymorphic type within structure should be serialized successfully`() {
         val mask = listOf(
             Pair("pk.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
             Pair("pk.value", 4 + 294)
@@ -25,13 +26,11 @@ class ClassPolymorphicTest {
 
         val data = Data(generateRSAPubKey())
         checkedSerializeInlined(data, mask)
+        checkedSerialize(data, mask)
     }
 
     @Test
-    fun `serialize and deserialize polymorphic type within structure`() {
-        @Serializable
-        data class Data(val pk: PublicKey)
-
+    fun `Polymorphic type within structure should be the same after serialization and deserialization`() {
         val data = Data(generateRSAPubKey())
 
         roundTripInlined(data)
@@ -39,7 +38,7 @@ class ClassPolymorphicTest {
     }
 
     @Test
-    fun `serialization has fixed length`() {
+    fun `different Polymorphic data objects should have same size after serialization`() {
         val data1 = Data(generateRSAPubKey())
         val data2 = Data(generateRSAPubKey())
 

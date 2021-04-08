@@ -1,4 +1,4 @@
-package com.ing.serialization.bfl.serde.serializers.builtin
+package com.ing.serialization.bfl.serde.serializers.doc
 
 import com.ing.serialization.bfl.annotations.FixedLength
 import com.ing.serialization.bfl.api.Surrogate
@@ -27,7 +27,7 @@ class ImplementationTest {
     fun serializeWithSurrogateShouldSucceed() {
         val original = CustomData("Hello World!")
         val serializedBytes = serialize(original, serializersModule = customDataSerializationModule)
-        val deserialized: CustomData = deserialize(serializedBytes, customDataSerializationModule)
+        val deserialized: CustomData = deserialize(serializedBytes, serializersModule = customDataSerializationModule)
         deserialized shouldBe original
     }
 }

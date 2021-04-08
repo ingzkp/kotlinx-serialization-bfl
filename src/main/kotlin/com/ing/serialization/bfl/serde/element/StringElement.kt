@@ -18,8 +18,8 @@ class StringElement(
      * SHORT (string length) + requiredLength * length(CHAR)
      */
     override val inherentLayout = listOf(
-        Pair("length", 2),
-        Pair("value", requiredLength * 2)
+        Pair("[String] original length bytecount", 2),
+        Pair("[String] value length", requiredLength * 2)
     )
 
     /**

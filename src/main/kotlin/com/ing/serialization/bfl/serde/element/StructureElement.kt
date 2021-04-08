@@ -9,7 +9,7 @@ class StructureElement(
     override val isNullable: Boolean
 ) : Element(serialName, propertyName, inner) {
     override val inherentLayout by lazy {
-        listOf(Pair("length", constituentsSize))
+        listOf(Pair("[Structure] length", constituentsSize))
     }
 
     private val constituentsSize by lazy {

@@ -1,9 +1,12 @@
 package com.ing.serialization.bfl.serializers
 
+import com.ing.serialization.bfl.annotations.FixedLength
 import com.ing.serialization.bfl.api.BaseSerializer
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import java.math.BigDecimal
+
+typealias BigDecimalSizes = FixedLength
 
 object BigDecimalSerializer : KSerializer<BigDecimal> by (BaseSerializer(BigDecimalSurrogate.serializer()) { BigDecimalSurrogate.from(it) })
 

@@ -24,6 +24,9 @@ val SerialDescriptor.isPolymorphic: Boolean
 val SerialDescriptor.isContextual: Boolean
     get() = kind is SerialKind.CONTEXTUAL
 
+val SerialDescriptor.isEnum: Boolean
+    get() = kind is SerialKind.ENUM
+
 val SerialDescriptor.simpleSerialName: String
     get() = serialName.split(".").last()
 

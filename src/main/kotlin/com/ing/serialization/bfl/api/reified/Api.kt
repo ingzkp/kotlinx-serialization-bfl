@@ -13,6 +13,11 @@ import kotlinx.serialization.serializer
 
 inline fun <reified T : Any> serialize(
     data: T,
+    serializersModule: SerializersModule = EmptySerializersModule
+) = serialize(data, null, serializersModule)
+
+inline fun <reified T : Any> serialize(
+    data: T,
     strategy: KSerializer<T>? = null,
     serializersModule: SerializersModule = EmptySerializersModule
 ): ByteArray {

@@ -34,6 +34,24 @@ tasks.test {
     useJUnitPlatform()
 }
 
+/**
+ * Reified serialization and deserialization functions are currently excluded from the report, since Jacoco does not
+ * support coverage for inline functions. These functions are actually tested, yet their inclusion in the report would
+ * result to zero coverage on their side, thus a falsified view of the actual test coverage of the project.
+ */
+tasks.withType<JacocoReport> {
+    dependsOn(tasks.test)
+
+    // TODO: When Jacoco adds support for inline functions, remove this exclusion
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.map {
+            fileTree(it).apply {
+                exclude("com/ing/serialization/bfl/api/reified/**")
+            }
+        }))
+    }
+}
+
 task("checkJavaVersion") {
     if (!JavaVersion.current().isJava8) {
         error(

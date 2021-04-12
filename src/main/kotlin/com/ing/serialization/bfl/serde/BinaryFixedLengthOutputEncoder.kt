@@ -1,6 +1,7 @@
 package com.ing.serialization.bfl.serde
 
 import com.ing.serialization.bfl.serde.element.CollectionElement
+import com.ing.serialization.bfl.serde.element.EnumElement
 import com.ing.serialization.bfl.serde.element.PrimitiveElement
 import com.ing.serialization.bfl.serde.element.StringElement
 import com.ing.serialization.bfl.serializers.BFLSerializers
@@ -54,7 +55,7 @@ class BinaryFixedLengthOutputEncoder(
     override fun encodeLong(value: Long) = structureProcessor.removeNext().expect<PrimitiveElement>().encode(output, value)
     override fun encodeChar(value: Char) = structureProcessor.removeNext().expect<PrimitiveElement>().encode(output, value)
     override fun encodeString(value: String) = structureProcessor.removeNext().expect<StringElement>().encode(value, output)
-    override fun encodeEnum(enumDescriptor: SerialDescriptor, index: Int) = output.writeInt(index)
+    override fun encodeEnum(enumDescriptor: SerialDescriptor, index: Int) = structureProcessor.removeNext().expect<EnumElement>().encode(index, output)
     override fun encodeFloat(value: Float) = structureProcessor.removeNext().expect<PrimitiveElement>().encode(output, value)
     override fun encodeDouble(value: Double) = structureProcessor.removeNext().expect<PrimitiveElement>().encode(output, value)
 

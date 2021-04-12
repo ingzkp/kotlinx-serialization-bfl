@@ -4,6 +4,7 @@ import com.ing.serialization.bfl.annotations.FixedLength
 import com.ing.serialization.bfl.serde.SerdeError
 import com.ing.serialization.bfl.serde.isCollection
 import com.ing.serialization.bfl.serde.isContextual
+import com.ing.serialization.bfl.serde.isEnum
 import com.ing.serialization.bfl.serde.isPolymorphic
 import com.ing.serialization.bfl.serde.isString
 import com.ing.serialization.bfl.serde.isStructure
@@ -61,6 +62,7 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
                     ?: throw SerdeError.InsufficientLengthData(descriptor, parentName)
                 StringElement(serialName, parentName, requiredLength, descriptor.isNullable)
             }
+            descriptor.isEnum -> EnumElement(serialName, parentName, descriptor.isNullable)
             descriptor.isCollection -> {
                 val requiredLength = dfQueue.removeFirstOrNull()
                     ?: throw SerdeError.InsufficientLengthData(descriptor, parentName)

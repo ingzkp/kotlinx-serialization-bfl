@@ -1,6 +1,7 @@
 package com.ing.serialization.bfl.serde
 
 import com.ing.serialization.bfl.serde.element.CollectionElement
+import com.ing.serialization.bfl.serde.element.EnumElement
 import com.ing.serialization.bfl.serde.element.PrimitiveElement
 import com.ing.serialization.bfl.serde.element.StringElement
 import com.ing.serialization.bfl.serializers.BFLSerializers
@@ -58,7 +59,7 @@ class BinaryFixedLengthInputDecoder(
     override fun decodeLong() = structureProcessor.removeNext().expect<PrimitiveElement>().decode<Long>(input)
     override fun decodeChar() = structureProcessor.removeNext().expect<PrimitiveElement>().decode<Char>(input)
     override fun decodeString() = structureProcessor.removeNext().expect<StringElement>().decode(input)
-    override fun decodeEnum(enumDescriptor: SerialDescriptor) = input.readInt()
+    override fun decodeEnum(enumDescriptor: SerialDescriptor) = structureProcessor.removeNext().expect<EnumElement>().decode(input)
     override fun decodeFloat() = structureProcessor.removeNext().expect<PrimitiveElement>().decode<Float>(input)
     override fun decodeDouble() = structureProcessor.removeNext().expect<PrimitiveElement>().decode<Double>(input)
 

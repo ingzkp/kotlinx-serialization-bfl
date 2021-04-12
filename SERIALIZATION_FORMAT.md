@@ -4,7 +4,7 @@
 
 BigDecimals are used to serialize `Float`, `Double` and `BigDecimal` types.
 
-The encoded representation of a BigDecimal is a byte stream with the following element in the following order:
+The encoded representation of a BigDecimal is a byte stream with the next elements in the following order:
 
 - Byte: sign, -1, 0, or 1
 - ByteArray for integer part, fixed size

@@ -1,6 +1,8 @@
 package com.ing.serialization.bfl.serde.serializers.custom
 
+import com.ing.serialization.bfl.serde.roundTrip
 import com.ing.serialization.bfl.serde.roundTripInlined
+import com.ing.serialization.bfl.serde.sameSize
 import com.ing.serialization.bfl.serde.sameSizeInlined
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
@@ -22,6 +24,7 @@ class ZonedDateTimeSerializerTest {
     fun `ZonedDateTime should be the same after serialization and deserialization`() {
         val data = Data(ZonedDateTime.now())
         roundTripInlined(data)
+        roundTrip(data)
     }
 
     @Test
@@ -30,5 +33,6 @@ class ZonedDateTimeSerializerTest {
         val data2 = Data(ZonedDateTime.now().minusDays(2))
 
         sameSizeInlined(data1, data2)
+        sameSize(data1, data2)
     }
 }

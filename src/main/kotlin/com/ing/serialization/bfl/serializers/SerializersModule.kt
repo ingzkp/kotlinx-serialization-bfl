@@ -11,4 +11,5 @@ val BFLSerializers = SerializersModule {
     contextual(CurrencySerializer)
     contextual(DateSerializer)
     contextual(ZonedDateTimeSerializer)
+    contextual(InstantSerializer)
 }

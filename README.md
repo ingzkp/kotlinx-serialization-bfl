@@ -166,7 +166,7 @@ val deserialized: CustomData<Currency> = deserialize(serializedBytes, strategy =
 assert(deserialized == original) { "Expected $deserialized to be $original" }
 ```
 
-For more information see [ProjectGenericsTest](2).
+For more information see [ProjectGenericsTest][2].
 
 #### Third-party Classes
 The surrogate approach can be followed when implementing serializers for third-party classes with generics.
@@ -221,7 +221,7 @@ val deserialized: CustomData<Currency> = deserialize(serializedBytes, CustomData
 assert(deserialized == original) { "Expected $deserialized to be $original" }
 ```
 
-For more information see [ThirdPartyGenericsTest](3).
+For more information see [ThirdPartyGenericsTest][3].
 
 ### Polymorphic types
 Fixed length serialization of polymorphic types is non-trivial. Concrete implementations of a polymorphic type

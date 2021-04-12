@@ -44,8 +44,8 @@ See [BigDecimalDocTest.kt][1] for details.
 
 ### Encoding and Endianness
 
-The difference in endianness is explained by the fact that some processors implemented in exotic languages, e.g.,
-(Zinc)[2], may not be able to use the first length bytes. Additionally, the whole byte array is now a valid
+The difference in endianness is explained by the fact that some processors implemented in exotic languages, e.g.
+[Zinc][2], may not be able to use the first length bytes. Additionally, the whole byte array is now a valid
 representation of the part in the given endianness. This means that processors can either work with the first `n` bytes,
 or just process the whole array of bytes independently of the length field.
 
@@ -56,4 +56,4 @@ And similarly for the fraction, processing the whole fraction part with big-endi
 equals ".456".
 
 [1]: src/test/kotlin/com/ing/serialization/bfl/serde/serializers/custom/BigDecimalDocTest.kt "BigDecimalDocTest"
-[2]: https://zinc.zksync.io/ Zinc
+[2]: https://zinc.zksync.io/ "Zinc"

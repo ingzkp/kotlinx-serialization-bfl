@@ -9,7 +9,7 @@ interface FloatingPointSurrogate<T> : Surrogate<T> {
     val fraction: ByteArray
 
     fun toBigDecimal(): BigDecimal {
-        val integer = this.integer.joinToString(separator = "") { "$it" }.trimStart('0')
+        val integer = this.integer.reversedArray().joinToString(separator = "") { "$it" }.trimStart('0')
         val fraction = this.fraction.joinToString(separator = "") { "$it" }.trimEnd('0')
         var digit = if (fraction.isEmpty()) integer else "$integer.$fraction"
         if (this.sign == (-1).toByte()) {

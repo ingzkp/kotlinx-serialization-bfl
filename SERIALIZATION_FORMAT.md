@@ -20,8 +20,8 @@ definition:
 ```kotlin
 @Serializable
 data class Data(
-  @FixedLenght([6, 4])
-  val value: BigDecimal
+  @FixedLength([6, 4])
+  val value: @Contextual BigDecimal
 )
 ```
 
@@ -35,3 +35,6 @@ Then the number "123.456" is encoded as:
      |      |- integer length: 3
      |- 1, positive number
 
+See [BigDecimalDocTest.kt][1] for details.
+
+[1]: src/test/kotlin/com/ing/serialization/bfl/serde/serializers/custom/BigDecimalDocTest.kt "BigDecimalDocTest"

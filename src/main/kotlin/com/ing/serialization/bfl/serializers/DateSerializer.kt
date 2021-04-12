@@ -1,25 +1,14 @@
 package com.ing.serialization.bfl.serializers
 
+import com.ing.serialization.bfl.api.Surrogate
+import com.ing.serialization.bfl.api.SurrogateSerializer
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
 import java.util.Date
 
-object DateSerializer : KSerializer<Date> {
-    private val strategy = DateSurrogate.serializer()
-    override val descriptor: SerialDescriptor = strategy.descriptor
-
-    override fun deserialize(decoder: Decoder): Date {
-        val surrogate = decoder.decodeSerializableValue(strategy)
-        return Date(surrogate.l)
-    }
-
-    override fun serialize(encoder: Encoder, value: Date) {
-        encoder.encodeSerializableValue(strategy, DateSurrogate(value.time))
-    }
-}
+object DateSerializer : KSerializer<Date> by (SurrogateSerializer(DateSurrogate.serializer()) { DateSurrogate(it.time) })
 
 @Serializable
-data class DateSurrogate(val l: Long)
+data class DateSurrogate(val l: Long) : Surrogate<Date> {
+    override fun toOriginal(): Date = Date(l)
+}

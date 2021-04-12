@@ -1,26 +1,14 @@
 package com.ing.serialization.bfl.serializers
 
 import com.ing.serialization.bfl.annotations.FixedLength
+import com.ing.serialization.bfl.api.Surrogate
+import com.ing.serialization.bfl.api.SurrogateSerializer
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
-object ZonedDateTimeSerializer : KSerializer<ZonedDateTime> {
-    private val strategy = ZonedDateTimeSurrogate.serializer()
-    override val descriptor: SerialDescriptor = strategy.descriptor
-
-    override fun deserialize(decoder: Decoder): ZonedDateTime {
-        return decoder.decodeSerializableValue(strategy).toOriginal()
-    }
-
-    override fun serialize(encoder: Encoder, value: ZonedDateTime) {
-        encoder.encodeSerializableValue(strategy, ZonedDateTimeSurrogate.from(value))
-    }
-}
+object ZonedDateTimeSerializer : KSerializer<ZonedDateTime> by (SurrogateSerializer(ZonedDateTimeSurrogate.serializer()) { ZonedDateTimeSurrogate.from(it) })
 
 @Serializable
 data class ZonedDateTimeSurrogate(
@@ -33,9 +21,9 @@ data class ZonedDateTimeSurrogate(
     val nanoOfSecond: Int,
     @FixedLength([20])
     val zone: String
-) {
+) : Surrogate<ZonedDateTime> {
 
-    fun toOriginal(): ZonedDateTime =
+    override fun toOriginal(): ZonedDateTime =
         ZonedDateTime.of(year, month, dayOfMonth, hour, minute, second, nanoOfSecond, ZoneId.of(zone))
 
     companion object {

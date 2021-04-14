@@ -67,6 +67,8 @@ class BigDecimalSerializerTest {
             Data(4.33.toBigDecimal()),
             Data((-4.33).toBigDecimal()),
             Data(BigDecimal.TEN),
+            Data(BigDecimal("0001.010")),
+            Data(BigDecimal("1.1000")),
             Data(BigDecimal("0.01"))
         ).forEach { data ->
             roundTripInlined(data)

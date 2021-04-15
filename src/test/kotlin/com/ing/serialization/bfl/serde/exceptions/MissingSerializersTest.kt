@@ -50,24 +50,6 @@ class MissingSerializersTest {
         }
     }
 
-    @Test
-    fun `direct serialization of primitive values should fail`() {
-        listOf(
-            true,
-            1.toByte(),
-            1,
-            1L,
-            'a',
-            0.1,
-            0.1F,
-            "a"
-        ).forEach {
-            assertThrows<NoSuchElementException> {
-                serialize(it)
-            }
-        }
-    }
-
     @Serializable
     open class Dummy
 

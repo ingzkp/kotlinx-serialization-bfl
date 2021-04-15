@@ -18,12 +18,15 @@ import kotlinx.serialization.descriptors.getPolymorphicDescriptors
 import kotlinx.serialization.modules.EmptySerializersModule
 import kotlinx.serialization.modules.SerializersModule
 
-class ElementFactory(private val serializersModule: SerializersModule = EmptySerializersModule) {
+class ElementFactory(
+    private val serializersModule: SerializersModule = EmptySerializersModule,
+    outerFixedLength: IntArray = IntArray(0)
+) {
     companion object {
         const val polySerialNameLength = 100
     }
 
-    private var dfQueue = ArrayDeque<Int>()
+    private var dfQueue = ArrayDeque(outerFixedLength.toList())
 
     /**
      * Parses a class structure property by property recursively.
@@ -33,6 +36,12 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
         val parentName = withPropertyName ?: descriptor.simpleSerialName
 
         return when {
+            descriptor.isTrulyPrimitive ||
+                descriptor.isString ||
+                descriptor.isEnum ||
+                descriptor.isPolymorphic ||
+                descriptor.isCollection -> fromType(descriptor, parentName)
+            //
             descriptor.isStructure -> {
                 val children = (0 until descriptor.elementsCount)
                     .map { idx ->
@@ -47,7 +56,7 @@ class ElementFactory(private val serializersModule: SerializersModule = EmptySer
                     }
                 StructureElement(descriptor.serialName, parentName, children, descriptor.isNullable)
             }
-            descriptor.isPolymorphic -> fromType(descriptor, parentName)
+
             else -> error("${descriptor.serialName} is not supported")
         }
     }

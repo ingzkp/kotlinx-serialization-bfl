@@ -7,14 +7,20 @@ import com.ing.serialization.bfl.serde.element.StructureElement
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.modules.SerializersModule
 
-class FixedLengthStructureProcessor(private val serializersModule: SerializersModule) {
-    internal lateinit var structure: Element
+class FixedLengthStructureProcessor(
+    descriptor: SerialDescriptor,
+    serializersModule: SerializersModule,
+    outerFixedLength: IntArray = IntArray(0)
+) {
 
-    private var topLevel = true
+    internal var structure: Element = ElementFactory(serializersModule, outerFixedLength).parse(descriptor)
     private val queue = ArrayDeque<Element>()
 
-    fun removeNext() = queue.removeFirst()
+    init {
+        queue.prepend(structure)
+    }
 
+    fun removeNext() = queue.removeFirst()
     fun peekNext() = queue.first()
 
     /**
@@ -26,16 +32,8 @@ class FixedLengthStructureProcessor(private val serializersModule: SerializersMo
      * @throws SerdeError.UnexpectedElement exception when first element in queue is not a structure
      */
     fun beginStructure(descriptor: SerialDescriptor) {
-        val schedulable = if (topLevel) {
-            topLevel = false
-            structure = ElementFactory(serializersModule).parse(descriptor)
-            // Place the element to the front of the queue.
-            queue.prepend(structure)
-            structure
-        } else {
-            // TODO: add check if the struct on the stack coincides with the current descriptor.
-            queue.first()
-        }.expect<StructureElement>()
+        // TODO: add check if the struct on the stack coincides with the current descriptor.
+        val schedulable = queue.first().expect<StructureElement>()
 
         // Unwind structure's inner elements to the queue.
         queue.prepend(schedulable.inner)

@@ -10,18 +10,29 @@ import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
 
-fun <T : Any> genericSerialize(data: T, serializersModule: SerializersModule, serializer: KSerializer<T>): ByteArray =
+fun <T : Any> genericSerialize(
+    data: T,
+    serializersModule: SerializersModule,
+    serializer: KSerializer<T>,
+    outerFixedLength: IntArray
+): ByteArray =
     ByteArrayOutputStream().use { output ->
         DataOutputStream(output).use { stream ->
-            BinaryFixedLengthOutputEncoder(stream, serializersModule).encodeSerializableValue(serializer, data)
+            BinaryFixedLengthOutputEncoder(stream, serializersModule, outerFixedLength)
+                .encodeSerializableValue(serializer, data)
         }
         output.toByteArray()
     }
 
-fun <T : Any> genericDebugSerialize(data: T, serializersModule: SerializersModule, serializer: KSerializer<T>): Pair<ByteArray, Layout> =
+fun <T : Any> genericDebugSerialize(
+    data: T,
+    serializersModule: SerializersModule,
+    serializer: KSerializer<T>,
+    outerFixedLength: IntArray
+): Pair<ByteArray, Layout> =
     ByteArrayOutputStream().use { output ->
         val layout = DataOutputStream(output).use { stream ->
-            val bfl = BinaryFixedLengthOutputEncoder(stream, serializersModule)
+            val bfl = BinaryFixedLengthOutputEncoder(stream, serializersModule, outerFixedLength)
             bfl.encodeSerializableValue(serializer, data)
             bfl.layout
         }
@@ -31,12 +42,13 @@ fun <T : Any> genericDebugSerialize(data: T, serializersModule: SerializersModul
 fun <T : Any> genericDeserialize(
     data: ByteArray,
     serializersModule: SerializersModule,
-    serializer: KSerializer<T>
+    serializer: KSerializer<T>,
+    outerFixedLength: IntArray
 ): T {
     return ByteArrayInputStream(data).use { input ->
         DataInputStream(input).use { stream ->
-            val bfl = BinaryFixedLengthInputDecoder(stream, serializersModule)
-            bfl.decodeSerializableValue(serializer)
+            BinaryFixedLengthInputDecoder(stream, serializersModule, outerFixedLength)
+                .decodeSerializableValue(serializer)
         }
     }
 }

@@ -5,6 +5,7 @@ import com.ing.serialization.bfl.serde.element.EnumElement
 import com.ing.serialization.bfl.serde.element.PrimitiveElement
 import com.ing.serialization.bfl.serde.element.StringElement
 import com.ing.serialization.bfl.serializers.BFLSerializers
+import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.AbstractEncoder
 import kotlinx.serialization.encoding.CompositeEncoder
@@ -15,11 +16,12 @@ import java.io.DataOutput
 @Suppress("TooManyFunctions")
 class BinaryFixedLengthOutputEncoder(
     private val output: DataOutput,
-    userSerializersModule: SerializersModule
+    userSerializersModule: SerializersModule,
+    private val outerFixedLength: IntArray
 ) : AbstractEncoder() {
     override val serializersModule = BFLSerializers + userSerializersModule
 
-    private val structureProcessor = FixedLengthStructureProcessor(serializersModule)
+    private lateinit var structureProcessor: FixedLengthStructureProcessor
     val layout by lazy { structureProcessor.structure.layout }
 
     override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder {
@@ -65,4 +67,12 @@ class BinaryFixedLengthOutputEncoder(
     }
 
     override fun encodeNotNullMark() = output.writeBoolean(true)
+
+    override fun <T> encodeSerializableValue(serializer: SerializationStrategy<T>, value: T) {
+        if (!this::structureProcessor.isInitialized) {
+            structureProcessor =
+                FixedLengthStructureProcessor(serializer.descriptor, serializersModule, outerFixedLength)
+        }
+        super.encodeSerializableValue(serializer, value)
+    }
 }

@@ -5,6 +5,7 @@ import com.ing.serialization.bfl.serde.element.EnumElement
 import com.ing.serialization.bfl.serde.element.PrimitiveElement
 import com.ing.serialization.bfl.serde.element.StringElement
 import com.ing.serialization.bfl.serializers.BFLSerializers
+import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.AbstractDecoder
 import kotlinx.serialization.encoding.CompositeDecoder
@@ -15,12 +16,13 @@ import java.io.DataInput
 @Suppress("TooManyFunctions")
 class BinaryFixedLengthInputDecoder(
     private val input: DataInput,
-    userSerializersModule: SerializersModule
+    userSerializersModule: SerializersModule,
+    private val outerFixedLength: IntArray
 ) : AbstractDecoder() {
     override val serializersModule = BFLSerializers + userSerializersModule
 
     private var elementIndex = 0
-    private val structureProcessor = FixedLengthStructureProcessor(serializersModule)
+    private lateinit var structureProcessor: FixedLengthStructureProcessor
 
     override fun beginStructure(descriptor: SerialDescriptor): CompositeDecoder {
         if (!descriptor.isCollection) {
@@ -80,5 +82,13 @@ class BinaryFixedLengthInputDecoder(
     override fun decodeNull(): Nothing? {
         structureProcessor.removeNext().decodeNull(input)
         return null
+    }
+
+    override fun <T> decodeSerializableValue(deserializer: DeserializationStrategy<T>): T {
+        if (!this::structureProcessor.isInitialized) {
+            structureProcessor =
+                FixedLengthStructureProcessor(deserializer.descriptor, serializersModule, outerFixedLength)
+        }
+        return super.decodeSerializableValue(deserializer)
     }
 }

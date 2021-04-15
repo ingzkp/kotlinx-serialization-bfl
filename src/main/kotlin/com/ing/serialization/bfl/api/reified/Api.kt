@@ -14,28 +14,31 @@ import kotlinx.serialization.serializer
 inline fun <reified T : Any> serialize(
     data: T,
     strategy: KSerializer<T>? = null,
-    serializersModule: SerializersModule = EmptySerializersModule
+    serializersModule: SerializersModule = EmptySerializersModule,
+    outerFixedLength: IntArray = IntArray(0)
 ): ByteArray {
     val serializer = getSerializer(strategy, serializersModule)
-    return genericSerialize(data, serializersModule, serializer)
+    return genericSerialize(data, serializersModule, serializer, outerFixedLength)
 }
 
 inline fun <reified T : Any> debugSerialize(
     data: T,
     strategy: KSerializer<T>? = null,
-    serializersModule: SerializersModule = EmptySerializersModule
+    serializersModule: SerializersModule = EmptySerializersModule,
+    outerFixedLength: IntArray = IntArray(0)
 ): Pair<ByteArray, Layout> {
     val serializer = getSerializer(strategy, serializersModule)
-    return genericDebugSerialize(data, serializersModule, serializer)
+    return genericDebugSerialize(data, serializersModule, serializer, outerFixedLength)
 }
 
 inline fun <reified T : Any> deserialize(
     data: ByteArray,
     strategy: KSerializer<T>? = null,
-    serializersModule: SerializersModule = EmptySerializersModule
+    serializersModule: SerializersModule = EmptySerializersModule,
+    outerFixedLength: IntArray = IntArray(0)
 ): T {
     val serializer = getSerializer(strategy, serializersModule)
-    return genericDeserialize(data, serializersModule, serializer)
+    return genericDeserialize(data, serializersModule, serializer, outerFixedLength)
 }
 
 inline fun <reified T : Any> getSerializer(

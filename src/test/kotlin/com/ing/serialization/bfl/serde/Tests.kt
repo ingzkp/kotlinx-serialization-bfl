@@ -19,9 +19,10 @@ inline fun <reified T : Any> checkedSerializeInlined(
     data: T,
     mask: List<Pair<String, Int>>,
     serializers: SerializersModule = EmptySerializersModule,
-    strategy: KSerializer<T>? = null
+    strategy: KSerializer<T>? = null,
+    outerFixedLength: IntArray = IntArray(0)
 ): ByteArray {
-    val bytes = serializeInlined(data, strategy, serializersModule = BFLSerializers + serializers)
+    val bytes = serializeInlined(data, strategy, serializersModule = BFLSerializers + serializers, outerFixedLength = outerFixedLength)
     log(bytes, mask)
     bytes.size shouldBe mask.sumBy { it.second }
 
@@ -34,10 +35,11 @@ inline fun <reified T : Any> checkedSerializeInlined(
 inline fun <reified T : Any> roundTripInlined(
     value: T,
     serializers: SerializersModule = EmptySerializersModule,
-    strategy: KSerializer<T>? = null
+    strategy: KSerializer<T>? = null,
+    outerFixedLength: IntArray = IntArray(0)
 ) {
-    val serialization = serializeInlined(value, strategy, serializersModule = BFLSerializers + serializers)
-    val deserialization = deserializeInlined<T>(serialization, serializersModule = BFLSerializers + serializers)
+    val serialization = serializeInlined(value, strategy, serializersModule = BFLSerializers + serializers, outerFixedLength = outerFixedLength)
+    val deserialization = deserializeInlined<T>(serialization, serializersModule = BFLSerializers + serializers, outerFixedLength = outerFixedLength)
 
     deserialization shouldBe value
 }
@@ -49,12 +51,13 @@ inline fun <reified T : Any> sameSizeInlined(
     value1: T,
     value2: T,
     serializers: SerializersModule = EmptySerializersModule,
-    strategy: KSerializer<T>? = null
+    strategy: KSerializer<T>? = null,
+    outerFixedLength: IntArray = IntArray(0)
 ) {
     value1 shouldNotBe value2
 
-    val serialization1 = serializeInlined(value1, strategy, serializersModule = BFLSerializers + serializers)
-    val serialization2 = serializeInlined(value2, strategy, serializersModule = BFLSerializers + serializers)
+    val serialization1 = serializeInlined(value1, strategy, serializersModule = BFLSerializers + serializers, outerFixedLength = outerFixedLength)
+    val serialization2 = serializeInlined(value2, strategy, serializersModule = BFLSerializers + serializers, outerFixedLength = outerFixedLength)
 
     serialization1 shouldNotBe serialization2
     serialization1.size shouldBe serialization2.size
@@ -67,9 +70,10 @@ fun <T : Any> checkedSerialize(
     data: T,
     mask: List<Pair<String, Int>>,
     serializers: SerializersModule = EmptySerializersModule,
-    strategy: KSerializer<T>? = null
+    strategy: KSerializer<T>? = null,
+    outerFixedLength: IntArray = IntArray(0)
 ): ByteArray {
-    val bytes = serialize(data, strategy, serializersModule = BFLSerializers + serializers)
+    val bytes = serialize(data, strategy, serializersModule = BFLSerializers + serializers, outerFixedLength = outerFixedLength)
     log(bytes, mask)
     bytes.size shouldBe mask.sumBy { it.second }
 
@@ -82,10 +86,11 @@ fun <T : Any> checkedSerialize(
 fun <T : Any> roundTrip(
     value: T,
     serializers: SerializersModule = EmptySerializersModule,
-    strategy: KSerializer<T>? = null
+    strategy: KSerializer<T>? = null,
+    outerFixedLength: IntArray = IntArray(0)
 ) {
-    val serialization = serialize(value, strategy, serializersModule = BFLSerializers + serializers)
-    val deserialization = deserialize(serialization, value::class, strategy, BFLSerializers + serializers)
+    val serialization = serialize(value, strategy, serializersModule = BFLSerializers + serializers, outerFixedLength = outerFixedLength)
+    val deserialization = deserialize(serialization, value::class, strategy, BFLSerializers + serializers, outerFixedLength = outerFixedLength)
 
     deserialization shouldBe value
 }
@@ -97,12 +102,13 @@ fun <T : Any> sameSize(
     value1: T,
     value2: T,
     serializers: SerializersModule = EmptySerializersModule,
-    strategy: KSerializer<T>? = null
+    strategy: KSerializer<T>? = null,
+    outerFixedLength: IntArray = IntArray(0)
 ) {
     value1 shouldNotBe value2
 
-    val serialization1 = serialize(value1, strategy, serializersModule = BFLSerializers + serializers)
-    val serialization2 = serialize(value2, strategy, serializersModule = BFLSerializers + serializers)
+    val serialization1 = serialize(value1, strategy, serializersModule = BFLSerializers + serializers, outerFixedLength = outerFixedLength)
+    val serialization2 = serialize(value2, strategy, serializersModule = BFLSerializers + serializers, outerFixedLength = outerFixedLength)
 
     serialization1 shouldNotBe serialization2
     serialization1.size shouldBe serialization2.size

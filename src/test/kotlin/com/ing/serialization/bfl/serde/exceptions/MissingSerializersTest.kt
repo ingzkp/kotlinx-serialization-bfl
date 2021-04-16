@@ -46,7 +46,7 @@ class MissingSerializersTest {
         }
 
         assertThrows<SerdeError.NoTopLevelSerializer> {
-            deserialize(byteArrayOf(), Data::class)
+            deserialize(byteArrayOf(), Data::class.java)
         }
     }
 

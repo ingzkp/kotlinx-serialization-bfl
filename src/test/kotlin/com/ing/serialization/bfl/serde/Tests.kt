@@ -90,7 +90,7 @@ fun <T : Any> roundTrip(
     outerFixedLength: IntArray = IntArray(0)
 ) {
     val serialization = serialize(value, strategy, serializersModule = BFLSerializers + serializers, outerFixedLength = outerFixedLength)
-    val deserialization = deserialize(serialization, value::class, strategy, BFLSerializers + serializers, outerFixedLength = outerFixedLength)
+    val deserialization = deserialize(serialization, value::class.java, strategy, BFLSerializers + serializers, outerFixedLength = outerFixedLength)
 
     deserialization shouldBe value
 }

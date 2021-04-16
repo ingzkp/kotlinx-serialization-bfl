@@ -6,17 +6,16 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.modules.EmptySerializersModule
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.serializerOrNull
-import kotlin.reflect.KClass
 
 @Suppress("UNCHECKED_CAST")
-private fun <T : Any> SerializersModule.getSerializerFor(type: KClass<out T>): KSerializer<T> =
-    this.serializerOrNull(type.java) as? KSerializer<T>
+private fun <T : Any> SerializersModule.getSerializerFor(clazz: Class<out T>): KSerializer<T> =
+    this.serializerOrNull(clazz) as? KSerializer<T>
         // for some reason function
         // `public fun SerializersModule.serializerOrNull(type: Type): KSerializer<Any>?`
         // via the call to
         // `private fun SerializersModule.serializerByJavaTypeImpl(type: Type, failOnMissingTypeArgSerializer: Boolean = true): KSerializer<Any>?`
         // fails to find built in serializers such as ListSerializer, ListSerializer, etc.
-        ?: throw SerdeError.NoTopLevelSerializer(type)
+        ?: throw SerdeError.NoTopLevelSerializer(clazz)
 
 fun <T : Any> serialize(
     data: T,
@@ -24,7 +23,7 @@ fun <T : Any> serialize(
     serializersModule: SerializersModule = EmptySerializersModule,
     outerFixedLength: IntArray = IntArray(0)
 ): ByteArray {
-    val serializer = strategy ?: serializersModule.getSerializerFor(data::class)
+    val serializer = strategy ?: serializersModule.getSerializerFor(data::class.java)
     return genericSerialize(data, serializersModule, serializer, outerFixedLength)
 }
 
@@ -34,17 +33,17 @@ fun <T : Any> debugSerialize(
     serializersModule: SerializersModule = EmptySerializersModule,
     outerFixedLength: IntArray = IntArray(0)
 ): Pair<ByteArray, Layout> {
-    val serializer = strategy ?: serializersModule.getSerializerFor(data::class)
+    val serializer = strategy ?: serializersModule.getSerializerFor(data::class.java)
     return genericDebugSerialize(data, serializersModule, serializer, outerFixedLength)
 }
 
 fun <T : Any> deserialize(
     data: ByteArray,
-    klass: KClass<out T>,
+    clazz: Class<out T>,
     strategy: KSerializer<out T>? = null,
     serializersModule: SerializersModule = EmptySerializersModule,
     outerFixedLength: IntArray = IntArray(0)
 ): T {
-    val deserializer = strategy ?: serializersModule.getSerializerFor(klass)
+    val deserializer = strategy ?: serializersModule.getSerializerFor(clazz)
     return genericDeserialize(data, serializersModule, deserializer, outerFixedLength)
 }

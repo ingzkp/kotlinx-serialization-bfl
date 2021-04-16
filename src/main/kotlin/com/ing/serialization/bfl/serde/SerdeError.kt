@@ -37,7 +37,7 @@ sealed class SerdeError : IllegalStateException {
         SerdeError("Serializers module has no serializers for a context type ${descriptor.serialName}")
 
     class NoTopLevelSerializer : SerdeError {
-        constructor(klass: KClass<*>) : super("Top-level serializer absent for ${klass.simpleName}")
+        constructor(clazz: Class<*>) : super("Top-level serializer absent for ${clazz.simpleName}")
         constructor(klass: KClass<*>, cause: Throwable) : super("Top-level serializer absent for ${klass.simpleName}", cause)
     }
 }

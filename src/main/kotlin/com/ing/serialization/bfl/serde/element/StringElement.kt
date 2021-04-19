@@ -11,7 +11,7 @@ class StringElement(
     serialName: String,
     propertyName: String,
     val requiredLength: Int,
-    override val isNullable: Boolean
+    override var isNullable: Boolean
 ) : Element(serialName, propertyName) {
     /**
      * Layout of a sequence of bytes describing a string.

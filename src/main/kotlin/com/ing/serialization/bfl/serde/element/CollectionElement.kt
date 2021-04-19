@@ -13,7 +13,7 @@ class CollectionElement(
     inner: List<Element>,
     var actualLength: Int? = null,
     val requiredLength: Int,
-    override val isNullable: Boolean
+    override var isNullable: Boolean
 ) : Element(serialName, propertyName, inner) {
     /**
      * INT (collection length) + number_of_elements * sum_i { size(inner_i) }
@@ -21,7 +21,7 @@ class CollectionElement(
      */
     override val inherentLayout by lazy {
         listOf(
-            Pair("[Collection] original length bytecount", 4),
+            Pair("[Collection] original length byte-count", 4),
             Pair("[Collection] value length", requiredLength * elementSize)
         )
     }

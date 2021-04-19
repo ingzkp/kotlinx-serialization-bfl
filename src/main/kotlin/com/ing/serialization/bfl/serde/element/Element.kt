@@ -9,7 +9,7 @@ import java.io.DataOutput
  */
 
 abstract class Element(val serialName: String, val propertyName: String, val inner: List<Element> = listOf()) {
-    abstract val isNullable: Boolean
+    abstract var isNullable: Boolean
 
     protected abstract val inherentLayout: List<Pair<String, Int>>
     private val inherentSize by lazy {
@@ -18,7 +18,7 @@ abstract class Element(val serialName: String, val propertyName: String, val inn
 
     private val nullLayout by lazy {
         if (isNullable) {
-            listOf(Pair("nonNull", 1))
+            listOf(Pair("[nullability flag]", 1))
         } else {
             listOf()
         }

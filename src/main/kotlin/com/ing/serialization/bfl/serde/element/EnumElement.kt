@@ -6,7 +6,7 @@ import java.io.DataOutput
 class EnumElement(
     serialName: String,
     propertyName: String,
-    override val isNullable: Boolean
+    override var isNullable: Boolean
 ) : Element(serialName, propertyName) {
 
     override val inherentLayout by lazy {

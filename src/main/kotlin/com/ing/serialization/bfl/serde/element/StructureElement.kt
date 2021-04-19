@@ -6,7 +6,7 @@ class StructureElement(
     serialName: String,
     propertyName: String,
     inner: List<Element>,
-    override val isNullable: Boolean
+    override var isNullable: Boolean
 ) : Element(serialName, propertyName, inner) {
     override val inherentLayout by lazy {
         listOf(Pair("[Structure] length", constituentsSize))

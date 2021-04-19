@@ -61,6 +61,7 @@ class ElementFactory(
         }
     }
 
+    @Suppress("ComplexMethod")
     private fun fromType(descriptor: SerialDescriptor, parentName: String): Element {
         val serialName = descriptor.serialName
 
@@ -128,7 +129,7 @@ class ElementFactory(
                 val contextDescriptor = serializersModule.getContextualDescriptor(descriptor)
                     ?: throw SerdeError.NoContextualSerializer(descriptor)
 
-                fromType(contextDescriptor, parentName)
+                fromType(contextDescriptor, parentName).apply { isNullable = descriptor.isNullable }
             }
             else -> error("Do not know how to build element from type ${descriptor.serialName}")
         }

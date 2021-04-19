@@ -19,7 +19,7 @@ class PrimitiveElement(
     serialName: String,
     propertyName: String,
     private val kind: SerialKind,
-    override val isNullable: Boolean
+    override var isNullable: Boolean
 ) : Element(serialName, propertyName) {
     init {
         if (!kind.isTrulyPrimitive) throw SerdeError.NotFixedPrimitive(kind)

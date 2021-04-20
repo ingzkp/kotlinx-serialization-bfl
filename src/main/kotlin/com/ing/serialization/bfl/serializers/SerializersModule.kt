@@ -14,4 +14,5 @@ val BFLSerializers = SerializersModule {
     contextual(InstantSerializer)
     contextual(UUIDSerializer)
     contextual(DurationSerializer)
+    contextual(X500PrincipalSerializer)
 }

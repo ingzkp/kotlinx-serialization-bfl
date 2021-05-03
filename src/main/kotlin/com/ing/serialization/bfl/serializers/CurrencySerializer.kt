@@ -14,6 +14,10 @@ object CurrencySerializer : KSerializer<Currency> by (SurrogateSerializer(Curren
  * ISO 4217: Currency codes are composed of a country's two-character Internet country code
  * plus a third character denoting the currency unit.
  */
-data class CurrencySurrogate(@FixedLength([3]) val code: String) : Surrogate<Currency> {
+data class CurrencySurrogate(@FixedLength([CURRENCY_SIZE]) val code: String) : Surrogate<Currency> {
     override fun toOriginal(): Currency = Currency.getInstance(code)
+
+    companion object {
+        const val CURRENCY_SIZE = 3
+    }
 }

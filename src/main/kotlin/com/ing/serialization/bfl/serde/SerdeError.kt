@@ -33,6 +33,9 @@ sealed class SerdeError : IllegalStateException {
     class NoPolymorphicSerializers(descriptor: SerialDescriptor) :
         SerdeError("Serializers module has no serializers for a polymorphic type ${descriptor.serialName}")
 
+    class VariablePolymorphicSerialName(descriptor: SerialDescriptor) :
+        SerdeError("Variants of ${descriptor.serialName} have differently sized serial names")
+
     class NoContextualSerializer(descriptor: SerialDescriptor) :
         SerdeError("Serializers module has no serializers for a context type ${descriptor.serialName}")
 

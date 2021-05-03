@@ -2,13 +2,13 @@ package com.ing.serialization.bfl.serde.serializers.custom.polymorphic
 
 import com.ing.serialization.bfl.serde.checkedSerialize
 import com.ing.serialization.bfl.serde.checkedSerializeInlined
-import com.ing.serialization.bfl.serde.element.ElementFactory
 import com.ing.serialization.bfl.serde.generateRSAPubKey
 import com.ing.serialization.bfl.serde.roundTrip
 import com.ing.serialization.bfl.serde.roundTripInlined
 import com.ing.serialization.bfl.serde.sameSize
 import com.ing.serialization.bfl.serde.sameSizeInlined
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.modules.polymorphic
 import org.junit.jupiter.api.Test
 import java.security.PublicKey
 
@@ -20,7 +20,7 @@ class ClassPolymorphicTest {
     @Test
     fun `Polymorphic type within structure should be serialized successfully`() {
         val mask = listOf(
-            Pair("pk.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("pk.serialName", PublicKeyBaseSurrogate.SERIAL_NAME_LENGTH),
             Pair("pk.value", 4 + PublicKeyBaseSurrogate.ENCODED_SIZE)
         )
 

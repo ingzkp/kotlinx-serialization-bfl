@@ -1,7 +1,6 @@
 package com.ing.serialization.bfl.serde.serializers.custom.polymorphic
 
 import com.ing.serialization.bfl.serde.checkedSerializeInlined
-import com.ing.serialization.bfl.serde.element.ElementFactory
 import com.ing.serialization.bfl.serde.generateRSAPubKey
 import com.ing.serialization.bfl.serde.roundTrip
 import com.ing.serialization.bfl.serde.roundTripInlined
@@ -18,7 +17,7 @@ class PolymorphicTest {
         println(data.encoded.joinToString(separator = ","))
 
         val mask = listOf(
-            Pair("serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("serialName", PublicKeyBaseSurrogate.SERIAL_NAME_LENGTH),
             Pair("length", 4),
             Pair("value", PublicKeyBaseSurrogate.ENCODED_SIZE)
         )

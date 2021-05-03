@@ -7,7 +7,9 @@ import com.ing.serialization.bfl.serde.sameSizeInlined
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
+import java.time.Year
 import java.time.ZoneId
+import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import com.ing.serialization.bfl.api.reified.debugSerialize as debugSerializeInlined
 
@@ -22,22 +24,22 @@ class ZonedDateTimeSerializerTest {
     }
 
     @Test
-    fun `ZonedDateTime should be serialized successfully with largest zoneId`() {
-        val data = Data(ZonedDateTime.now(ZoneId.of("America/Argentina/ComodRivadavia")))
-        println(debugSerializeInlined(data).second)
-    }
-
-    @Test
     fun `ZonedDateTime should be the same after serialization and deserialization`() {
-        val data = Data(ZonedDateTime.now())
-        roundTripInlined(data)
-        roundTrip(data)
+        listOf(
+            Data(ZonedDateTime.now()),
+            Data(ZonedDateTime.now(ZoneId.of("America/Argentina/ComodRivadavia"))),
+            Data(ZonedDateTime.now(ZoneOffset.ofTotalSeconds(42))),
+            Data(ZonedDateTime.of(Year.MAX_VALUE, 0, 0, 0, 0, 0, 0, ZoneId.of("GMT")))
+        ).forEach { data ->
+            roundTripInlined(data)
+            roundTrip(data)
+        }
     }
 
     @Test
     fun `different ZonedDateTimes should have same size after serialization`() {
-        val data1 = Data(ZonedDateTime.now())
-        val data2 = Data(ZonedDateTime.now().minusDays(2))
+        val data1 = Data(ZonedDateTime.now(ZoneId.of("America/Argentina/ComodRivadavia")))
+        val data2 = Data(ZonedDateTime.now(ZoneOffset.ofTotalSeconds(42)))
 
         sameSizeInlined(data1, data2)
         sameSize(data1, data2)

@@ -10,7 +10,6 @@ val BFLSerializers = SerializersModule {
     contextual(FloatSerializer)
     contextual(CurrencySerializer)
     contextual(DateSerializer)
-    contextual(ZonedDateTimeSerializer)
     contextual(InstantSerializer)
     contextual(UUIDSerializer)
     contextual(DurationSerializer)

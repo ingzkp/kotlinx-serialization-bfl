@@ -4,6 +4,7 @@ import com.ing.serialization.bfl.annotations.FixedLength
 import com.ing.serialization.bfl.api.Surrogate
 import com.ing.serialization.bfl.api.SurrogateSerializer
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import sun.security.provider.DSAPublicKeyImpl
 import sun.security.rsa.RSAPublicKeyImpl
@@ -16,6 +17,7 @@ abstract class PublicKeyBaseSurrogate {
 
     companion object {
         const val ENCODED_SIZE = 900
+        const val SERIAL_NAME_LENGTH = 2 + 2 * 3
     }
 }
 
@@ -27,6 +29,7 @@ by (SurrogateSerializer(DSASurrogate.serializer()) { DSASurrogate(it.encoded) })
 
 @Suppress("ArrayInDataClass")
 @Serializable
+@SerialName("RSA")
 data class RSASurrogate(
     @FixedLength([ENCODED_SIZE])
     override val encoded: ByteArray
@@ -37,6 +40,7 @@ data class RSASurrogate(
 
 @Suppress("ArrayInDataClass")
 @Serializable
+@SerialName("DSA")
 data class DSASurrogate(
     @FixedLength([ENCODED_SIZE])
     override val encoded: ByteArray

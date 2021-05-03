@@ -22,10 +22,6 @@ class ElementFactory(
     private val serializersModule: SerializersModule = EmptySerializersModule,
     outerFixedLength: IntArray = IntArray(0)
 ) {
-    companion object {
-        const val polySerialNameLength = 100
-    }
-
     private var dfQueue = ArrayDeque(outerFixedLength.toList())
 
     /**
@@ -115,11 +111,18 @@ class ElementFactory(
                 // Polymorphic type consists of a string describing type and a structure.
                 // Bound the serialName of the polymorphic type.
                 val type = descriptor.elementDescriptors.first()
-                dfQueue.prepend(polySerialNameLength)
 
                 // The hard requirement above implies that any descriptor independently of a variant
-                // will good enough for a respective polymorphic type.
+                // will be good enough for a respective polymorphic type.
                 val value = polyDescriptors.first()
+
+                // serialName's for all variant of the polymorphic type must have the same length
+                // to produce a fixed length serialization.
+                val variantNamesLengths = polyDescriptors.map { it.serialName.length }.distinct()
+                if (variantNamesLengths.size != 1) {
+                    throw SerdeError.VariablePolymorphicSerialName(descriptor)
+                }
+                dfQueue.prepend(variantNamesLengths.single())
 
                 val children = listOf(type, value).map { fromType(it, parentName) }
 

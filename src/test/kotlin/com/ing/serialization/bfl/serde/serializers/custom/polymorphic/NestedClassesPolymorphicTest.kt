@@ -2,7 +2,6 @@ package com.ing.serialization.bfl.serde.serializers.custom.polymorphic
 
 import com.ing.serialization.bfl.serde.checkedSerialize
 import com.ing.serialization.bfl.serde.checkedSerializeInlined
-import com.ing.serialization.bfl.serde.element.ElementFactory
 import com.ing.serialization.bfl.serde.generateDSAPubKey
 import com.ing.serialization.bfl.serde.generateRSAPubKey
 import com.ing.serialization.bfl.serde.roundTrip
@@ -26,7 +25,7 @@ class NestedClassesPolymorphicTest {
         val data = Data(Some(generateRSAPubKey()))
 
         val mask = listOf(
-            Pair("some.pk.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("some.pk.serialName", PublicKeyBaseSurrogate.SERIAL_NAME_LENGTH),
             Pair("some.pk.length", 4),
             Pair("some.nested.value", PublicKeyBaseSurrogate.ENCODED_SIZE)
         )

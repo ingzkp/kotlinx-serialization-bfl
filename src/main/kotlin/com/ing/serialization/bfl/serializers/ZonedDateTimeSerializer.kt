@@ -19,7 +19,7 @@ data class ZonedDateTimeSurrogate(
     val minute: Int,
     val second: Int,
     val nanoOfSecond: Int,
-    @FixedLength([20])
+    @FixedLength([ZONE_ID_SIZE])
     val zone: String
 ) : Surrogate<ZonedDateTime> {
 
@@ -27,6 +27,10 @@ data class ZonedDateTimeSurrogate(
         ZonedDateTime.of(year, month, dayOfMonth, hour, minute, second, nanoOfSecond, ZoneId.of(zone))
 
     companion object {
+        /**
+         * The largest ZoneId in the timezone data is: America/Argentina/ComodRivadavia, which takes 32 chars.
+         */
+        const val ZONE_ID_SIZE = 32
         fun from(original: ZonedDateTime) = with(original) {
             ZonedDateTimeSurrogate(year, month.value, dayOfMonth, hour, minute, second, nano, zone.id)
         }

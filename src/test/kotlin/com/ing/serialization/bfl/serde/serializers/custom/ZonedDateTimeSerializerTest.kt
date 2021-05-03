@@ -7,6 +7,7 @@ import com.ing.serialization.bfl.serde.sameSizeInlined
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
+import java.time.ZoneId
 import java.time.ZonedDateTime
 import com.ing.serialization.bfl.api.reified.debugSerialize as debugSerializeInlined
 
@@ -17,6 +18,12 @@ class ZonedDateTimeSerializerTest {
     @Test
     fun `ZonedDateTime should be serialized successfully`() {
         val data = Data(ZonedDateTime.now())
+        println(debugSerializeInlined(data).second)
+    }
+
+    @Test
+    fun `ZonedDateTime should be serialized successfully with largest zoneId`() {
+        val data = Data(ZonedDateTime.now(ZoneId.of("America/Argentina/ComodRivadavia")))
         println(debugSerializeInlined(data).second)
     }
 

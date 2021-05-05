@@ -9,11 +9,12 @@ import kotlinx.serialization.modules.SerializersModule
 
 class FixedLengthStructureProcessor(
     descriptor: SerialDescriptor,
-    serializersModule: SerializersModule,
-    outerFixedLength: IntArray = IntArray(0)
+    val serializersModule: SerializersModule,
+    outerFixedLength: IntArray = IntArray(0),
+    data: Any? = null,
+    private val phase: Phase = Phase.DECODING
 ) {
-
-    internal var structure: Element = ElementFactory(serializersModule, outerFixedLength).parse(descriptor)
+    internal var structure: Element = ElementFactory(serializersModule, outerFixedLength).parse(descriptor, data = data)
     private val queue = ArrayDeque<Element>()
 
     init {
@@ -33,7 +34,24 @@ class FixedLengthStructureProcessor(
      */
     fun beginStructure(descriptor: SerialDescriptor) {
         // TODO: add check if the struct on the stack coincides with the current descriptor.
-        val schedulable = queue.first().expect<StructureElement>()
+        var schedulable = queue.first().expect<StructureElement>()
+
+        // during decoding we need to populate the inner placeholder StructureElement of a polymorphic
+        val parent = schedulable.parent
+        if (parent != null && parent.isPolymorphic && phase == Phase.DECODING) {
+            // populate the placeholder StructureElement
+            schedulable = ElementFactory(serializersModule).parse(descriptor, schedulable.propertyName)
+                .expect<StructureElement>()
+                .also {
+                    // update the parent with the newly created child
+                    val ind = parent.inner.indexOfFirst { element -> element is StructureElement }
+                    parent.inner[ind] = it
+                }
+            schedulable.parent = parent
+            // remove the placeholder StructureElement from queue and add the populated version
+            removeNext()
+            queue.prepend(schedulable)
+        }
 
         // Unwind structure's inner elements to the queue.
         queue.prepend(schedulable.inner)
@@ -50,6 +68,11 @@ class FixedLengthStructureProcessor(
     fun beginCollection(collectionSize: Int) {
         val collection = queue.first().expect<CollectionElement>()
         collection.actualLength = collectionSize
+
+        // if an empty list containing nullable polymorphic has not been fully resolved in the parsing stage an exception is thrown
+        if (collectionSize == 0 && phase == Phase.ENCODING) {
+            collection.verifyResolvabilityOrThrow()
+        }
 
         repeat(collectionSize) {
             queue.prepend(collection.inner)

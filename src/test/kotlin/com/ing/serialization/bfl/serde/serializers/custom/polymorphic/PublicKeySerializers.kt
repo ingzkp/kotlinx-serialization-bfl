@@ -11,16 +11,6 @@ import sun.security.rsa.RSAPublicKeyImpl
 import java.security.KeyFactory
 import java.security.spec.X509EncodedKeySpec
 
-abstract class PublicKeyBaseSurrogate {
-    @FixedLength([ENCODED_SIZE])
-    abstract val encoded: ByteArray
-
-    companion object {
-        const val ENCODED_SIZE = 900
-        const val SERIAL_NAME_LENGTH = 2 + 2 * 3
-    }
-}
-
 object RSAPublicKeySerializer : KSerializer<RSAPublicKeyImpl>
 by (SurrogateSerializer(RSASurrogate.serializer()) { RSASurrogate(it.encoded) })
 
@@ -31,20 +21,32 @@ by (SurrogateSerializer(DSASurrogate.serializer()) { DSASurrogate(it.encoded) })
 @Serializable
 @SerialName("RSA")
 data class RSASurrogate(
+    @SerialName("encodedKey")
     @FixedLength([ENCODED_SIZE])
-    override val encoded: ByteArray
-) : Surrogate<RSAPublicKeyImpl>, PublicKeyBaseSurrogate() {
+    val encoded: ByteArray
+) : Surrogate<RSAPublicKeyImpl> {
     override fun toOriginal(): RSAPublicKeyImpl =
         KeyFactory.getInstance("RSA").generatePublic(X509EncodedKeySpec(encoded)) as RSAPublicKeyImpl
+
+    companion object {
+        const val ENCODED_SIZE = 900
+        const val SERIAL_NAME_LENGTH = 2 + 2 * 3
+    }
 }
 
 @Suppress("ArrayInDataClass")
 @Serializable
 @SerialName("DSA")
 data class DSASurrogate(
+    @SerialName("encodedKey")
     @FixedLength([ENCODED_SIZE])
-    override val encoded: ByteArray
-) : Surrogate<DSAPublicKeyImpl>, PublicKeyBaseSurrogate() {
+    val encoded: ByteArray
+) : Surrogate<DSAPublicKeyImpl> {
     override fun toOriginal(): DSAPublicKeyImpl =
         KeyFactory.getInstance("DSA").generatePublic(X509EncodedKeySpec(encoded)) as DSAPublicKeyImpl
+
+    companion object {
+        const val ENCODED_SIZE = 900
+        const val SERIAL_NAME_LENGTH = 2 + 2 * 3
+    }
 }

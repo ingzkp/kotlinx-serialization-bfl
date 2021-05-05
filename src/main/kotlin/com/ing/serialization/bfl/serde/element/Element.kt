@@ -8,8 +8,11 @@ import java.io.DataOutput
  * The basic abstraction of each object being serialized.
  */
 
-abstract class Element(val serialName: String, val propertyName: String, val inner: List<Element> = listOf()) {
+abstract class Element(val serialName: String, val propertyName: String, var inner: MutableList<Element> = mutableListOf()) {
     abstract var isNullable: Boolean
+    var parent: Element? = null
+    var isPolymorphic: Boolean = false
+    var isNull: Boolean = false
 
     protected abstract val inherentLayout: List<Pair<String, Int>>
     private val inherentSize by lazy {
@@ -33,7 +36,7 @@ abstract class Element(val serialName: String, val propertyName: String, val inn
     }
 
     abstract fun encodeNull(output: DataOutput)
-    fun decodeNull(input: DataInput) {
+    open fun decodeNull(input: DataInput) {
         input.skipBytes(inherentSize)
     }
 
@@ -42,4 +45,16 @@ abstract class Element(val serialName: String, val propertyName: String, val inn
         (this as? T) ?: throw SerdeError.UnexpectedElement(T::class.simpleName!!, this)
         return this
     }
+
+    fun verifyResolvabilityOrThrow(): Element {
+        // if a null polymorphic has not been resolved in the parsing stage, an exception is thrown
+        if (isNull && isPolymorphic) {
+            error("Implementation of '$serialName' cannot be inferred")
+        }
+        // check also the children of the element for resolvability
+        inner.forEach { it.verifyResolvabilityOrThrow() }
+        return this
+    }
+
+    abstract fun clone(): Element
 }

@@ -120,7 +120,7 @@ class ElementTest {
             CollectionElement(
                 "",
                 "",
-                listOf(),
+                mutableListOf(),
                 null,
                 1,
                 false

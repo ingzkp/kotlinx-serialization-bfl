@@ -4,6 +4,7 @@ import com.ing.serialization.bfl.serde.element.CollectionElement
 import com.ing.serialization.bfl.serde.element.EnumElement
 import com.ing.serialization.bfl.serde.element.PrimitiveElement
 import com.ing.serialization.bfl.serde.element.StringElement
+import com.ing.serialization.bfl.serde.element.StructureElement
 import com.ing.serialization.bfl.serializers.BFLSerializers
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -80,7 +81,10 @@ class BinaryFixedLengthInputDecoder(
     override fun decodeNotNullMark() = input.readBoolean()
 
     override fun decodeNull(): Nothing? {
-        structureProcessor.removeNext().decodeNull(input)
+        structureProcessor.removeNext().let {
+            if (it.isPolymorphic && it is StructureElement) it.decodeNullPolymorphic(input, serializersModule)
+            else it.decodeNull(input)
+        }
         return null
     }
 

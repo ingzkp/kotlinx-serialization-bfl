@@ -2,6 +2,8 @@ package com.ing.serialization.bfl.serde.element
 
 import com.ing.serialization.bfl.annotations.FixedLength
 import com.ing.serialization.bfl.serde.SerdeError
+import com.ing.serialization.bfl.serde.convertToList
+import com.ing.serialization.bfl.serde.getPropertyNameValuePair
 import com.ing.serialization.bfl.serde.isCollection
 import com.ing.serialization.bfl.serde.isContextual
 import com.ing.serialization.bfl.serde.isEnum
@@ -9,6 +11,7 @@ import com.ing.serialization.bfl.serde.isPolymorphic
 import com.ing.serialization.bfl.serde.isString
 import com.ing.serialization.bfl.serde.isStructure
 import com.ing.serialization.bfl.serde.isTrulyPrimitive
+import com.ing.serialization.bfl.serde.merge
 import com.ing.serialization.bfl.serde.prepend
 import com.ing.serialization.bfl.serde.simpleSerialName
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -17,6 +20,8 @@ import kotlinx.serialization.descriptors.getContextualDescriptor
 import kotlinx.serialization.descriptors.getPolymorphicDescriptors
 import kotlinx.serialization.modules.EmptySerializersModule
 import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.serializer
+import kotlin.collections.ArrayDeque
 
 class ElementFactory(
     private val serializersModule: SerializersModule = EmptySerializersModule,
@@ -24,11 +29,17 @@ class ElementFactory(
 ) {
     private var dfQueue = ArrayDeque(outerFixedLength.toList())
 
+    // stack-like structure used to cache the content of dfQueue before parsing each child of a CollectionElement - in
+    // that way each child has the same view on the dfQueue before its parsing starts
+    private var dfQueueSnapshots = ArrayDeque<ArrayDeque<Int>>()
+
     /**
      * Parses a class structure property by property recursively.
      * If withPropertyName is not null, this class structure is a property of some other wrapping structure.
+     * If data is not null, an instance of the class has been provided too - This option is used before encoding for
+     * the implementations of polymorphic types to be resolved properly
      */
-    fun parse(descriptor: SerialDescriptor, withPropertyName: String? = null): Element {
+    fun parse(descriptor: SerialDescriptor, withPropertyName: String? = null, data: Any? = null): Element {
         val parentName = withPropertyName ?: descriptor.simpleSerialName
 
         return when {
@@ -36,29 +47,33 @@ class ElementFactory(
                 descriptor.isString ||
                 descriptor.isEnum ||
                 descriptor.isPolymorphic ||
-                descriptor.isCollection -> fromType(descriptor, parentName)
-            //
+                descriptor.isCollection -> fromType(descriptor, parentName, data)
+
             descriptor.isStructure -> {
                 val children = (0 until descriptor.elementsCount)
                     .map { idx ->
-                        val propertyName = descriptor.getElementName(idx)
+                        val (propertyName, propertyValue) = data.getPropertyNameValuePair(descriptor, idx)
+
                         val lengths = descriptor.getElementAnnotations(idx)
                             .filterIsInstance<FixedLength>()
                             .firstOrNull()?.lengths?.toList()?.let { ArrayDeque(it) }
                             ?: listOf()
                         dfQueue.prepend(lengths)
 
-                        fromType(descriptor.getElementDescriptor(idx), "$parentName.$propertyName")
-                    }
-                StructureElement(descriptor.serialName, parentName, children, descriptor.isNullable)
+                        fromType(descriptor.getElementDescriptor(idx), "$parentName.$propertyName", propertyValue)
+                    }.toMutableList()
+                StructureElement(descriptor.serialName, parentName, children, descriptor.isNullable).also {
+                    it.isNull = data == null // set flag if the instance is null
+                    it.assignParentToChildren() // link children to parent
+                }
             }
 
             else -> error("${descriptor.serialName} is not supported")
         }
     }
 
-    @Suppress("ComplexMethod")
-    private fun fromType(descriptor: SerialDescriptor, parentName: String): Element {
+    @Suppress("ComplexMethod", "LongMethod", "NestedBlockDepth")
+    private fun fromType(descriptor: SerialDescriptor, parentName: String, data: Any? = null): Element {
         val serialName = descriptor.serialName
 
         return when {
@@ -72,49 +87,65 @@ class ElementFactory(
             descriptor.isCollection -> {
                 val requiredLength = dfQueue.removeFirstOrNull()
                     ?: throw SerdeError.InsufficientLengthData(descriptor, parentName)
-                val children = descriptor.elementDescriptors.map { fromType(it, parentName) }
+
+                // first try to treat data as list using reflection
+                val children = data?.convertToList()?.let {
+                    // in case of an empty collection, don't pass any data to a deeper parsing level
+                    if (it.isEmpty()) {
+                        descriptor.elementDescriptors.map { innerDescriptor -> fromType(innerDescriptor, parentName) }.toMutableList()
+                    } else {
+                        // if the collection is not empty, it can be of either of List-like or Map-like type
+                        if (data is Map<*, *> || data is MutableMap<*, *>) {
+                            // in case of a Map-like type, data is parsed as a list of key-value pairs
+                            val (keys, values) = it.filterIsInstance<Pair<*, *>>().unzip()
+                            mutableListOf(
+                                keys.resolveChildrenTypes(descriptor.elementDescriptors.first(), parentName),
+                                values.resolveChildrenTypes(descriptor.elementDescriptors.last(), parentName)
+                            )
+                        } else {
+                            // in case of a List-like type, data is a list of values
+                            mutableListOf(
+                                it.resolveChildrenTypes(descriptor.elementDescriptors.first(), parentName)
+                            )
+                        }
+                    }
+                } ?: descriptor.elementDescriptors.map { fromType(it, parentName) }.toMutableList()
+
                 CollectionElement(
                     serialName = serialName,
                     propertyName = parentName,
                     inner = children,
                     requiredLength = requiredLength,
                     isNullable = descriptor.isNullable
-                )
+                ).also {
+                    it.isNull = data == null // set flag if the instance is null
+                    it.assignParentToChildren() // link children to parent
+                }
             }
             descriptor.isStructure -> {
                 val isAnnotated = (0 until descriptor.elementsCount)
                     .any { idx -> descriptor.getElementAnnotations(idx).isNotEmpty() }
 
                 if (isAnnotated) {
-                    parse(descriptor, parentName)
+                    parse(descriptor, parentName, data)
                 } else {
                     val children = descriptor.elementDescriptors.mapIndexed { idx, element ->
-                        val propertyName = descriptor.getElementName(idx)
-                        fromType(element, "$parentName.$propertyName")
+                        val (propertyName, propertyValue) = data.getPropertyNameValuePair(descriptor, idx)
+                        fromType(element, "$parentName.$propertyName", propertyValue)
+                    }.toMutableList()
+
+                    StructureElement(serialName, parentName, children, descriptor.isNullable).also {
+                        it.isNull = data == null // set flag if the instance is null
+                        it.assignParentToChildren() // link children to parent
                     }
-                    StructureElement(serialName, parentName, children, descriptor.isNullable)
                 }
             }
             descriptor.isPolymorphic -> {
-                // Get the descriptor for the polymorphic type.
+                // Check if there is a descriptor for the polymorphic type.
                 val polyDescriptors = serializersModule.getPolymorphicDescriptors(descriptor)
-
                 if (polyDescriptors.isEmpty()) {
                     throw SerdeError.NoPolymorphicSerializers(descriptor)
                 }
-
-                // To ensure fixed length serialization for a polymorphic type,
-                // all variants of the polymorphic must have the same serialization size.
-                // A robust way to achieve that is to use the same serializable surrogate class.
-                // **We accept this as a hard requirement!**
-
-                // Polymorphic type consists of a string describing type and a structure.
-                // Bound the serialName of the polymorphic type.
-                val type = descriptor.elementDescriptors.first()
-
-                // The hard requirement above implies that any descriptor independently of a variant
-                // will be good enough for a respective polymorphic type.
-                val value = polyDescriptors.first()
 
                 // serialName's for all variant of the polymorphic type must have the same length
                 // to produce a fixed length serialization.
@@ -123,18 +154,55 @@ class ElementFactory(
                     throw SerdeError.VariablePolymorphicSerialName(descriptor)
                 }
                 dfQueue.prepend(variantNamesLengths.single())
+                // Polymorphic type consists of a string describing type and a structure.
+                val children = mutableListOf(
+                    // Inner StringElement
+                    fromType(descriptor.elementDescriptors.first(), parentName),
+                    // Inner StructureElement - currently the serializer of the class implementing the base polymorphic
+                    // type needs to have been registered as contextual for this solution to work !!!
 
-                val children = listOf(type, value).map { fromType(it, parentName) }
+                    // serializersModule.getPolymorphic(data::class.superclasses.first() as KClass<in Any>, data).descriptor
+                    data?.let {
+                        fromType(serializersModule.serializer(it::class.java).descriptor, parentName, it)
+                    } ?: StructureElement("", parentName, mutableListOf(), descriptor.isNullable)
+                )
 
-                StructureElement(serialName, parentName, children, descriptor.isNullable)
+                StructureElement(serialName, parentName, children, descriptor.isNullable).also {
+                    it.isPolymorphic = true // denote the element as polymorphic
+                    it.isNull = data == null // set flag if the instance is null
+                    it.assignParentToChildren() // link children to parent
+                }
             }
             descriptor.isContextual -> {
                 val contextDescriptor = serializersModule.getContextualDescriptor(descriptor)
                     ?: throw SerdeError.NoContextualSerializer(descriptor)
 
-                fromType(contextDescriptor, parentName).apply { isNullable = descriptor.isNullable }
+                fromType(contextDescriptor, parentName, data).apply { isNullable = descriptor.isNullable }
             }
             else -> error("Do not know how to build element from type ${descriptor.serialName}")
         }
     }
+
+    /**
+     * Extension function for parsing all children of a Collection and finally merging all parsed elements into a single
+     * one
+     * @param descriptor serial descriptor of the elements to be parsed
+     * @param parentName name of the parent element
+     */
+    private fun <T> List<T>.resolveChildrenTypes(descriptor: SerialDescriptor, parentName: String): Element = this
+        .mapIndexed { idx, inner ->
+            // before the first element of the list is parsed, cache the contents of the dfQueue to make them available
+            // to the rest elements of the list
+            if (idx == 0) dfQueueSnapshots.add(ArrayDeque(dfQueue))
+            fromType(descriptor, parentName, inner).also {
+                // upon parsing reset dfQueue to its initial value if the total parsing of the list has not been completed
+                // or remove it from the cache if all the elements in the list have been parsed
+                if (idx != this.size - 1) {
+                    dfQueue = ArrayDeque(dfQueueSnapshots.last())
+                } else {
+                    dfQueueSnapshots.removeLast()
+                }
+            }
+        }
+        .reduce { element1, element2 -> element1.merge(element2) }
 }

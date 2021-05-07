@@ -5,15 +5,15 @@ import com.ing.serialization.bfl.api.Surrogate
 import com.ing.serialization.bfl.api.SurrogateSerializer
 import com.ing.serialization.bfl.api.debugSerialize
 import com.ing.serialization.bfl.api.serialize
+import com.ing.serialization.bfl.serde.SerdeError
+import com.ing.serialization.bfl.serde.checkedSerialize
 import com.ing.serialization.bfl.serde.checkedSerializeInlined
 import com.ing.serialization.bfl.serde.element.ElementFactory
 import com.ing.serialization.bfl.serde.roundTrip
 import com.ing.serialization.bfl.serde.roundTripInlined
 import com.ing.serialization.bfl.serde.sameSize
 import com.ing.serialization.bfl.serde.sameSizeInlined
-import io.kotest.matchers.string.shouldMatch
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.contextual
@@ -30,37 +30,42 @@ data class VariantB(val myLong: Long) : PolyBase
 data class VariantC(val myByte: Byte) : PolyBase
 
 object VariantASerializer : KSerializer<VariantA>
-by (SurrogateSerializer(VariantASurrogate.serializer()) { VariantASurrogate(it.myInt) })
+by (SurrogateSerializer(VariantASurrogate.serializer()) { VariantASurrogate.from(it) })
 
 @Serializable
 data class VariantASurrogate(
-    @SerialName("myInt")
     val value: Int
 ) : Surrogate<VariantA> {
-    constructor(variantA: VariantA) : this(variantA.myInt)
     override fun toOriginal() = VariantA(value)
+    companion object {
+        fun from(variantA: VariantA): VariantASurrogate = VariantASurrogate(variantA.myInt)
+    }
 }
 
 object VariantBSerializer : KSerializer<VariantB>
-by (SurrogateSerializer(VariantBSurrogate.serializer()) { VariantBSurrogate(it.myLong) })
+by (SurrogateSerializer(VariantBSurrogate.serializer()) { VariantBSurrogate.from(it) })
 
 @Serializable
 data class VariantBSurrogate(
-    @SerialName("myLong")
     val value: Long
 ) : Surrogate<VariantB> {
     override fun toOriginal() = VariantB(value)
+    companion object {
+        fun from(variantB: VariantB): VariantBSurrogate = VariantBSurrogate(variantB.myLong)
+    }
 }
 
 object VariantCSerializer : KSerializer<VariantC>
-by (SurrogateSerializer(VariantCSurrogate.serializer()) { VariantCSurrogate(it.myByte) })
+by (SurrogateSerializer(VariantCSurrogate.serializer()) { VariantCSurrogate.from(it) })
 
 @Serializable
 data class VariantCSurrogate(
-    @SerialName("myByte")
     val value: Byte
 ) : Surrogate<VariantC> {
     override fun toOriginal() = VariantC(value)
+    companion object {
+        fun from(variantC: VariantC): VariantCSurrogate = VariantCSurrogate(variantC.myByte)
+    }
 }
 
 class NullablePolymorphicTest {
@@ -86,7 +91,22 @@ class NullablePolymorphicTest {
 
     @Test
     fun `list with at least one non-null nullable polymorphic should be serialized successfully`() {
+        val mask = listOf(
+            Pair("myList.length", 4),
+            Pair("myList[0].isNull", 1),
+            Pair("dataList[0].serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("dataList[0].value.myInt", 4),
+            Pair("myList[2].isNull", 1),
+            Pair("dataList[2].serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("dataList[2].value.myInt", 4),
+            Pair("myList[2].isNull", 1),
+            Pair("dataList[2].serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("dataList[2].value.myInt", 4),
+        )
         val data = Data(listOf(null, VariantA(0), null))
+
+        checkedSerializeInlined(data, mask, nullablePolySerializers)
+        checkedSerialize(data, mask, nullablePolySerializers)
 
         assertDoesNotThrow {
             debugSerialize(data, serializersModule = nullablePolySerializers)
@@ -114,7 +134,25 @@ class NullablePolymorphicTest {
 
     @Test
     fun `inner list with at least one non-null nullable polymorphic should be serialized successfully`() {
+        val mask = listOf(
+            Pair("myData.isNull", 1),
+            Pair("myData.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("myData.myLong", 8),
+            Pair("myList.length", 4),
+            Pair("myList[0].isNull", 1),
+            Pair("dataList[0].serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("dataList[0].value.myInt", 4),
+            Pair("myList[2].isNull", 1),
+            Pair("dataList[2].serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("dataList[2].value.myInt", 4),
+            Pair("myList[2].isNull", 1),
+            Pair("dataList[2].serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("dataList[2].value.myInt", 4),
+        )
         val data = ComplexData(VariantB(0), listOf(null, VariantA(0), null))
+
+        checkedSerializeInlined(data, mask, nullablePolySerializers)
+        checkedSerialize(data, mask, nullablePolySerializers)
 
         assertDoesNotThrow {
             debugSerialize(data, serializersModule = nullablePolySerializers)
@@ -197,6 +235,7 @@ class NullablePolymorphicTest {
         )
 
         checkedSerializeInlined(data, mask, nullablePolySerializers)
+        checkedSerialize(data, mask, nullablePolySerializers)
 
         assertDoesNotThrow {
             debugSerialize(data, serializersModule = nullablePolySerializers)
@@ -256,10 +295,8 @@ class NullablePolymorphicTest {
                 )
             ),
         ).forEach {
-            assertThrows<IllegalStateException> {
+            assertThrows<SerdeError.NonResolvablePolymorphic> {
                 serialize(it, serializersModule = nullablePolySerializers)
-            }.also { exception ->
-                exception.message shouldMatch Regex("Implementation of '.+' cannot be inferred")
             }
         }
     }

@@ -11,4 +11,8 @@ object DateSerializer : KSerializer<Date> by (SurrogateSerializer(DateSurrogate.
 @Serializable
 data class DateSurrogate(val l: Long) : Surrogate<Date> {
     override fun toOriginal(): Date = Date(l)
+
+    companion object {
+        fun from(date: Date): DateSurrogate = DateSurrogate(date.time)
+    }
 }

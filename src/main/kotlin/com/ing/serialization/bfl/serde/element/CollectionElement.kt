@@ -16,6 +16,10 @@ class CollectionElement(
     val requiredLength: Int,
     override var isNullable: Boolean
 ) : Element(serialName, propertyName, inner) {
+    init {
+        inner.forEach { it.parent = this }
+    }
+
     /**
      * INT (collection length) + number_of_elements * sum_i { size(inner_i) }
      * = 4 + n * sum_i { size(inner_i) }
@@ -59,13 +63,8 @@ class CollectionElement(
         repeat(requiredLength) { inner.forEach { it.decodeNull(input) } }
     }
 
-    fun assignParentToChildren() {
-        inner.forEach { it.parent = this }
-    }
-
     override fun clone(): CollectionElement =
         CollectionElement(serialName, propertyName, inner, actualLength, requiredLength, isNullable).also {
             it.isNull = isNull
-            it.assignParentToChildren()
         }
 }

@@ -40,14 +40,7 @@ class FixedLengthStructureProcessor(
         val parent = schedulable.parent
         if (parent != null && parent.isPolymorphic && phase == Phase.DECODING) {
             // populate the placeholder StructureElement
-            schedulable = ElementFactory(serializersModule).parse(descriptor, schedulable.propertyName)
-                .expect<StructureElement>()
-                .also {
-                    // update the parent with the newly created child
-                    val ind = parent.inner.indexOfFirst { element -> element is StructureElement }
-                    parent.inner[ind] = it
-                }
-            schedulable.parent = parent
+            schedulable = parent.resolvePolymorphicChild(descriptor, schedulable.propertyName, serializersModule)
             // remove the placeholder StructureElement from queue and add the populated version
             removeNext()
             queue.prepend(schedulable)

@@ -64,7 +64,6 @@ class ElementFactory(
                     }.toMutableList()
                 StructureElement(descriptor.serialName, parentName, children, descriptor.isNullable).also {
                     it.isNull = data == null // set flag if the instance is null
-                    it.assignParentToChildren() // link children to parent
                 }
             }
 
@@ -92,23 +91,16 @@ class ElementFactory(
                 val children = data?.convertToList()?.let {
                     // in case of an empty collection, don't pass any data to a deeper parsing level
                     if (it.isEmpty()) {
-                        descriptor.elementDescriptors.map { innerDescriptor -> fromType(innerDescriptor, parentName) }.toMutableList()
-                    } else {
-                        // if the collection is not empty, it can be of either of List-like or Map-like type
-                        if (data is Map<*, *> || data is MutableMap<*, *>) {
-                            // in case of a Map-like type, data is parsed as a list of key-value pairs
-                            val (keys, values) = it.filterIsInstance<Pair<*, *>>().unzip()
-                            mutableListOf(
-                                keys.resolveChildrenTypes(descriptor.elementDescriptors.first(), parentName),
-                                values.resolveChildrenTypes(descriptor.elementDescriptors.last(), parentName)
-                            )
-                        } else {
-                            // in case of a List-like type, data is a list of values
-                            mutableListOf(
-                                it.resolveChildrenTypes(descriptor.elementDescriptors.first(), parentName)
-                            )
-                        }
+                        return@let descriptor.elementDescriptors.map { innerDescriptor -> fromType(innerDescriptor, parentName) }.toMutableList()
                     }
+                    // if the collection is not empty, it can be of either of List-like or Map-like type
+                    if (data is Map<*, *> || data is MutableMap<*, *>) {
+                        it.filterIsInstance<Pair<*, *>>().unzip().toList()
+                    } else {
+                        listOf(it)
+                    }.zip(descriptor.elementDescriptors)
+                        .map { (inner, innerDescriptor) -> inner.resolveChildrenTypes(innerDescriptor, parentName) }
+                        .toMutableList()
                 } ?: descriptor.elementDescriptors.map { fromType(it, parentName) }.toMutableList()
 
                 CollectionElement(
@@ -119,7 +111,6 @@ class ElementFactory(
                     isNullable = descriptor.isNullable
                 ).also {
                     it.isNull = data == null // set flag if the instance is null
-                    it.assignParentToChildren() // link children to parent
                 }
             }
             descriptor.isStructure -> {
@@ -136,7 +127,6 @@ class ElementFactory(
 
                     StructureElement(serialName, parentName, children, descriptor.isNullable).also {
                         it.isNull = data == null // set flag if the instance is null
-                        it.assignParentToChildren() // link children to parent
                     }
                 }
             }
@@ -160,7 +150,8 @@ class ElementFactory(
                     fromType(descriptor.elementDescriptors.first(), parentName),
                     // Inner StructureElement - currently the serializer of the class implementing the base polymorphic
                     // type needs to have been registered as contextual for this solution to work !!!
-
+                    // TODO: check whether to use the following commented approach since it involves special handling -
+                    //  verify that we can register a single polymorphic parent for a serializer
                     // serializersModule.getPolymorphic(data::class.superclasses.first() as KClass<in Any>, data).descriptor
                     data?.let {
                         fromType(serializersModule.serializer(it::class.java).descriptor, parentName, it)
@@ -170,7 +161,6 @@ class ElementFactory(
                 StructureElement(serialName, parentName, children, descriptor.isNullable).also {
                     it.isPolymorphic = true // denote the element as polymorphic
                     it.isNull = data == null // set flag if the instance is null
-                    it.assignParentToChildren() // link children to parent
                 }
             }
             descriptor.isContextual -> {

@@ -2,14 +2,13 @@ package com.ing.serialization.bfl.serde.serializers.custom.polymorphic
 
 import com.ing.serialization.bfl.annotations.FixedLength
 import com.ing.serialization.bfl.api.serialize
+import com.ing.serialization.bfl.serde.SerdeError
 import com.ing.serialization.bfl.serde.generateDSAPubKey
 import com.ing.serialization.bfl.serde.generateRSAPubKey
-import io.kotest.matchers.shouldBe
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
-import java.lang.IllegalStateException
 import java.security.PublicKey
 
 class PublicKeyDifferentSerializersTest {
@@ -24,10 +23,8 @@ class PublicKeyDifferentSerializersTest {
         }
 
         val differentKeys = listOf(generateRSAPubKey(), generateDSAPubKey())
-        assertThrows<IllegalStateException> {
+        assertThrows<SerdeError.DifferentPolymorphicImplementations> {
             serialize(ListPolymorphicTest.Data(differentKeys), serializersModule = PolySerializers)
-        }.also {
-            it.message shouldBe "Different implementations of the same base type are not allowed"
         }
     }
 
@@ -47,10 +44,8 @@ class PublicKeyDifferentSerializersTest {
             serialize(NestedData(listOf(inner1, inner2)), serializersModule = PolySerializers)
         }
 
-        assertThrows<IllegalStateException> {
+        assertThrows<SerdeError.DifferentPolymorphicImplementations> {
             serialize(NestedData(listOf(inner1, inner3)), serializersModule = PolySerializers)
-        }.also {
-            it.message shouldBe "Different implementations of the same base type are not allowed"
         }
     }
 }

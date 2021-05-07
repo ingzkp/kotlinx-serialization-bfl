@@ -1,12 +1,13 @@
 package com.ing.serialization.bfl.serde
 
-import com.ing.serialization.bfl.serde.element.CollectionElement
 import com.ing.serialization.bfl.serde.element.Element
-import com.ing.serialization.bfl.serde.element.EnumElement
-import com.ing.serialization.bfl.serde.element.PrimitiveElement
-import com.ing.serialization.bfl.serde.element.StringElement
+import com.ing.serialization.bfl.serde.element.ElementFactory
 import com.ing.serialization.bfl.serde.element.StructureElement
 import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.modules.SerializersModule
+import kotlin.reflect.full.companionObject
+import kotlin.reflect.full.companionObjectInstance
+import kotlin.reflect.full.functions
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.isAccessible
 
@@ -49,14 +50,21 @@ fun <T> T.convertToList() = when (this) {
  */
 fun <T> T.getPropertyNameValuePair(descriptor: SerialDescriptor, index: Int): Pair<String, Any?> {
     val propertyName = descriptor.getElementName(index)
-    // Class.forName(descriptor.serialName).getConstructor(this!!::class.java).newInstance(this)
     val propertyValue = this?.let {
-        it::class.memberProperties
-            // this search is based on the assumption that surrogates use serial names for their properties same to the
-            // actual names of the properties
-            .firstOrNull { property -> property.name == propertyName }
-            ?.also { property -> property.isAccessible = true } // in case some property is private or protected
-            ?.call(it)
+        // in case a surrogate is used for serialization, this surrogate is constructed from the actual data structure
+        kotlin.runCatching {
+            val cls = Class.forName(descriptor.serialName).kotlin
+            requireNotNull(
+                cls.companionObject!!.functions.firstOrNull { fn -> fn.name == "from" }!!.call(cls.companionObjectInstance, it)
+            ) { "Something went wrong - The value to be parsed (original or surrogate) should not be null" }
+        }.getOrDefault(it).let { toParse ->
+            toParse::class.memberProperties
+                // this search is based on the assumption that surrogates use serial names for their properties same to the
+                // actual names of the properties
+                .firstOrNull { property -> property.name == propertyName }
+                ?.also { property -> property.isAccessible = true } // in case some property is private or protected
+                ?.call(toParse)
+        }
     }
     return Pair(propertyName, propertyValue)
 }
@@ -67,69 +75,41 @@ fun <T> T.getPropertyNameValuePair(descriptor: SerialDescriptor, index: Int): Pa
  *
  * @param other the element to be merged with
  * @throws IllegalArgumentException when the elements to be merged are not of the same type
- * @throws IllegalStateException when an unknown element type is encountered (should be unreachable)
+ * @throws SerdeError.DifferentPolymorphicImplementations when different implementations of the same polymorphic base
+ * type are encountered
  */
-fun Element.merge(other: Element): Element = when (this) {
-    is PrimitiveElement -> {
-        require(other is PrimitiveElement) { "Elements to be merged should be of the same type" }
-        this.clone()
-    }
-    is EnumElement -> {
-        require(other is EnumElement) { "Elements to be merged should be of the same type" }
-        this.clone()
-    }
-    is StringElement -> {
-        require(other is StringElement) { "Elements to be merged should be of the same type" }
-        this.clone()
-    }
-    is StructureElement -> {
-        require(other is StructureElement) { "Elements to be merged should be of the same type" }
-        this.mergeWithChildren(other)
-    }
-    is CollectionElement -> {
-        require(other is CollectionElement) { "Elements to be merged should be of the same type" }
-        this.mergeWithChildren(other)
-    }
-    else -> error("Unknown implementation of Element")
-}
-
-/**
- * Extension function supporting some special handling for merging 2 StructureElements
- *
- * @param other the StructureElement to be merged with
- * @throws IllegalStateException when different implementations of the same base type are encountered
- */
-fun StructureElement.mergeWithChildren(other: StructureElement): StructureElement =
-    if (isNull || other.isNull) {
+fun Element.merge(other: Element): Element {
+    require(this::class == other::class) { "Elements to be merged should be of the same type" }
+    return if (isNull || other.isNull) {
         if (isNull) other.clone() else this.clone()
     } else {
         // Polymorphic type consists of a string describing type and a structure
         if (isPolymorphic && inner.last().serialName != other.inner.last().serialName) {
-            error("Different implementations of the same base type are not allowed")
+            throw SerdeError.DifferentPolymorphicImplementations(serialName)
         }
-
         inner = inner.mapIndexed { idx, child -> child.merge(other.inner[idx]) }.toMutableList()
-
-        StructureElement(serialName, propertyName, inner, isNullable).also {
-            it.isPolymorphic = isPolymorphic
-            it.isNull = isNull
-            it.assignParentToChildren()
-        }
+        this.clone()
     }
+}
 
 /**
- * Extension function supporting some special handling for merging 2 CollectionElements
+ * Extension function used for resolving the inner StructureElement of a polymorphic when its actual type is available
  *
- * @param other the CollectionElement to be merged with
+ * @param descriptor the serial descriptor of the implementation of the base class
+ * @param propertyName the property name to be used when parsing the actual inner StructureElement
+ * @param serializersModule the collection of known serializers
  */
-fun CollectionElement.mergeWithChildren(other: CollectionElement): CollectionElement =
-    if (isNull || other.isNull) {
-        if (isNull) other.clone() else this.clone()
-    } else {
-        inner = inner.mapIndexed { idx, child -> child.merge(other.inner[idx]) }.toMutableList()
-
-        CollectionElement(serialName, propertyName, inner, actualLength, requiredLength, isNullable).also {
-            it.isNull = isNull
-            it.assignParentToChildren()
+fun Element.resolvePolymorphicChild(
+    descriptor: SerialDescriptor,
+    propertyName: String,
+    serializersModule: SerializersModule
+): StructureElement =
+    ElementFactory(serializersModule)
+        .parse(descriptor, propertyName)
+        .expect<StructureElement>()
+        .also {
+            it.parent = this
+            // update the parent with the newly created child (done for completeness of the elements' structure)
+            val ind = this.inner.indexOfFirst { element -> element is StructureElement }
+            this.inner[ind] = it
         }
-    }

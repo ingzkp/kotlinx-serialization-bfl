@@ -21,6 +21,7 @@ data class X500PrincipalSurrogate(
          * sufficient for real-world use-cases.
          */
         const val PRINCIPAL_SIZE = 1024
+        fun from(x500Principal: X500Principal): X500PrincipalSurrogate = X500PrincipalSurrogate(x500Principal.name)
     }
 }
 

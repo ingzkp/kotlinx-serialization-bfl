@@ -12,16 +12,15 @@ import java.security.KeyFactory
 import java.security.spec.X509EncodedKeySpec
 
 object RSAPublicKeySerializer : KSerializer<RSAPublicKeyImpl>
-by (SurrogateSerializer(RSASurrogate.serializer()) { RSASurrogate(it.encoded) })
+by (SurrogateSerializer(RSASurrogate.serializer()) { RSASurrogate.from(it) })
 
 object DSAPublicKeySerializer : KSerializer<DSAPublicKeyImpl>
-by (SurrogateSerializer(DSASurrogate.serializer()) { DSASurrogate(it.encoded) })
+by (SurrogateSerializer(DSASurrogate.serializer()) { DSASurrogate.from(it) })
 
 @Suppress("ArrayInDataClass")
 @Serializable
 @SerialName("RSA")
 data class RSASurrogate(
-    @SerialName("encodedKey")
     @FixedLength([ENCODED_SIZE])
     val encoded: ByteArray
 ) : Surrogate<RSAPublicKeyImpl> {
@@ -31,6 +30,7 @@ data class RSASurrogate(
     companion object {
         const val ENCODED_SIZE = 900
         const val SERIAL_NAME_LENGTH = 2 + 2 * 3
+        fun from(rsaPublicKeyImpl: RSAPublicKeyImpl): RSASurrogate = RSASurrogate(rsaPublicKeyImpl.encoded)
     }
 }
 
@@ -38,7 +38,6 @@ data class RSASurrogate(
 @Serializable
 @SerialName("DSA")
 data class DSASurrogate(
-    @SerialName("encodedKey")
     @FixedLength([ENCODED_SIZE])
     val encoded: ByteArray
 ) : Surrogate<DSAPublicKeyImpl> {
@@ -48,5 +47,6 @@ data class DSASurrogate(
     companion object {
         const val ENCODED_SIZE = 900
         const val SERIAL_NAME_LENGTH = 2 + 2 * 3
+        fun from(dsaPublicKeyImpl: DSAPublicKeyImpl): DSASurrogate = DSASurrogate(dsaPublicKeyImpl.encoded)
     }
 }

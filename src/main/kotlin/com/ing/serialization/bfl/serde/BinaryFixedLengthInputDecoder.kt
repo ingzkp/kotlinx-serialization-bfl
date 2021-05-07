@@ -82,7 +82,7 @@ class BinaryFixedLengthInputDecoder(
 
     override fun decodeNull(): Nothing? {
         structureProcessor.removeNext().let {
-            if (it.isPolymorphic && it is StructureElement) it.decodeNullPolymorphic(input, serializersModule)
+            if (it.isPolymorphic) it.expect<StructureElement>().decodeNullPolymorphic(input, serializersModule)
             else it.decodeNull(input)
         }
         return null

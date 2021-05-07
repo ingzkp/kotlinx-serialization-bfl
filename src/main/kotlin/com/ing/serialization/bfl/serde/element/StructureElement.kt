@@ -1,5 +1,7 @@
 package com.ing.serialization.bfl.serde.element
 
+import com.ing.serialization.bfl.serde.SerdeError
+import com.ing.serialization.bfl.serde.resolvePolymorphicChild
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.serializer
 import java.io.DataInput
@@ -11,6 +13,10 @@ class StructureElement(
     inner: MutableList<Element>,
     override var isNullable: Boolean
 ) : Element(serialName, propertyName, inner) {
+    init {
+        inner.forEach { it.parent = this }
+    }
+
     override val inherentLayout by lazy {
         listOf(
             Pair("[Structure] length", constituentsSize),
@@ -39,24 +45,20 @@ class StructureElement(
     fun decodeNullPolymorphic(input: DataInput, serializersModule: SerializersModule) {
         val type = inner.first().expect<StringElement>().decode(input)
         val placeholderValue = inner.last().expect<StructureElement>()
-        val descriptor = serializersModule.serializer(Class.forName(type)).descriptor
-        val newValue = ElementFactory(serializersModule)
-            .parse(descriptor, placeholderValue.propertyName)
-            .expect<StructureElement>().also {
-                it.parent = this
+        val descriptor = kotlin.runCatching {
+            serializersModule.serializer(Class.forName(type)).descriptor
+        }.getOrElse {
+            when (it) {
+                is ClassNotFoundException -> throw SerdeError.UnknownPolymorphic(type)
+                else -> throw it
             }
-        val ind = inner.indexOfFirst { element -> element is StructureElement }
-        inner[ind] = newValue
+        }
+        val newValue = this.resolvePolymorphicChild(descriptor, placeholderValue.propertyName, serializersModule)
         newValue.decodeNull(input)
-    }
-
-    fun assignParentToChildren() {
-        inner.forEach { it.parent = this }
     }
 
     override fun clone(): StructureElement = StructureElement(serialName, propertyName, inner, isNullable).also {
         it.isPolymorphic = isPolymorphic
         it.isNull = isNull
-        it.assignParentToChildren()
     }
 }

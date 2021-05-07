@@ -49,7 +49,7 @@ abstract class Element(val serialName: String, val propertyName: String, var inn
     fun verifyResolvabilityOrThrow(): Element {
         // if a null polymorphic has not been resolved in the parsing stage, an exception is thrown
         if (isNull && isPolymorphic) {
-            error("Implementation of '$serialName' cannot be inferred")
+            throw SerdeError.NonResolvablePolymorphic(serialName)
         }
         // check also the children of the element for resolvability
         inner.forEach { it.verifyResolvabilityOrThrow() }

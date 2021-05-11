@@ -7,50 +7,54 @@ import com.ing.serialization.bfl.api.serialize
 import com.ing.serialization.bfl.serde.SerdeError
 import com.ing.serialization.bfl.serde.checkedSerialize
 import com.ing.serialization.bfl.serde.checkedSerializeInlined
-import com.ing.serialization.bfl.serde.element.ElementFactory
 import com.ing.serialization.bfl.serde.roundTrip
 import com.ing.serialization.bfl.serde.roundTripInlined
 import com.ing.serialization.bfl.serde.sameSize
 import com.ing.serialization.bfl.serde.sameSizeInlined
-import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
-import kotlinx.serialization.modules.contextual
 import kotlinx.serialization.modules.polymorphic
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
-// =========================================== Polymorphic GrandParent =========================================== //
+// =========================================== Polymorphic Child =========================================== //
 
-interface PolyGrandParent
-data class VariantGrandParentA(val myChild: PolyParent) : PolyGrandParent
-data class VariantGrandParentB(val myChild: PolyParent) : PolyGrandParent
+interface PolyChild
+data class VariantChildA(val myInt: Int) : PolyChild
+data class VariantChildB(val myLong: Long) : PolyChild
 
-object VariantGrandParentASerializer : KSerializer<VariantGrandParentA>
-by (SurrogateSerializer(VariantGrandParentASurrogate.serializer()) { VariantGrandParentASurrogate.from(it) })
+object VariantChildASerializer :
+    SurrogateSerializer<VariantChildA, VariantChildASurrogate>(
+        VariantChildASurrogate.serializer(),
+        { VariantChildASurrogate(it.myInt) }
+    )
 
 @Serializable
-data class VariantGrandParentASurrogate(
-    val value: PolyParent
-) : Surrogate<VariantGrandParentA> {
-    override fun toOriginal() = VariantGrandParentA(value)
+@SerialName("CHA")
+data class VariantChildASurrogate(
+    val value: Int
+) : Surrogate<VariantChildA> {
+    override fun toOriginal() = VariantChildA(value)
     companion object {
-        fun from(variantGrandParentA: VariantGrandParentA): VariantGrandParentASurrogate =
-            VariantGrandParentASurrogate(variantGrandParentA.myChild)
+        const val SERIAL_NAME_LENGTH = 2 + 2 * 3
     }
 }
 
-object VariantGrandParentBSerializer : KSerializer<VariantGrandParentB>
-by (SurrogateSerializer(VariantGrandParentBSurrogate.serializer()) { VariantGrandParentBSurrogate.from(it) })
+object VariantChildBSerializer :
+    SurrogateSerializer<VariantChildB, VariantChildBSurrogate>(
+        VariantChildBSurrogate.serializer(),
+        { VariantChildBSurrogate(it.myLong) }
+    )
 
 @Serializable
-data class VariantGrandParentBSurrogate(
-    val value: PolyParent
-) : Surrogate<VariantGrandParentB> {
-    override fun toOriginal() = VariantGrandParentB(value)
+@SerialName("CHB")
+data class VariantChildBSurrogate(
+    val value: Long
+) : Surrogate<VariantChildB> {
+    override fun toOriginal() = VariantChildB(value)
     companion object {
-        fun from(variantGrandParentB: VariantGrandParentB): VariantGrandParentBSurrogate =
-            VariantGrandParentBSurrogate(variantGrandParentB.myChild)
+        const val SERIAL_NAME_LENGTH = 2 + 2 * 3
     }
 }
 
@@ -60,61 +64,77 @@ interface PolyParent
 data class VariantParentA(val myChild: PolyChild) : PolyParent
 data class VariantParentB(val myChild: PolyChild) : PolyParent
 
-object VariantParentASerializer : KSerializer<VariantParentA>
-by (SurrogateSerializer(VariantParentASurrogate.serializer()) { VariantParentASurrogate.from(it) })
+object VariantParentASerializer :
+    SurrogateSerializer<VariantParentA, VariantParentASurrogate>(
+        VariantParentASurrogate.serializer(),
+        { VariantParentASurrogate(it.myChild) }
+    )
 
 @Serializable
+@SerialName("PA")
 data class VariantParentASurrogate(
     val value: PolyChild
 ) : Surrogate<VariantParentA> {
     override fun toOriginal() = VariantParentA(value)
     companion object {
-        fun from(variantParentA: VariantParentA): VariantParentASurrogate = VariantParentASurrogate(variantParentA.myChild)
+        const val SERIAL_NAME_LENGTH = 2 + 2 * 2
     }
 }
 
-object VariantParentBSerializer : KSerializer<VariantParentB>
-by (SurrogateSerializer(VariantParentBSurrogate.serializer()) { VariantParentBSurrogate.from(it) })
+object VariantParentBSerializer :
+    SurrogateSerializer<VariantParentB, VariantParentBSurrogate>(
+        VariantParentBSurrogate.serializer(),
+        { VariantParentBSurrogate(it.myChild) }
+    )
 
 @Serializable
+@SerialName("PB")
 data class VariantParentBSurrogate(
     val value: PolyChild
 ) : Surrogate<VariantParentB> {
     override fun toOriginal() = VariantParentB(value)
     companion object {
-        fun from(variantParentB: VariantParentB): VariantParentBSurrogate = VariantParentBSurrogate(variantParentB.myChild)
+        const val SERIAL_NAME_LENGTH = 2 + 2 * 2
     }
 }
 
-// =========================================== Polymorphic Child =========================================== //
+// =========================================== Polymorphic GrandParent =========================================== //
 
-interface PolyChild
-data class VariantChildA(val myInt: Int) : PolyChild
-data class VariantChildB(val myLong: Long) : PolyChild
+interface PolyGrandParent
+data class VariantGrandParentA(val myChild: PolyParent) : PolyGrandParent
+data class VariantGrandParentB(val myChild: PolyParent) : PolyGrandParent
 
-object VariantChildASerializer : KSerializer<VariantChildA>
-by (SurrogateSerializer(VariantChildASurrogate.serializer()) { VariantChildASurrogate.from(it) })
+object VariantGrandParentASerializer :
+    SurrogateSerializer<VariantGrandParentA, VariantGrandParentASurrogate>(
+        VariantGrandParentASurrogate.serializer(),
+        { VariantGrandParentASurrogate(it.myChild) }
+    )
 
 @Serializable
-data class VariantChildASurrogate(
-    val value: Int
-) : Surrogate<VariantChildA> {
-    override fun toOriginal() = VariantChildA(value)
+@SerialName("GPA")
+data class VariantGrandParentASurrogate(
+    val value: PolyParent
+) : Surrogate<VariantGrandParentA> {
+    override fun toOriginal() = VariantGrandParentA(value)
     companion object {
-        fun from(variantChildA: VariantChildA): VariantChildASurrogate = VariantChildASurrogate(variantChildA.myInt)
+        const val SERIAL_NAME_LENGTH = 2 + 2 * 3
     }
 }
 
-object VariantChildBSerializer : KSerializer<VariantChildB>
-by (SurrogateSerializer(VariantChildBSurrogate.serializer()) { VariantChildBSurrogate.from(it) })
+object VariantGrandParentBSerializer :
+    SurrogateSerializer<VariantGrandParentB, VariantGrandParentBSurrogate>(
+        VariantGrandParentBSurrogate.serializer(),
+        { VariantGrandParentBSurrogate(it.myChild) }
+    )
 
 @Serializable
-data class VariantChildBSurrogate(
-    val value: Long
-) : Surrogate<VariantChildB> {
-    override fun toOriginal() = VariantChildB(value)
+@SerialName("GPB")
+data class VariantGrandParentBSurrogate(
+    val value: PolyParent
+) : Surrogate<VariantGrandParentB> {
+    override fun toOriginal() = VariantGrandParentB(value)
     companion object {
-        fun from(variantChildB: VariantChildB): VariantChildBSurrogate = VariantChildBSurrogate(variantChildB.myLong)
+        const val SERIAL_NAME_LENGTH = 2 + 2 * 3
     }
 }
 
@@ -124,22 +144,16 @@ class DeepPolymorphicTest {
             subclass(VariantGrandParentA::class, VariantGrandParentASerializer)
             subclass(VariantGrandParentB::class, VariantGrandParentBSerializer)
         }
-        contextual(VariantGrandParentASerializer)
-        contextual(VariantGrandParentBSerializer)
 
         polymorphic(PolyParent::class) {
             subclass(VariantParentA::class, VariantParentASerializer)
             subclass(VariantParentB::class, VariantParentBSerializer)
         }
-        contextual(VariantParentASerializer)
-        contextual(VariantParentBSerializer)
 
         polymorphic(PolyChild::class) {
             subclass(VariantChildA::class, VariantChildASerializer)
             subclass(VariantChildB::class, VariantChildBSerializer)
         }
-        contextual(VariantChildASerializer)
-        contextual(VariantChildBSerializer)
     }
 
     @Serializable
@@ -149,11 +163,11 @@ class DeepPolymorphicTest {
     fun `polymorphic nested in list should be serialized successfully`() {
         val mask = listOf(
             Pair("myList.length", 4),
-            Pair("myList[0].polyParent.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
-            Pair("myList[0].polyParent.polyChild.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("myList[0].polyParent.serialName", VariantParentASurrogate.SERIAL_NAME_LENGTH),
+            Pair("myList[0].polyParent.polyChild.serialName", VariantChildASurrogate.SERIAL_NAME_LENGTH),
             Pair("myList[0].polyParent.polyChild.value", 4),
-            Pair("myList[1].polyParent.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
-            Pair("myList[1].polyParent.polyChild.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("myList[1].polyParent.serialName", VariantParentASurrogate.SERIAL_NAME_LENGTH),
+            Pair("myList[1].polyParent.polyChild.serialName", VariantChildASurrogate.SERIAL_NAME_LENGTH),
             Pair("myList[1].polyParent.polyChild.value", 4),
         )
         val data = Data(listOf(VariantParentA(VariantChildA(1)), VariantParentA(VariantChildA(2))))
@@ -186,18 +200,18 @@ class DeepPolymorphicTest {
     fun `polymorphic nested in different lists should be serialized successfully`() {
         val mask = listOf(
             Pair("myList1.length", 4),
-            Pair("myList1[0].polyParent.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
-            Pair("myList1[0].polyParent.polyChild.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("myList1[0].polyParent.serialName", VariantParentASurrogate.SERIAL_NAME_LENGTH),
+            Pair("myList1[0].polyParent.polyChild.serialName", VariantChildASurrogate.SERIAL_NAME_LENGTH),
             Pair("myList1[0].polyParent.polyChild.value", 4),
-            Pair("myList1[1].polyParent.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
-            Pair("myList1[1].polyParent.polyChild.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("myList1[1].polyParent.serialName", VariantParentASurrogate.SERIAL_NAME_LENGTH),
+            Pair("myList1[1].polyParent.polyChild.serialName", VariantChildASurrogate.SERIAL_NAME_LENGTH),
             Pair("myList1[1].polyParent.polyChild.value", 4),
             Pair("myList2.length", 4),
-            Pair("myList2[0].polyParent.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
-            Pair("myList2[0].polyParent.polyChild.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("myList2[0].polyParent.serialName", VariantParentASurrogate.SERIAL_NAME_LENGTH),
+            Pair("myList2[0].polyParent.polyChild.serialName", VariantChildASurrogate.SERIAL_NAME_LENGTH),
             Pair("myList2[0].polyParent.polyChild.value", 4),
-            Pair("myList2[1].polyParent.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
-            Pair("myList2[1].polyParent.polyChild.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("myList2[1].polyParent.serialName", VariantParentASurrogate.SERIAL_NAME_LENGTH),
+            Pair("myList2[1].polyParent.polyChild.serialName", VariantChildASurrogate.SERIAL_NAME_LENGTH),
             Pair("myList2[1].polyParent.polyChild.value", 4),
         )
         val data = ManyData(
@@ -242,11 +256,11 @@ class DeepPolymorphicTest {
     fun `polymorphic nested within structure should be serialized successfully`() {
         val mask = listOf(
             Pair("myData.myList.length", 4),
-            Pair("myData.myList[0].polyParent.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
-            Pair("myData.myList[0].polyParent.polyChild.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("myData.myList[0].polyParent.serialName", VariantParentASurrogate.SERIAL_NAME_LENGTH),
+            Pair("myData.myList[0].polyParent.polyChild.serialName", VariantChildASurrogate.SERIAL_NAME_LENGTH),
             Pair("myData.myList[0].polyParent.polyChild.value", 4),
-            Pair("myData.myList[1].polyParent.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
-            Pair("myData.myList[1].polyParent.polyChild.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("myData.myList[1].polyParent.serialName", VariantParentASurrogate.SERIAL_NAME_LENGTH),
+            Pair("myData.myList[1].polyParent.polyChild.serialName", VariantChildASurrogate.SERIAL_NAME_LENGTH),
             Pair("myData.myList[1].polyParent.polyChild.value", 4),
         )
         val data = NestedData(Data(listOf(VariantParentA(VariantChildA(1)), VariantParentA(VariantChildA(2)))))
@@ -280,18 +294,18 @@ class DeepPolymorphicTest {
         val mask = listOf(
             Pair("myDataList.length", 4),
             Pair("myDataList[0].myList.length", 4),
-            Pair("myDataList[0].myList[0].polyParent.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
-            Pair("myDataList[0].myList[0].polyParent.polyChild.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("myDataList[0].myList[0].polyParent.serialName", VariantParentASurrogate.SERIAL_NAME_LENGTH),
+            Pair("myDataList[0].myList[0].polyParent.polyChild.serialName", VariantChildASurrogate.SERIAL_NAME_LENGTH),
             Pair("myDataList[0].myList[0].polyParent.polyChild.value", 4),
-            Pair("myDataList[0].myList[1].polyParent.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
-            Pair("myDataList[0].myList[1].polyParent.polyChild.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("myDataList[0].myList[1].polyParent.serialName", VariantParentASurrogate.SERIAL_NAME_LENGTH),
+            Pair("myDataList[0].myList[1].polyParent.polyChild.serialName", VariantChildASurrogate.SERIAL_NAME_LENGTH),
             Pair("myDataList[0].myList[1].polyParent.polyChild.value", 4),
             Pair("myDataList[1].myList.length", 4),
-            Pair("myDataList[1].myList[0].polyParent.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
-            Pair("myDataList[1].myList[0].polyParent.polyChild.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("myDataList[1].myList[0].polyParent.serialName", VariantParentASurrogate.SERIAL_NAME_LENGTH),
+            Pair("myDataList[1].myList[0].polyParent.polyChild.serialName", VariantChildASurrogate.SERIAL_NAME_LENGTH),
             Pair("myDataList[1].myList[0].polyParent.polyChild.value", 4),
-            Pair("myDataList[1].myList[1].polyParent.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
-            Pair("myDataList[1].myList[1].polyParent.polyChild.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("myDataList[1].myList[1].polyParent.serialName", VariantParentASurrogate.SERIAL_NAME_LENGTH),
+            Pair("myDataList[1].myList[1].polyParent.polyChild.serialName", VariantChildASurrogate.SERIAL_NAME_LENGTH),
             Pair("myDataList[1].myList[1].polyParent.polyChild.value", 4),
         )
         val data = NestedListData(listOf(Data(listOf(VariantParentA(VariantChildA(1))))))
@@ -329,13 +343,13 @@ class DeepPolymorphicTest {
     fun `third-level nested polymorphic should be serialized successfully`() {
         val mask = listOf(
             Pair("myList.length", 4),
-            Pair("myList[0].PolyGrandParent.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
-            Pair("myList[0].PolyGrandParent.polyParent.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
-            Pair("myList[0].PolyGrandParent.polyParent.polyChild.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("myList[0].PolyGrandParent.serialName", VariantGrandParentASurrogate.SERIAL_NAME_LENGTH),
+            Pair("myList[0].PolyGrandParent.polyParent.serialName", VariantParentASurrogate.SERIAL_NAME_LENGTH),
+            Pair("myList[0].PolyGrandParent.polyParent.polyChild.serialName", VariantChildASurrogate.SERIAL_NAME_LENGTH),
             Pair("myList[0].PolyGrandParent.polyParent.polyChild.value", 4),
-            Pair("myList[1].PolyGrandParent.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
-            Pair("myList[1].PolyGrandParent.polyParent.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
-            Pair("myList[1].PolyGrandParent.polyParent.polyChild.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("myList[1].PolyGrandParent.serialName", VariantGrandParentASurrogate.SERIAL_NAME_LENGTH),
+            Pair("myList[1].PolyGrandParent.polyParent.serialName", VariantParentASurrogate.SERIAL_NAME_LENGTH),
+            Pair("myList[1].PolyGrandParent.polyParent.polyChild.serialName", VariantChildASurrogate.SERIAL_NAME_LENGTH),
             Pair("myList[1].PolyGrandParent.polyParent.polyChild.value", 4),
         )
         val data = GrandParentData(

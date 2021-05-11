@@ -14,8 +14,4 @@ data class UUIDSurrogate(
     val leastSigBits: Long
 ) : Surrogate<UUID> {
     override fun toOriginal(): UUID = UUID(mostSigBits, leastSigBits)
-
-    companion object {
-        fun from(uuid: UUID): UUIDSurrogate = UUIDSurrogate(uuid.mostSignificantBits, uuid.leastSignificantBits)
-    }
 }

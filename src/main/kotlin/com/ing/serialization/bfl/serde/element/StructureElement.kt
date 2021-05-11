@@ -3,9 +3,9 @@ package com.ing.serialization.bfl.serde.element
 import com.ing.serialization.bfl.serde.SerdeError
 import com.ing.serialization.bfl.serde.resolvePolymorphicChild
 import kotlinx.serialization.modules.SerializersModule
-import kotlinx.serialization.serializer
 import java.io.DataInput
 import java.io.DataOutput
+import kotlin.reflect.KClass
 
 class StructureElement(
     serialName: String,
@@ -16,6 +16,8 @@ class StructureElement(
     init {
         inner.forEach { it.parent = this }
     }
+    // set only in polymorphic StructureElements
+    var baseClass: KClass<in Any>? = null
 
     override val inherentLayout by lazy {
         listOf(
@@ -45,14 +47,10 @@ class StructureElement(
     fun decodeNullPolymorphic(input: DataInput, serializersModule: SerializersModule) {
         val type = inner.first().expect<StringElement>().decode(input)
         val placeholderValue = inner.last().expect<StructureElement>()
-        val descriptor = kotlin.runCatching {
-            serializersModule.serializer(Class.forName(type)).descriptor
-        }.getOrElse {
-            when (it) {
-                is ClassNotFoundException -> throw SerdeError.UnknownPolymorphic(type)
-                else -> throw it
-            }
-        }
+        val descriptor = serializersModule.getPolymorphic(
+            baseClass = requireNotNull(baseClass) { "Something went wrong - Base class of polymorphic StructureElement should have been set" },
+            serializedClassName = type
+        )?.descriptor ?: throw SerdeError.NoPolymorphicSerializerForSubClass(type)
         val newValue = this.resolvePolymorphicChild(descriptor, placeholderValue.propertyName, serializersModule)
         newValue.decodeNull(input)
     }

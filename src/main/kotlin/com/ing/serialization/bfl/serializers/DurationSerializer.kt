@@ -14,8 +14,4 @@ data class DurationSurrogate(
     val nanos: Int
 ) : Surrogate<Duration> {
     override fun toOriginal(): Duration = Duration.ofSeconds(seconds, nanos.toLong())
-
-    companion object {
-        fun from(duration: Duration): DurationSurrogate = DurationSurrogate(duration.seconds, duration.nano)
-    }
 }

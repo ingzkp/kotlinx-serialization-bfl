@@ -33,7 +33,11 @@ sealed class SerdeError : IllegalStateException {
     class DifferentPolymorphicImplementations(serialName: String) :
         SerdeError("Different implementations of the same base type '$serialName' are not allowed")
 
-    class UnknownPolymorphic(type: String) : SerdeError("Polymorphic class '$type' cannot be found")
+    class NoPolymorphicSerializerForSubClass(type: String) : SerdeError("Serializer for '$type' cannot be found")
+
+    class NoSurrogateSerializerForPolymorphic(type: String) : SerdeError("Surrogate serializer for polymorphic class '$type' cannot be found")
+
+    class NoPolymorphicBaseClass(serialName: String) : SerdeError("Base class for '$serialName' cannot be found")
 
     class NonResolvablePolymorphic(serialName: String) : SerdeError("Implementation of '$serialName' cannot be inferred")
 

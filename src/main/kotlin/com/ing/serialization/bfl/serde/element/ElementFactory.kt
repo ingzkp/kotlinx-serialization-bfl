@@ -1,6 +1,8 @@
 package com.ing.serialization.bfl.serde.element
 
 import com.ing.serialization.bfl.annotations.FixedLength
+import com.ing.serialization.bfl.api.Surrogate
+import com.ing.serialization.bfl.api.SurrogateSerializer
 import com.ing.serialization.bfl.serde.SerdeError
 import com.ing.serialization.bfl.serde.convertToList
 import com.ing.serialization.bfl.serde.getPropertyNameValuePair
@@ -15,13 +17,14 @@ import com.ing.serialization.bfl.serde.merge
 import com.ing.serialization.bfl.serde.prepend
 import com.ing.serialization.bfl.serde.simpleSerialName
 import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.capturedKClass
 import kotlinx.serialization.descriptors.elementDescriptors
 import kotlinx.serialization.descriptors.getContextualDescriptor
 import kotlinx.serialization.descriptors.getPolymorphicDescriptors
 import kotlinx.serialization.modules.EmptySerializersModule
 import kotlinx.serialization.modules.SerializersModule
-import kotlinx.serialization.serializer
 import kotlin.collections.ArrayDeque
+import kotlin.reflect.KClass
 
 class ElementFactory(
     private val serializersModule: SerializersModule = EmptySerializersModule,
@@ -62,8 +65,8 @@ class ElementFactory(
 
                         fromType(descriptor.getElementDescriptor(idx), "$parentName.$propertyName", propertyValue)
                     }.toMutableList()
-                StructureElement(descriptor.serialName, parentName, children, descriptor.isNullable).also {
-                    it.isNull = data == null // set flag if the instance is null
+                StructureElement(descriptor.serialName, parentName, children, descriptor.isNullable).apply {
+                    isNull = data == null // set flag if the instance is null
                 }
             }
 
@@ -109,8 +112,8 @@ class ElementFactory(
                     inner = children,
                     requiredLength = requiredLength,
                     isNullable = descriptor.isNullable
-                ).also {
-                    it.isNull = data == null // set flag if the instance is null
+                ).apply {
+                    isNull = data == null // set flag if the instance is null
                 }
             }
             descriptor.isStructure -> {
@@ -125,8 +128,8 @@ class ElementFactory(
                         fromType(element, "$parentName.$propertyName", propertyValue)
                     }.toMutableList()
 
-                    StructureElement(serialName, parentName, children, descriptor.isNullable).also {
-                        it.isNull = data == null // set flag if the instance is null
+                    StructureElement(serialName, parentName, children, descriptor.isNullable).apply {
+                        isNull = data == null // set flag if the instance is null
                     }
                 }
             }
@@ -144,23 +147,31 @@ class ElementFactory(
                     throw SerdeError.VariablePolymorphicSerialName(descriptor)
                 }
                 dfQueue.prepend(variantNamesLengths.single())
+                // retrieve the base class of the polymorphic and cast it appropriately
+                val polyBaseClass: KClass<in Any> = descriptor.capturedKClass as? KClass<in Any>
+                    ?: throw SerdeError.NoPolymorphicBaseClass(descriptor.serialName)
                 // Polymorphic type consists of a string describing type and a structure.
                 val children = mutableListOf(
                     // Inner StringElement
                     fromType(descriptor.elementDescriptors.first(), parentName),
-                    // Inner StructureElement - currently the serializer of the class implementing the base polymorphic
-                    // type needs to have been registered as contextual for this solution to work !!!
-                    // TODO: check whether to use the following commented approach since it involves special handling -
-                    //  verify that we can register a single polymorphic parent for a serializer
-                    // serializersModule.getPolymorphic(data::class.superclasses.first() as KClass<in Any>, data).descriptor
+                    // Inner StructureElement - The serializer of the class implementing the base polymorphic MUST (!!!)
+                    // inherit from SurrogateSerializer
                     data?.let {
-                        fromType(serializersModule.serializer(it::class.java).descriptor, parentName, it)
+                        // retrieve the serializer and cast it as SurrogateSerializer so that the actual data value can
+                        // be transformed to its surrogate version using `toSurrogate`
+                        val valueSerializer = (
+                            serializersModule.getPolymorphic(polyBaseClass, it)
+                                ?: throw SerdeError.NoPolymorphicSerializerForSubClass(it::class.toString())
+                            ) as? SurrogateSerializer<Any, Surrogate<Any>>
+                            ?: throw SerdeError.NoSurrogateSerializerForPolymorphic(it::class.toString())
+                        fromType(valueSerializer.descriptor, parentName, valueSerializer.toSurrogate(it))
                     } ?: StructureElement("", parentName, mutableListOf(), descriptor.isNullable)
                 )
 
-                StructureElement(serialName, parentName, children, descriptor.isNullable).also {
-                    it.isPolymorphic = true // denote the element as polymorphic
-                    it.isNull = data == null // set flag if the instance is null
+                StructureElement(serialName, parentName, children, descriptor.isNullable).apply {
+                    isPolymorphic = true // denote the element as polymorphic
+                    isNull = data == null // set flag if the instance is null
+                    baseClass = polyBaseClass // pass the base class so that it can be used during decoding of null polymorphic
                 }
             }
             descriptor.isContextual -> {

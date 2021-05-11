@@ -5,9 +5,6 @@ import com.ing.serialization.bfl.serde.element.ElementFactory
 import com.ing.serialization.bfl.serde.element.StructureElement
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.modules.SerializersModule
-import kotlin.reflect.full.companionObject
-import kotlin.reflect.full.companionObjectInstance
-import kotlin.reflect.full.functions
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.isAccessible
 
@@ -51,20 +48,10 @@ fun <T> T.convertToList() = when (this) {
 fun <T> T.getPropertyNameValuePair(descriptor: SerialDescriptor, index: Int): Pair<String, Any?> {
     val propertyName = descriptor.getElementName(index)
     val propertyValue = this?.let {
-        // in case a surrogate is used for serialization, this surrogate is constructed from the actual data structure
-        kotlin.runCatching {
-            val cls = Class.forName(descriptor.serialName).kotlin
-            requireNotNull(
-                cls.companionObject!!.functions.firstOrNull { fn -> fn.name == "from" }!!.call(cls.companionObjectInstance, it)
-            ) { "Something went wrong - The value to be parsed (original or surrogate) should not be null" }
-        }.getOrDefault(it).let { toParse ->
-            toParse::class.memberProperties
-                // this search is based on the assumption that surrogates use serial names for their properties same to the
-                // actual names of the properties
-                .firstOrNull { property -> property.name == propertyName }
-                ?.also { property -> property.isAccessible = true } // in case some property is private or protected
-                ?.call(toParse)
-        }
+        it::class.memberProperties
+            .firstOrNull { property -> property.name == propertyName }
+            ?.also { property -> property.isAccessible = true } // in case some property is private or protected
+            ?.call(it)
     }
     return Pair(propertyName, propertyValue)
 }

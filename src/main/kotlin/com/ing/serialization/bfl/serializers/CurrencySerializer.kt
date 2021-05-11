@@ -19,6 +19,5 @@ data class CurrencySurrogate(@FixedLength([CURRENCY_SIZE]) val code: String) : S
 
     companion object {
         const val CURRENCY_SIZE = 3
-        fun from(currency: Currency): CurrencySurrogate = CurrencySurrogate(currency.currencyCode)
     }
 }

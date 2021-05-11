@@ -8,15 +8,13 @@ import com.ing.serialization.bfl.api.serialize
 import com.ing.serialization.bfl.serde.SerdeError
 import com.ing.serialization.bfl.serde.checkedSerialize
 import com.ing.serialization.bfl.serde.checkedSerializeInlined
-import com.ing.serialization.bfl.serde.element.ElementFactory
 import com.ing.serialization.bfl.serde.roundTrip
 import com.ing.serialization.bfl.serde.roundTripInlined
 import com.ing.serialization.bfl.serde.sameSize
 import com.ing.serialization.bfl.serde.sameSizeInlined
-import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
-import kotlinx.serialization.modules.contextual
 import kotlinx.serialization.modules.polymorphic
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
@@ -29,42 +27,45 @@ data class VariantA(val myInt: Int) : PolyBase
 data class VariantB(val myLong: Long) : PolyBase
 data class VariantC(val myByte: Byte) : PolyBase
 
-object VariantASerializer : KSerializer<VariantA>
-by (SurrogateSerializer(VariantASurrogate.serializer()) { VariantASurrogate.from(it) })
+object VariantASerializer :
+    SurrogateSerializer<VariantA, VariantASurrogate>(VariantASurrogate.serializer(), { VariantASurrogate(it.myInt) })
 
 @Serializable
+@SerialName("VA")
 data class VariantASurrogate(
     val value: Int
 ) : Surrogate<VariantA> {
     override fun toOriginal() = VariantA(value)
     companion object {
-        fun from(variantA: VariantA): VariantASurrogate = VariantASurrogate(variantA.myInt)
+        const val SERIAL_NAME_LENGTH = 2 + 2 * 2
     }
 }
 
-object VariantBSerializer : KSerializer<VariantB>
-by (SurrogateSerializer(VariantBSurrogate.serializer()) { VariantBSurrogate.from(it) })
+object VariantBSerializer :
+    SurrogateSerializer<VariantB, VariantBSurrogate>(VariantBSurrogate.serializer(), { VariantBSurrogate(it.myLong) })
 
 @Serializable
+@SerialName("VB")
 data class VariantBSurrogate(
     val value: Long
 ) : Surrogate<VariantB> {
     override fun toOriginal() = VariantB(value)
     companion object {
-        fun from(variantB: VariantB): VariantBSurrogate = VariantBSurrogate(variantB.myLong)
+        const val SERIAL_NAME_LENGTH = 2 + 2 * 2
     }
 }
 
-object VariantCSerializer : KSerializer<VariantC>
-by (SurrogateSerializer(VariantCSurrogate.serializer()) { VariantCSurrogate.from(it) })
+object VariantCSerializer :
+    SurrogateSerializer<VariantC, VariantCSurrogate>(VariantCSurrogate.serializer(), { VariantCSurrogate(it.myByte) })
 
 @Serializable
+@SerialName("VC")
 data class VariantCSurrogate(
     val value: Byte
 ) : Surrogate<VariantC> {
     override fun toOriginal() = VariantC(value)
     companion object {
-        fun from(variantC: VariantC): VariantCSurrogate = VariantCSurrogate(variantC.myByte)
+        const val SERIAL_NAME_LENGTH = 2 + 2 * 2
     }
 }
 
@@ -84,9 +85,6 @@ class NullablePolymorphicTest {
             subclass(VariantB::class, VariantBSerializer)
             subclass(VariantC::class, VariantCSerializer)
         }
-        contextual(VariantASerializer)
-        contextual(VariantBSerializer)
-        contextual(VariantCSerializer)
     }
 
     @Test
@@ -94,13 +92,13 @@ class NullablePolymorphicTest {
         val mask = listOf(
             Pair("myList.length", 4),
             Pair("myList[0].isNull", 1),
-            Pair("dataList[0].serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("dataList[0].serialName", VariantASurrogate.SERIAL_NAME_LENGTH),
             Pair("dataList[0].value.myInt", 4),
             Pair("myList[2].isNull", 1),
-            Pair("dataList[2].serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("dataList[2].serialName", VariantASurrogate.SERIAL_NAME_LENGTH),
             Pair("dataList[2].value.myInt", 4),
             Pair("myList[2].isNull", 1),
-            Pair("dataList[2].serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("dataList[2].serialName", VariantASurrogate.SERIAL_NAME_LENGTH),
             Pair("dataList[2].value.myInt", 4),
         )
         val data = Data(listOf(null, VariantA(0), null))
@@ -136,17 +134,17 @@ class NullablePolymorphicTest {
     fun `inner list with at least one non-null nullable polymorphic should be serialized successfully`() {
         val mask = listOf(
             Pair("myData.isNull", 1),
-            Pair("myData.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("myData.serialName", VariantBSurrogate.SERIAL_NAME_LENGTH),
             Pair("myData.myLong", 8),
             Pair("myList.length", 4),
             Pair("myList[0].isNull", 1),
-            Pair("dataList[0].serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("dataList[0].serialName", VariantASurrogate.SERIAL_NAME_LENGTH),
             Pair("dataList[0].value.myInt", 4),
             Pair("myList[2].isNull", 1),
-            Pair("dataList[2].serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("dataList[2].serialName", VariantASurrogate.SERIAL_NAME_LENGTH),
             Pair("dataList[2].value.myInt", 4),
             Pair("myList[2].isNull", 1),
-            Pair("dataList[2].serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("dataList[2].serialName", VariantASurrogate.SERIAL_NAME_LENGTH),
             Pair("dataList[2].value.myInt", 4),
         )
         val data = ComplexData(VariantB(0), listOf(null, VariantA(0), null))
@@ -185,45 +183,45 @@ class NullablePolymorphicTest {
             Pair("dataList.length", 4),
             Pair("dataList[0].isNull", 1),
             Pair("dataList[0].myData.isNull", 1),
-            Pair("dataList[0].myData.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("dataList[0].myData.serialName", VariantBSurrogate.SERIAL_NAME_LENGTH),
             Pair("dataList[0].myData.value.myLong", 8),
             Pair("dataList[0].myList.length", 4),
             Pair("dataList[0].myList[0].isNull", 1),
-            Pair("dataList[0].myList[0].serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("dataList[0].myList[0].serialName", VariantASurrogate.SERIAL_NAME_LENGTH),
             Pair("dataList[0].myList[0].value.myInt", 4),
             Pair("dataList[0].myList[1].isNull", 1),
-            Pair("dataList[0].myList[1].serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("dataList[0].myList[1].serialName", VariantASurrogate.SERIAL_NAME_LENGTH),
             Pair("dataList[0].myList[1].value.myInt", 4),
             Pair("dataList[0].myList[2].isNull", 1),
-            Pair("dataList[0].myList[2].serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("dataList[0].myList[2].serialName", VariantASurrogate.SERIAL_NAME_LENGTH),
             Pair("dataList[0].myList[2].value.myInt", 4),
             Pair("dataList[1].isNull", 1),
             Pair("dataList[1].myData.isNull", 1),
-            Pair("dataList[1].myData.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("dataList[1].myData.serialName", VariantBSurrogate.SERIAL_NAME_LENGTH),
             Pair("dataList[1].myData.value.myLong", 8),
             Pair("dataList[1].myList.length", 4),
             Pair("dataList[1].myList[0].isNull", 1),
-            Pair("dataList[1].myList[0].serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("dataList[1].myList[0].serialName", VariantASurrogate.SERIAL_NAME_LENGTH),
             Pair("dataList[1].myList[0].value.myInt", 4),
             Pair("dataList[1].myList[1].isNull", 1),
-            Pair("dataList[1].myList[1].serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("dataList[1].myList[1].serialName", VariantASurrogate.SERIAL_NAME_LENGTH),
             Pair("dataList[1].myList[1].value.myInt", 4),
             Pair("dataList[1].myList[2].isNull", 1),
-            Pair("dataList[1].myList[2].serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("dataList[1].myList[2].serialName", VariantASurrogate.SERIAL_NAME_LENGTH),
             Pair("dataList[1].myList[2].value.myInt", 4),
             Pair("dataList[2].isNull", 1),
             Pair("dataList[2].myData.isNull", 1),
-            Pair("dataList[2].myData.serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("dataList[2].myData.serialName", VariantBSurrogate.SERIAL_NAME_LENGTH),
             Pair("dataList[2].myData.value.myLong", 8),
             Pair("dataList[2].myList.length", 4),
             Pair("dataList[2].myList[0].isNull", 1),
-            Pair("dataList[2].myList[0].serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("dataList[2].myList[0].serialName", VariantASurrogate.SERIAL_NAME_LENGTH),
             Pair("dataList[2].myList[0].value.myInt", 4),
             Pair("dataList[2].myList[1].isNull", 1),
-            Pair("dataList[2].myList[1].serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("dataList[2].myList[1].serialName", VariantASurrogate.SERIAL_NAME_LENGTH),
             Pair("dataList[2].myList[1].value.myInt", 4),
             Pair("dataList[2].myList[2].isNull", 1),
-            Pair("dataList[2].myList[2].serialName", 2 + 2 * ElementFactory.polySerialNameLength),
+            Pair("dataList[2].myList[2].serialName", VariantASurrogate.SERIAL_NAME_LENGTH),
             Pair("dataList[2].myList[2].value.myInt", 4),
         )
 

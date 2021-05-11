@@ -35,7 +35,7 @@ class BinaryFixedLengthInputDecoder(
     override fun endStructure(descriptor: SerialDescriptor) {
         when {
             descriptor.isCollection -> endCollection()
-            descriptor.isStructure || descriptor.isPolymorphic -> structureProcessor.removeNext()
+            descriptor.isStructure || descriptor.isPolymorphic || descriptor.isObject -> structureProcessor.removeNext()
             else -> TODO("Unknown structure kind `${descriptor.kind}`")
         }
     }

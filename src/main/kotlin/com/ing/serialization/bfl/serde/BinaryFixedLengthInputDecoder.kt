@@ -2,9 +2,9 @@ package com.ing.serialization.bfl.serde
 
 import com.ing.serialization.bfl.serde.element.CollectionElement
 import com.ing.serialization.bfl.serde.element.EnumElement
+import com.ing.serialization.bfl.serde.element.PolymorphicStructureElement
 import com.ing.serialization.bfl.serde.element.PrimitiveElement
 import com.ing.serialization.bfl.serde.element.StringElement
-import com.ing.serialization.bfl.serde.element.StructureElement
 import com.ing.serialization.bfl.serializers.BFLSerializers
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -82,7 +82,7 @@ class BinaryFixedLengthInputDecoder(
 
     override fun decodeNull(): Nothing? {
         structureProcessor.removeNext().let {
-            if (it.isPolymorphic) it.expect<StructureElement>().decodeNullPolymorphic(input, serializersModule)
+            if (it is PolymorphicStructureElement) it.decodeNull(input, serializersModule)
             else it.decodeNull(input)
         }
         return null
@@ -91,7 +91,7 @@ class BinaryFixedLengthInputDecoder(
     override fun <T> decodeSerializableValue(deserializer: DeserializationStrategy<T>): T {
         if (!this::structureProcessor.isInitialized) {
             structureProcessor =
-                FixedLengthStructureProcessor(deserializer.descriptor, serializersModule, outerFixedLength)
+                FixedLengthStructureProcessor(deserializer.descriptor, serializersModule, outerFixedLength, phase = Phase.DECODING)
         }
         return super.decodeSerializableValue(deserializer)
     }

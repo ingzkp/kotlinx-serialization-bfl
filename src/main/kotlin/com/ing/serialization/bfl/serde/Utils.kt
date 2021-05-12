@@ -2,6 +2,7 @@ package com.ing.serialization.bfl.serde
 
 import com.ing.serialization.bfl.serde.element.Element
 import com.ing.serialization.bfl.serde.element.ElementFactory
+import com.ing.serialization.bfl.serde.element.PolymorphicStructureElement
 import com.ing.serialization.bfl.serde.element.StructureElement
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.modules.SerializersModule
@@ -17,26 +18,35 @@ fun <T> ArrayDeque<T>.prepend(list: List<T>) {
 }
 
 /**
- * Extension function that attempts to parse any iterable data structure as a list using reflection
+ * Extension function that attempts to parse any iterable data structure as a list using reflection.
+ *
+ * It is necessary to distinguish between all these cases, since despite the fact that all of these classes are iterable,
+ * they acquire this characteristic in different ways (Collection, MutableCollection by inheriting from Iterable, Arrays
+ * by defining an iterator, and Map, MutableMap by defining an iterator on their entries).
+ *
+ * In case of Map or MutableMap, the data structure is parsed as a list of key-value pairs, which is further flattened
+ * to a listOf(keys, values). As a result, in the case of simple list-like structures, a listOf(values) is returned.
+ * This is a convenience step for further processing of the parsed data.
+ *
  * Throws an exception if the data structure is of none of the supported types
  *
  * @throws IllegalStateException when the actual type of the data structure is none of the supported
  */
 @Suppress("ComplexMethod")
-fun <T> T.convertToList() = when (this) {
-    is Collection<*> -> this.toList()
-    is MutableCollection<*> -> this.toList()
-    is Map<*, *> -> this.toList()
-    is MutableMap<*, *> -> this.toList()
-    is Array<*> -> this.toList()
-    is ByteArray -> this.toList()
-    is CharArray -> this.toList()
-    is ShortArray -> this.toList()
-    is IntArray -> this.toList()
-    is LongArray -> this.toList()
-    is DoubleArray -> this.toList()
-    is FloatArray -> this.toList()
-    is BooleanArray -> this.toList()
+fun <T> T.flattenToList() = when (this) {
+    is Collection<*> -> listOf(this.toList())
+    is MutableCollection<*> -> listOf(this.toList())
+    is Map<*, *> -> this.toList().unzip().toList()
+    is MutableMap<*, *> -> this.toList().unzip().toList()
+    is Array<*> -> listOf(this.toList())
+    is ByteArray -> listOf(this.toList())
+    is CharArray -> listOf(this.toList())
+    is ShortArray -> listOf(this.toList())
+    is IntArray -> listOf(this.toList())
+    is LongArray -> listOf(this.toList())
+    is DoubleArray -> listOf(this.toList())
+    is FloatArray -> listOf(this.toList())
+    is BooleanArray -> listOf(this.toList())
     else -> error("Unknown iterable type - Cannot convert to list!")
 }
 
@@ -60,27 +70,28 @@ fun <T> T.getPropertyNameValuePair(descriptor: SerialDescriptor, index: Int): Pa
  * Extension function that merges an element with another element of the same type (externally respected condition)
  * Used for merging the children of a CollectionElement into one single Element type.
  *
- * @param other the element to be merged with
+ * @param that the element to be merged with
  * @throws IllegalArgumentException when the elements to be merged are not of the same type
  * @throws SerdeError.DifferentPolymorphicImplementations when different implementations of the same polymorphic base
  * type are encountered
  */
-fun Element.merge(other: Element): Element {
-    require(this::class == other::class) { "Elements to be merged should be of the same type" }
-    return if (isNull || other.isNull) {
-        if (isNull) other.clone() else this.clone()
+fun Element.merge(that: Element): Element {
+    require(this::class == that::class) { "Elements to be merged should be of the same type" }
+    return if (this.isNull || that.isNull) {
+        if (this.isNull) that.clone() else this.clone()
     } else {
         // Polymorphic type consists of a string describing type and a structure
-        if (isPolymorphic && inner.last().serialName != other.inner.last().serialName) {
-            throw SerdeError.DifferentPolymorphicImplementations(serialName)
+        if (this is PolymorphicStructureElement && this.inner.last().serialName != that.inner.last().serialName) {
+            throw SerdeError.DifferentPolymorphicImplementations(this.serialName)
         }
-        inner = inner.mapIndexed { idx, child -> child.merge(other.inner[idx]) }.toMutableList()
+        this.inner = this.inner.mapIndexed { idx, child -> child.merge(that.inner[idx]) }.toMutableList()
         this.clone()
     }
 }
 
 /**
- * Extension function used for resolving the inner StructureElement of a polymorphic when its actual type is available
+ * Extension function used for resolving the inner StructureElement of a polymorphic when its actual SerialDescriptor is
+ * available
  *
  * @param descriptor the serial descriptor of the implementation of the base class
  * @param propertyName the property name to be used when parsing the actual inner StructureElement

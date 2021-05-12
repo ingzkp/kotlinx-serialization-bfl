@@ -11,7 +11,6 @@ import java.io.DataOutput
 abstract class Element(val serialName: String, val propertyName: String, var inner: MutableList<Element> = mutableListOf()) {
     abstract var isNullable: Boolean
     var parent: Element? = null
-    var isPolymorphic: Boolean = false
     var isNull: Boolean = false
 
     protected abstract val inherentLayout: List<Pair<String, Int>>
@@ -46,12 +45,13 @@ abstract class Element(val serialName: String, val propertyName: String, var inn
         return this
     }
 
+    open fun verifySelfResolvabilityOrThrow() = Unit
+
     fun verifyResolvabilityOrThrow(): Element {
-        // if a null polymorphic has not been resolved in the parsing stage, an exception is thrown
-        if (isNull && isPolymorphic) {
-            throw SerdeError.NonResolvablePolymorphic(serialName)
-        }
-        // check also the children of the element for resolvability
+        // first verify resolvability of the element itself
+        verifySelfResolvabilityOrThrow()
+
+        // then check also the children of the element for resolvability
         inner.forEach { it.verifyResolvabilityOrThrow() }
         return this
     }

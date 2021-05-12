@@ -3,6 +3,7 @@ package com.ing.serialization.bfl.serde
 import com.ing.serialization.bfl.serde.element.CollectionElement
 import com.ing.serialization.bfl.serde.element.Element
 import com.ing.serialization.bfl.serde.element.ElementFactory
+import com.ing.serialization.bfl.serde.element.PolymorphicStructureElement
 import com.ing.serialization.bfl.serde.element.StructureElement
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.modules.SerializersModule
@@ -12,7 +13,7 @@ class FixedLengthStructureProcessor(
     val serializersModule: SerializersModule,
     outerFixedLength: IntArray = IntArray(0),
     data: Any? = null,
-    private val phase: Phase = Phase.DECODING
+    private val phase: Phase
 ) {
     internal var structure: Element = ElementFactory(serializersModule, outerFixedLength).parse(descriptor, data = data)
     private val queue = ArrayDeque<Element>()
@@ -38,10 +39,10 @@ class FixedLengthStructureProcessor(
 
         // during decoding we need to populate the inner placeholder StructureElement of a polymorphic
         val parent = schedulable.parent
-        if (parent != null && parent.isPolymorphic && phase == Phase.DECODING) {
+        if (phase == Phase.DECODING && parent != null && parent is PolymorphicStructureElement) {
             // populate the placeholder StructureElement
             schedulable = parent.resolvePolymorphicChild(descriptor, schedulable.propertyName, serializersModule)
-            // remove the placeholder StructureElement from queue and add the populated version
+            // replace the placeholder StructureElement from queue with the populated version
             removeNext()
             queue.prepend(schedulable)
         }
@@ -63,7 +64,7 @@ class FixedLengthStructureProcessor(
         collection.actualLength = collectionSize
 
         // if an empty list containing nullable polymorphic has not been fully resolved in the parsing stage an exception is thrown
-        if (collectionSize == 0 && phase == Phase.ENCODING) {
+        if (phase == Phase.ENCODING && collectionSize == 0) {
             collection.verifyResolvabilityOrThrow()
         }
 

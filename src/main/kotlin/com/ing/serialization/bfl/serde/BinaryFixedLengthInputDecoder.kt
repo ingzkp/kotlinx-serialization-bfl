@@ -51,7 +51,7 @@ class BinaryFixedLengthInputDecoder(
             .removeNext()
             .expect<CollectionElement>()
 
-        // Collection might have been padded.
+        // collection might have been padded.
         input.skipBytes(collection.padding)
     }
 

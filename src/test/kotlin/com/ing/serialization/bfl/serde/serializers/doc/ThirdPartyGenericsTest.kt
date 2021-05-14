@@ -6,7 +6,6 @@ import com.ing.serialization.bfl.api.SurrogateSerializer
 import com.ing.serialization.bfl.serde.SerdeError
 import io.kotest.assertions.throwables.shouldThrow
 import kotlinx.serialization.Contextual
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import org.junit.jupiter.api.Test
 import java.util.Currency
@@ -51,11 +50,9 @@ class ThirdPartyGenericsTest {
         override fun toOriginal(): CustomData<String> = CustomData(value)
     }
 
-    private object CustomDataStringSerializer : KSerializer<CustomData<String>>
-    by (
-        SurrogateSerializer(CustomDataStringSurrogate.serializer()) {
-            CustomDataStringSurrogate(it.value)
-        }
+    private object CustomDataStringSerializer :
+        SurrogateSerializer<CustomData<String>, CustomDataStringSurrogate>(
+            CustomDataStringSurrogate.serializer(), { CustomDataStringSurrogate(it.value) }
         )
 
     @Serializable
@@ -65,9 +62,7 @@ class ThirdPartyGenericsTest {
         override fun toOriginal(): CustomData<Currency> = CustomData(value)
     }
 
-    private object CustomDataCurrencySerializer : KSerializer<CustomData<Currency>> by (
-        SurrogateSerializer(CustomDataCurrencySurrogate.serializer()) {
-            CustomDataCurrencySurrogate(it.value)
-        }
-        )
+    private object CustomDataCurrencySerializer : SurrogateSerializer<CustomData<Currency>, CustomDataCurrencySurrogate>(
+        CustomDataCurrencySurrogate.serializer(), { CustomDataCurrencySurrogate(it.value) }
+    )
 }

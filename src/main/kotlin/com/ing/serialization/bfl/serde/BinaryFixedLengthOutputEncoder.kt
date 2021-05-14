@@ -73,7 +73,7 @@ class BinaryFixedLengthOutputEncoder(
     override fun <T> encodeSerializableValue(serializer: SerializationStrategy<T>, value: T) {
         if (!this::structureProcessor.isInitialized) {
             structureProcessor =
-                FixedLengthStructureProcessor(serializer.descriptor, serializersModule, outerFixedLength, value, Phase.ENCODING)
+                FixedLengthStructureProcessor(serializer.descriptor, serializersModule, outerFixedLength, value, phase = Phase.ENCODING)
         }
         super.encodeSerializableValue(serializer, value)
     }

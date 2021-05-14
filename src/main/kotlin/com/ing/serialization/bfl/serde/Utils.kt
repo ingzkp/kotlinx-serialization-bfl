@@ -1,11 +1,15 @@
 package com.ing.serialization.bfl.serde
 
+import com.ing.serialization.bfl.api.Surrogate
+import com.ing.serialization.bfl.api.SurrogateSerializer
 import com.ing.serialization.bfl.serde.element.Element
 import com.ing.serialization.bfl.serde.element.ElementFactory
 import com.ing.serialization.bfl.serde.element.PolymorphicStructureElement
 import com.ing.serialization.bfl.serde.element.StructureElement
+import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.modules.SerializersModule
+import kotlin.reflect.KClass
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.isAccessible
 
@@ -15,6 +19,11 @@ fun <T> ArrayDeque<T>.prepend(value: T) {
 
 fun <T> ArrayDeque<T>.prepend(list: List<T>) {
     addAll(0, list)
+}
+
+fun <T> ArrayDeque<T>.reschedule(value: T) {
+    removeFirst()
+    prepend(value)
 }
 
 /**
@@ -51,6 +60,14 @@ fun <T> T.flattenToList() = when (this) {
 }
 
 /**
+ * Extension function that attempts to cast a serializer as SurrogateSerializer
+ *
+ * @throws SerdeError.NoSurrogateSerializer when the attempted cast fails
+ */
+fun <T : Any> SerializationStrategy<T>.expect(klass: KClass<*>) = this as? SurrogateSerializer<Any, Surrogate<Any>>
+    ?: throw SerdeError.NoSurrogateSerializer(klass)
+
+/**
  * Extension function that retrieves the name and value of a specific property from a data structure
  * @param descriptor serial descriptor of the data object
  * @param index index of the property within the structure of the data object
@@ -60,6 +77,7 @@ fun <T> T.getPropertyNameValuePair(descriptor: SerialDescriptor, index: Int): Pa
     val propertyValue = this?.let {
         it::class.memberProperties
             .firstOrNull { property -> property.name == propertyName }
+            .also { property -> requireNotNull(property) { "Property of non-null data should have been present" } }
             ?.also { property -> property.isAccessible = true } // in case some property is private or protected
             ?.call(it)
     }
@@ -80,7 +98,7 @@ fun Element.merge(that: Element): Element {
     return if (this.isNull || that.isNull) {
         if (this.isNull) that.clone() else this.clone()
     } else {
-        // Polymorphic type consists of a string describing type and a structure
+        // polymorphic type consists of a string describing type and a structure
         if (this is PolymorphicStructureElement && this.inner.last().serialName != that.inner.last().serialName) {
             throw SerdeError.DifferentPolymorphicImplementations(this.serialName)
         }

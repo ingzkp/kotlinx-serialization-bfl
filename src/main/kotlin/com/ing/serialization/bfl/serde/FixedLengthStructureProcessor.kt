@@ -42,12 +42,10 @@ class FixedLengthStructureProcessor(
         if (phase == Phase.DECODING && parent != null && parent is PolymorphicStructureElement) {
             // populate the placeholder StructureElement
             schedulable = parent.resolvePolymorphicChild(descriptor, schedulable.propertyName, serializersModule)
-            // replace the placeholder StructureElement from queue with the populated version
-            removeNext()
-            queue.prepend(schedulable)
+            queue.reschedule(schedulable)
         }
 
-        // Unwind structure's inner elements to the queue.
+        // unwind structure's inner elements to the queue.
         queue.prepend(schedulable.inner)
     }
 

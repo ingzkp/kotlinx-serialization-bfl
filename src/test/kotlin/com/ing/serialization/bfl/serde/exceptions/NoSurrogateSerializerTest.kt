@@ -26,7 +26,7 @@ data class ChildSurrogate(
     override fun toOriginal() = Child(value)
 }
 
-class NoSurrogateSerializerForPolymorphicTest {
+class NoSurrogateSerializerTest {
     private val parentSerializers = SerializersModule {
         polymorphic(Parent::class) {
             subclass(Child::class, ChildSerializer)
@@ -40,7 +40,7 @@ class NoSurrogateSerializerForPolymorphicTest {
     fun `serializer of polymorphic type not inheriting from SurrogateSerializer should throw an error`() {
         val data = Data(Child(0))
 
-        assertThrows<SerdeError.NoSurrogateSerializerForPolymorphic> {
+        assertThrows<SerdeError.NoSurrogateSerializer> {
             serialize(data, serializersModule = parentSerializers)
         }
     }

@@ -2,13 +2,13 @@ package com.ing.serialization.bfl.serializers
 
 import com.ing.serialization.bfl.annotations.FixedLength
 import com.ing.serialization.bfl.api.SurrogateSerializer
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import java.math.BigDecimal
 
 typealias BigDecimalSizes = FixedLength
 
-object BigDecimalSerializer : KSerializer<BigDecimal> by (SurrogateSerializer(BigDecimalSurrogate.serializer()) { BigDecimalSurrogate.from(it) })
+object BigDecimalSerializer :
+    SurrogateSerializer<BigDecimal, BigDecimalSurrogate>(BigDecimalSurrogate.serializer(), { BigDecimalSurrogate.from(it) })
 
 @Suppress("ArrayInDataClass")
 @Serializable

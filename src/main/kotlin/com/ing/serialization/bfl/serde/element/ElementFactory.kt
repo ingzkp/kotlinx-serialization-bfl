@@ -1,9 +1,8 @@
 package com.ing.serialization.bfl.serde.element
 
 import com.ing.serialization.bfl.annotations.FixedLength
-import com.ing.serialization.bfl.api.Surrogate
-import com.ing.serialization.bfl.api.SurrogateSerializer
 import com.ing.serialization.bfl.serde.SerdeError
+import com.ing.serialization.bfl.serde.expect
 import com.ing.serialization.bfl.serde.flattenToList
 import com.ing.serialization.bfl.serde.getPropertyNameValuePair
 import com.ing.serialization.bfl.serde.isCollection
@@ -55,7 +54,7 @@ class ElementFactory(
             descriptor.isStructure -> {
                 val children = (0 until descriptor.elementsCount)
                     .map { idx ->
-                        val (propertyName, propertyValue) = data.getPropertyNameValuePair(descriptor, idx)
+                        val (propertyName, propertyValue) = data?.toSurrogate().getPropertyNameValuePair(descriptor, idx)
 
                         val lengths = descriptor.getElementAnnotations(idx)
                             .filterIsInstance<FixedLength>()
@@ -74,7 +73,6 @@ class ElementFactory(
         }
     }
 
-    @Suppress("ComplexMethod", "NestedBlockDepth")
     private fun fromType(descriptor: SerialDescriptor, parentName: String, data: Any? = null): Element {
         val serialName = descriptor.serialName
 
@@ -87,23 +85,7 @@ class ElementFactory(
             }
             descriptor.isEnum -> EnumElement(serialName, parentName, descriptor.isNullable)
             descriptor.isCollection -> fromCollection(descriptor, serialName, parentName, data)
-            descriptor.isStructure -> {
-                val isAnnotated = (0 until descriptor.elementsCount)
-                    .any { idx -> descriptor.getElementAnnotations(idx).isNotEmpty() }
-
-                if (isAnnotated) {
-                    parse(descriptor, parentName, data)
-                } else {
-                    val children = descriptor.elementDescriptors.mapIndexed { idx, element ->
-                        val (propertyName, propertyValue) = data.getPropertyNameValuePair(descriptor, idx)
-                        fromType(element, "$parentName.$propertyName", propertyValue)
-                    }.toMutableList()
-
-                    StructureElement(serialName, parentName, children, descriptor.isNullable).apply {
-                        isNull = data == null // set flag if the instance is null
-                    }
-                }
-            }
+            descriptor.isStructure -> fromStructure(descriptor, serialName, parentName, data)
             descriptor.isPolymorphic -> fromPolymorphic(descriptor, serialName, parentName, data)
             descriptor.isContextual -> {
                 val contextDescriptor = serializersModule.getContextualDescriptor(descriptor)
@@ -112,6 +94,29 @@ class ElementFactory(
                 fromType(contextDescriptor, parentName, data).apply { isNullable = descriptor.isNullable }
             }
             else -> error("Do not know how to build element from type ${descriptor.serialName}")
+        }
+    }
+
+    private fun fromStructure(
+        descriptor: SerialDescriptor,
+        serialName: String,
+        parentName: String,
+        data: Any? = null
+    ): Element {
+        val isAnnotated = (0 until descriptor.elementsCount)
+            .any { idx -> descriptor.getElementAnnotations(idx).isNotEmpty() }
+
+        return if (isAnnotated) {
+            parse(descriptor, parentName, data)
+        } else {
+            val children = descriptor.elementDescriptors.mapIndexed { idx, element ->
+                val (propertyName, propertyValue) = data?.toSurrogate().getPropertyNameValuePair(descriptor, idx)
+                fromType(element, "$parentName.$propertyName", propertyValue)
+            }.toMutableList()
+
+            StructureElement(serialName, parentName, children, descriptor.isNullable).apply {
+                isNull = data == null // set flag if the instance is null
+            }
         }
     }
 
@@ -124,7 +129,6 @@ class ElementFactory(
         val requiredLength = dfQueue.removeFirstOrNull()
             ?: throw SerdeError.InsufficientLengthData(descriptor, parentName)
 
-        // use reflection to treat non-null collection data
         val children = (
             data?.flattenToList()?.zip(descriptor.elementDescriptors)?.map { (inner, innerDescriptor) ->
                 inner.resolveChildrenTypes(innerDescriptor, parentName)
@@ -148,7 +152,7 @@ class ElementFactory(
         parentName: String,
         data: Any? = null
     ): StructureElement {
-        // Check if there is a descriptor for the polymorphic type.
+        // check if there is a descriptor for the polymorphic type.
         val polyDescriptors = serializersModule.getPolymorphicDescriptors(descriptor)
         if (polyDescriptors.isEmpty()) {
             throw SerdeError.NoPolymorphicSerializers(descriptor)
@@ -166,11 +170,11 @@ class ElementFactory(
         val polyBaseClass: KClass<in Any> = descriptor.capturedKClass as? KClass<in Any>
             ?: throw SerdeError.NoPolymorphicBaseClass(descriptor.serialName)
 
-        // Polymorphic type consists of a string describing type and a structure.
+        // polymorphic type consists of a string describing type and a structure.
         val children = mutableListOf(
-            // Inner StringElement
+            // inner StringElement
             fromType(descriptor.elementDescriptors.first(), parentName),
-            // Inner StructureElement - The serializer of the class implementing the base polymorphic MUST (!!!)
+            // inner StructureElement - the serializer of the class implementing the base polymorphic MUST (!!!)
             // inherit from SurrogateSerializer
             data?.let {
                 // retrieve the serializer and cast it as SurrogateSerializer so that the actual data value can
@@ -178,8 +182,7 @@ class ElementFactory(
                 val valueSerializer = (
                     serializersModule.getPolymorphic(polyBaseClass, it)
                         ?: throw SerdeError.NoPolymorphicSerializerForSubClass(it::class.toString())
-                    ) as? SurrogateSerializer<Any, Surrogate<Any>>
-                    ?: throw SerdeError.NoSurrogateSerializerForPolymorphic(it::class.toString())
+                    ).expect(it::class)
 
                 fromType(valueSerializer.descriptor, parentName, valueSerializer.toSurrogate(it))
             } ?: StructureElement("", parentName, mutableListOf(), descriptor.isNullable)
@@ -190,6 +193,19 @@ class ElementFactory(
             baseClass = polyBaseClass // pass the base class so that it can be used during decoding of null polymorphic
         }
     }
+
+    /**
+     * Extension function that attempts to convert a non-null value to its respective surrogate using its contextual
+     * serializer to do so.
+     *
+     * If a contextual serializer has not been registered, the value remains unchanged
+     *
+     */
+    private fun <T : Any> T.toSurrogate() = serializersModule
+        .getContextual(this::class)
+        ?.expect(this::class)
+        ?.toSurrogate
+        ?.invoke(this) ?: this
 
     /**
      * Extension function for parsing all children of a Collection and finally merging all parsed elements into a single

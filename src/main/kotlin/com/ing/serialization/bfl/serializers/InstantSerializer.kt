@@ -2,11 +2,11 @@ package com.ing.serialization.bfl.serializers
 
 import com.ing.serialization.bfl.api.Surrogate
 import com.ing.serialization.bfl.api.SurrogateSerializer
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import java.time.Instant
 
-object InstantSerializer : KSerializer<Instant> by (SurrogateSerializer(InstantSurrogate.serializer()) { InstantSurrogate.from(it) })
+object InstantSerializer :
+    SurrogateSerializer<Instant, InstantSurrogate>(InstantSurrogate.serializer(), { InstantSurrogate.from(it) })
 
 @Serializable
 data class InstantSurrogate(

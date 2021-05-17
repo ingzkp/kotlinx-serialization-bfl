@@ -25,12 +25,12 @@ class ListPolymorphicTest {
     fun `List of polymorphic type should be serialized successfully`() {
         val mask = listOf(
             Pair("nested.length", 4),
-            Pair("nested[0].serialName", PublicKeyBaseSurrogate.SERIAL_NAME_LENGTH),
+            Pair("nested[0].serialName", RSASurrogate.SERIAL_NAME_LENGTH),
             Pair("nested[0].length", 4),
-            Pair("nested[0].value", PublicKeyBaseSurrogate.ENCODED_SIZE),
-            Pair("nested[1].serialName", PublicKeyBaseSurrogate.SERIAL_NAME_LENGTH),
+            Pair("nested[0].value", RSASurrogate.ENCODED_SIZE),
+            Pair("nested[1].serialName", RSASurrogate.SERIAL_NAME_LENGTH),
             Pair("nested[1].length", 4),
-            Pair("nested[1].value", PublicKeyBaseSurrogate.ENCODED_SIZE)
+            Pair("nested[1].value", RSASurrogate.ENCODED_SIZE)
         )
 
         val data = Data(listOf(generateRSAPubKey()))
@@ -48,12 +48,9 @@ class ListPolymorphicTest {
 
     @Test
     fun `different Lists of polymorphic type should have same size after serialization`() {
-        val empty = Data(listOf())
         val data1 = Data(listOf(generateRSAPubKey()))
         val data2 = Data(listOf(generateRSAPubKey()))
 
-        sameSizeInlined(empty, data1, PolySerializers)
-        sameSize(empty, data1, PolySerializers)
         sameSizeInlined(data2, data1, PolySerializers)
         sameSize(data2, data1, PolySerializers)
     }

@@ -17,9 +17,9 @@ class PolymorphicTest {
         println(data.encoded.joinToString(separator = ","))
 
         val mask = listOf(
-            Pair("serialName", PublicKeyBaseSurrogate.SERIAL_NAME_LENGTH),
+            Pair("serialName", RSASurrogate.SERIAL_NAME_LENGTH),
             Pair("length", 4),
-            Pair("value", PublicKeyBaseSurrogate.ENCODED_SIZE)
+            Pair("value", RSASurrogate.ENCODED_SIZE)
         )
         checkedSerializeInlined(data, mask, PolySerializers)
     }

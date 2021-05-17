@@ -3,7 +3,6 @@ package com.ing.serialization.bfl.serializers
 import com.ing.serialization.bfl.annotations.FixedLength
 import com.ing.serialization.bfl.api.Surrogate
 import com.ing.serialization.bfl.api.SurrogateSerializer
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import javax.security.auth.x500.X500Principal
 
@@ -24,5 +23,5 @@ data class X500PrincipalSurrogate(
     }
 }
 
-object X500PrincipalSerializer : KSerializer<X500Principal>
-by (SurrogateSerializer(X500PrincipalSurrogate.serializer()) { X500PrincipalSurrogate(it.name) })
+object X500PrincipalSerializer :
+    SurrogateSerializer<X500Principal, X500PrincipalSurrogate>(X500PrincipalSurrogate.serializer(), { X500PrincipalSurrogate(it.name) })

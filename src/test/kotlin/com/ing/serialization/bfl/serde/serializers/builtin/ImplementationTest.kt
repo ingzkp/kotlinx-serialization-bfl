@@ -8,7 +8,6 @@ import com.ing.serialization.bfl.api.reified.serialize
 import com.ing.serialization.bfl.serde.SerdeError
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.contextual
@@ -42,12 +41,9 @@ data class CustomDataSurrogate(
     override fun toOriginal(): CustomData = CustomData(value)
 }
 
-object CustomDataSerializer : KSerializer<CustomData>
-by (
-    SurrogateSerializer(CustomDataSurrogate.serializer()) {
-        CustomDataSurrogate(it.value)
-    }
-    )
+object CustomDataSerializer : SurrogateSerializer<CustomData, CustomDataSurrogate>(
+    CustomDataSurrogate.serializer(), { CustomDataSurrogate(it.value) }
+)
 
 val customDataSerializationModule = SerializersModule {
     contextual(CustomDataSerializer)

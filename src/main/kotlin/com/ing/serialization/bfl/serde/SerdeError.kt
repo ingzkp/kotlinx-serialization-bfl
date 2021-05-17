@@ -30,6 +30,17 @@ sealed class SerdeError : IllegalStateException {
                 "Please verify that all collections and strings in that chain are sufficiently annotated"
         )
 
+    class DifferentPolymorphicImplementations(serialName: String) :
+        SerdeError("Different implementations of the same base type '$serialName' are not allowed")
+
+    class NoPolymorphicSerializerForSubClass(type: String) : SerdeError("Serializer absent for polymorphic subclass $type")
+
+    class NoSurrogateSerializer(klass: KClass<*>) : SerdeError("Surrogate serializer absent for $klass")
+
+    class NoPolymorphicBaseClass(serialName: String) : SerdeError("Base class for '$serialName' cannot be found")
+
+    class NonResolvablePolymorphic(serialName: String) : SerdeError("Implementation of '$serialName' cannot be inferred")
+
     class NoPolymorphicSerializers(descriptor: SerialDescriptor) :
         SerdeError("Serializers module has no serializers for a polymorphic type ${descriptor.serialName}")
 

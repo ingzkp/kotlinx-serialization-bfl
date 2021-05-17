@@ -63,7 +63,9 @@ class BinaryFixedLengthOutputEncoder(
 
     override fun encodeNull() {
         output.writeBoolean(false)
-        structureProcessor.removeNext().encodeNull(output)
+        // before encoding a null value, we need to know whether it was fully resolved during parsing (case of nullable
+        // polymorphic elements within the structure) - if not, an exception is thrown
+        structureProcessor.removeNext().verifyResolvabilityOrThrow().encodeNull(output)
     }
 
     override fun encodeNotNullMark() = output.writeBoolean(true)
@@ -71,7 +73,7 @@ class BinaryFixedLengthOutputEncoder(
     override fun <T> encodeSerializableValue(serializer: SerializationStrategy<T>, value: T) {
         if (!this::structureProcessor.isInitialized) {
             structureProcessor =
-                FixedLengthStructureProcessor(serializer.descriptor, serializersModule, outerFixedLength)
+                FixedLengthStructureProcessor(serializer.descriptor, serializersModule, outerFixedLength, value, phase = Phase.ENCODING)
         }
         super.encodeSerializableValue(serializer, value)
     }

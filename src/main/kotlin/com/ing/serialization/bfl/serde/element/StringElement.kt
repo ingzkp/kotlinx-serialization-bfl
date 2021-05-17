@@ -56,4 +56,6 @@ class StringElement(
 
         return string
     }
+
+    override fun clone(): StringElement = StringElement(serialName, propertyName, requiredLength, isNullable)
 }

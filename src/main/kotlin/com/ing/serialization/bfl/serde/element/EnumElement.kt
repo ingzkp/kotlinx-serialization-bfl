@@ -20,4 +20,6 @@ class EnumElement(
     override fun encodeNull(output: DataOutput) = encode(0, output)
 
     fun decode(stream: DataInput): Int = stream.readInt()
+
+    override fun clone(): EnumElement = EnumElement(serialName, propertyName, isNullable)
 }

@@ -1,6 +1,7 @@
 package com.ing.serialization.bfl.serde.element
 
 import com.ing.serialization.bfl.serde.SerdeError
+import java.io.DataInput
 import java.io.DataOutput
 
 /**
@@ -10,11 +11,15 @@ import java.io.DataOutput
 class CollectionElement(
     serialName: String,
     propertyName: String,
-    inner: List<Element>,
+    inner: MutableList<Element>,
     var actualLength: Int? = null,
     val requiredLength: Int,
     override var isNullable: Boolean
 ) : Element(serialName, propertyName, inner) {
+    init {
+        inner.forEach { it.parent = this }
+    }
+
     /**
      * INT (collection length) + number_of_elements * sum_i { size(inner_i) }
      * = 4 + n * sum_i { size(inner_i) }
@@ -48,6 +53,18 @@ class CollectionElement(
             return elementSize * (requiredLength - actualLength)
         }
 
-    override fun encodeNull(output: DataOutput) =
-        repeat(4 + requiredLength * elementSize) { output.writeByte(0) }
+    override fun encodeNull(output: DataOutput) {
+        repeat(4) { output.writeByte(0) }
+        repeat(requiredLength) { inner.forEach { it.encodeNull(output) } }
+    }
+
+    override fun decodeNull(input: DataInput) {
+        input.skipBytes(4)
+        repeat(requiredLength) { inner.forEach { it.decodeNull(input) } }
+    }
+
+    override fun clone(): CollectionElement =
+        CollectionElement(serialName, propertyName, inner, actualLength, requiredLength, isNullable).also {
+            it.isNull = isNull
+        }
 }

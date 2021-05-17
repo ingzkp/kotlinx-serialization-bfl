@@ -2,6 +2,7 @@ package com.ing.serialization.bfl.serde
 
 import com.ing.serialization.bfl.serde.element.CollectionElement
 import com.ing.serialization.bfl.serde.element.EnumElement
+import com.ing.serialization.bfl.serde.element.PolymorphicStructureElement
 import com.ing.serialization.bfl.serde.element.PrimitiveElement
 import com.ing.serialization.bfl.serde.element.StringElement
 import com.ing.serialization.bfl.serializers.BFLSerializers
@@ -50,7 +51,7 @@ class BinaryFixedLengthInputDecoder(
             .removeNext()
             .expect<CollectionElement>()
 
-        // Collection might have been padded.
+        // collection might have been padded.
         input.skipBytes(collection.padding)
     }
 
@@ -80,14 +81,17 @@ class BinaryFixedLengthInputDecoder(
     override fun decodeNotNullMark() = input.readBoolean()
 
     override fun decodeNull(): Nothing? {
-        structureProcessor.removeNext().decodeNull(input)
+        structureProcessor.removeNext().let {
+            if (it is PolymorphicStructureElement) it.decodeNull(input, serializersModule)
+            else it.decodeNull(input)
+        }
         return null
     }
 
     override fun <T> decodeSerializableValue(deserializer: DeserializationStrategy<T>): T {
         if (!this::structureProcessor.isInitialized) {
             structureProcessor =
-                FixedLengthStructureProcessor(deserializer.descriptor, serializersModule, outerFixedLength)
+                FixedLengthStructureProcessor(deserializer.descriptor, serializersModule, outerFixedLength, phase = Phase.DECODING)
         }
         return super.decodeSerializableValue(deserializer)
     }

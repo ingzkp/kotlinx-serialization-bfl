@@ -2,7 +2,6 @@ package com.ing.serialization.bfl.serde.serializers.custom.polymorphic
 
 import com.ing.serialization.bfl.serde.checkedSerialize
 import com.ing.serialization.bfl.serde.checkedSerializeInlined
-import com.ing.serialization.bfl.serde.generateDSAPubKey
 import com.ing.serialization.bfl.serde.generateRSAPubKey
 import com.ing.serialization.bfl.serde.roundTrip
 import com.ing.serialization.bfl.serde.roundTripInlined
@@ -25,9 +24,9 @@ class NestedClassesPolymorphicTest {
         val data = Data(Some(generateRSAPubKey()))
 
         val mask = listOf(
-            Pair("some.pk.serialName", PublicKeyBaseSurrogate.SERIAL_NAME_LENGTH),
+            Pair("some.pk.serialName", RSASurrogate.SERIAL_NAME_LENGTH),
             Pair("some.pk.length", 4),
-            Pair("some.nested.value", PublicKeyBaseSurrogate.ENCODED_SIZE)
+            Pair("some.nested.value", RSASurrogate.ENCODED_SIZE)
         )
 
         checkedSerializeInlined(data, mask, PolySerializers)
@@ -45,7 +44,7 @@ class NestedClassesPolymorphicTest {
     @Test
     fun `different data objects of Polymorphic type within nested compound type should have same size after serialization`() {
         val data1 = Data(Some(generateRSAPubKey()))
-        val data2 = Data(Some(generateDSAPubKey()))
+        val data2 = Data(Some(generateRSAPubKey()))
 
         sameSizeInlined(data1, data2, PolySerializers)
         sameSize(data1, data2, PolySerializers)

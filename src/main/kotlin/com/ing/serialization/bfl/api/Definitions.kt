@@ -7,7 +7,7 @@ import kotlinx.serialization.encoding.Encoder
 
 open class SurrogateSerializer<T, S : Surrogate<T>>(
     private val strategy: KSerializer<S>,
-    private val toSurrogate: (T) -> S
+    val toSurrogate: (T) -> S
 ) : KSerializer<T> {
     override val descriptor: SerialDescriptor = strategy.descriptor
 

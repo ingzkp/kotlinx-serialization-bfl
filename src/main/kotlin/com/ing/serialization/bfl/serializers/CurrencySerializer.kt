@@ -3,11 +3,11 @@ package com.ing.serialization.bfl.serializers
 import com.ing.serialization.bfl.annotations.FixedLength
 import com.ing.serialization.bfl.api.Surrogate
 import com.ing.serialization.bfl.api.SurrogateSerializer
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import java.util.Currency
 
-object CurrencySerializer : KSerializer<Currency> by (SurrogateSerializer(CurrencySurrogate.serializer()) { CurrencySurrogate(it.currencyCode) })
+object CurrencySerializer :
+    SurrogateSerializer<Currency, CurrencySurrogate>(CurrencySurrogate.serializer(), { CurrencySurrogate(it.currencyCode) })
 
 @Serializable
 /**

@@ -18,7 +18,7 @@ import java.io.DataOutput
 class PrimitiveElement(
     serialName: String,
     propertyName: String,
-    private val kind: SerialKind,
+    val kind: SerialKind,
     override var isNullable: Boolean
 ) : Element(serialName, propertyName) {
     init {
@@ -108,4 +108,6 @@ class PrimitiveElement(
         input.readFully(surrogateInput)
         return deserialize<DoubleSurrogate>(surrogateInput).toOriginal()
     }
+
+    override fun clone(): PrimitiveElement = PrimitiveElement(serialName, propertyName, kind, isNullable)
 }

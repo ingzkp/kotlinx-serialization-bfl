@@ -24,6 +24,7 @@ dependencies {
 
     val junit5Version: String by project
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junit5Version")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:$junit5Version")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junit5Version")
 
     val kotlinTestVersion: String by project

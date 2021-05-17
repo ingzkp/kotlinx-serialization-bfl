@@ -10,6 +10,7 @@ import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.modules.SerializersModule
 import kotlin.reflect.KClass
+import kotlin.reflect.KMutableProperty
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.isAccessible
 
@@ -82,6 +83,16 @@ fun <T> T.getPropertyNameValuePair(descriptor: SerialDescriptor, index: Int): Pa
             ?.call(it)
     }
     return Pair(propertyName, propertyValue)
+}
+
+/**
+ * Extension function that retrieves an object and checks recursively whether it contains any mutable properties
+ */
+fun <T : Any> T.hasMutableProperties(): Boolean {
+    val (mutable, immutable) = this::class.memberProperties.partition { it is KMutableProperty<*> }
+    return if (mutable.isEmpty()) {
+        immutable.filterNot { it.isConst }.any { it.call(this)?.hasMutableProperties() ?: false }
+    } else { true }
 }
 
 /**

@@ -43,7 +43,7 @@ class BinaryFixedLengthOutputEncoder(
                     .expect<CollectionElement>()
                 repeat(collection.padding) { output.writeByte(0) }
             }
-            descriptor.isStructure || descriptor.isPolymorphic -> {
+            descriptor.isStructure || descriptor.isPolymorphic || descriptor.isObject -> {
                 structureProcessor.removeNext()
             }
             else -> TODO("Unknown structure kind `${descriptor.kind}`")

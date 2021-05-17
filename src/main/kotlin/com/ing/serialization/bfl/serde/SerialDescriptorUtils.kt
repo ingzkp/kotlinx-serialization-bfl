@@ -27,6 +27,9 @@ val SerialDescriptor.isContextual: Boolean
 val SerialDescriptor.isEnum: Boolean
     get() = kind is SerialKind.ENUM
 
+val SerialDescriptor.isObject: Boolean
+    get() = kind is StructureKind.OBJECT
+
 val SerialDescriptor.simpleSerialName: String
     get() = serialName.split(".").last()
 

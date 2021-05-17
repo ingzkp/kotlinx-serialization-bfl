@@ -5,9 +5,11 @@ import com.ing.serialization.bfl.serde.SerdeError
 import com.ing.serialization.bfl.serde.expect
 import com.ing.serialization.bfl.serde.flattenToList
 import com.ing.serialization.bfl.serde.getPropertyNameValuePair
+import com.ing.serialization.bfl.serde.hasMutableProperties
 import com.ing.serialization.bfl.serde.isCollection
 import com.ing.serialization.bfl.serde.isContextual
 import com.ing.serialization.bfl.serde.isEnum
+import com.ing.serialization.bfl.serde.isObject
 import com.ing.serialization.bfl.serde.isPolymorphic
 import com.ing.serialization.bfl.serde.isString
 import com.ing.serialization.bfl.serde.isStructure
@@ -49,6 +51,7 @@ class ElementFactory(
                 descriptor.isString ||
                 descriptor.isEnum ||
                 descriptor.isPolymorphic ||
+                descriptor.isObject ||
                 descriptor.isCollection -> fromType(descriptor, parentName, data)
 
             descriptor.isStructure -> {
@@ -73,6 +76,7 @@ class ElementFactory(
         }
     }
 
+    @Suppress("ComplexMethod")
     private fun fromType(descriptor: SerialDescriptor, parentName: String, data: Any? = null): Element {
         val serialName = descriptor.serialName
 
@@ -84,6 +88,12 @@ class ElementFactory(
                 StringElement(serialName, parentName, requiredLength, descriptor.isNullable)
             }
             descriptor.isEnum -> EnumElement(serialName, parentName, descriptor.isNullable)
+            descriptor.isObject -> {
+                data?.let {
+                    it.hasMutableProperties() && throw SerdeError.MutablePropertiesInObject(it::class)
+                }
+                StructureElement(serialName, parentName, mutableListOf(), descriptor.isNullable)
+            }
             descriptor.isCollection -> fromCollection(descriptor, serialName, parentName, data)
             descriptor.isStructure -> fromStructure(descriptor, serialName, parentName, data)
             descriptor.isPolymorphic -> fromPolymorphic(descriptor, serialName, parentName, data)

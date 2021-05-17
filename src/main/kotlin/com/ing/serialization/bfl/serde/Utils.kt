@@ -91,7 +91,7 @@ fun <T> T.getPropertyNameValuePair(descriptor: SerialDescriptor, index: Int): Pa
 fun <T : Any> T.hasMutableProperties(): Boolean {
     val (mutable, immutable) = this::class.memberProperties.partition { it is KMutableProperty<*> }
     return if (mutable.isEmpty()) {
-        immutable.any { it.call(this)?.hasMutableProperties() ?: false }
+        immutable.filterNot { it.isConst }.any { it.call(this)?.hasMutableProperties() ?: false }
     } else { true }
 }
 

@@ -30,11 +30,6 @@ sealed class SerdeError : IllegalStateException {
                 "Please verify that all collections and strings in that chain are sufficiently annotated"
         )
 
-    class MutablePropertiesInObject(klass: KClass<*>) :
-        SerdeError(
-            "Mutable properties found in Object '$klass'. Stateful serialization is not supported for objects"
-        )
-
     class DifferentPolymorphicImplementations(serialName: String) :
         SerdeError("Different implementations of the same base type '$serialName' are not allowed")
 

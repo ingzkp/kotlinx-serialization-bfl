@@ -5,7 +5,6 @@ import com.ing.serialization.bfl.serde.SerdeError
 import com.ing.serialization.bfl.serde.expect
 import com.ing.serialization.bfl.serde.flattenToList
 import com.ing.serialization.bfl.serde.getPropertyNameValuePair
-import com.ing.serialization.bfl.serde.hasMutableProperties
 import com.ing.serialization.bfl.serde.isCollection
 import com.ing.serialization.bfl.serde.isContextual
 import com.ing.serialization.bfl.serde.isEnum
@@ -24,7 +23,6 @@ import kotlinx.serialization.descriptors.getContextualDescriptor
 import kotlinx.serialization.descriptors.getPolymorphicDescriptors
 import kotlinx.serialization.modules.EmptySerializersModule
 import kotlinx.serialization.modules.SerializersModule
-import kotlin.collections.ArrayDeque
 import kotlin.reflect.KClass
 
 class ElementFactory(
@@ -88,12 +86,7 @@ class ElementFactory(
                 StringElement(serialName, parentName, requiredLength, descriptor.isNullable)
             }
             descriptor.isEnum -> EnumElement(serialName, parentName, descriptor.isNullable)
-            descriptor.isObject -> {
-                data?.let {
-                    it.hasMutableProperties() && throw SerdeError.MutablePropertiesInObject(it::class)
-                }
-                StructureElement(serialName, parentName, mutableListOf(), descriptor.isNullable)
-            }
+            descriptor.isObject -> StructureElement(serialName, parentName, mutableListOf(), descriptor.isNullable)
             descriptor.isCollection -> fromCollection(descriptor, serialName, parentName, data)
             descriptor.isStructure -> fromStructure(descriptor, serialName, parentName, data)
             descriptor.isPolymorphic -> fromPolymorphic(descriptor, serialName, parentName, data)

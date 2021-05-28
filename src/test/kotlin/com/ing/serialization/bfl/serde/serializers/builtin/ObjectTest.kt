@@ -1,13 +1,15 @@
 package com.ing.serialization.bfl.serde.serializers.builtin
 
+import com.ing.serialization.bfl.api.reified.deserialize
 import com.ing.serialization.bfl.api.serialize
-import com.ing.serialization.bfl.serde.SerdeError
 import com.ing.serialization.bfl.serde.roundTrip
 import com.ing.serialization.bfl.serde.roundTripInlined
+import com.ing.serialization.bfl.serializers.BFLSerializers
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeSameInstanceAs
 import kotlinx.serialization.Serializable
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
-import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 
@@ -28,11 +30,6 @@ class ObjectTest {
     }
 
     @Serializable
-    object NestedStatefulObject {
-        val myObject = StatefulObject
-    }
-
-    @Serializable
     data class StatelessNullData(val value: StatelessObject?)
 
     @Serializable
@@ -43,12 +40,6 @@ class ObjectTest {
         fun statelessObjects() = listOf(
             StatelessObject,
             NestedStatelessObject
-        )
-
-        @JvmStatic
-        fun statefulObjects() = listOf(
-            StatefulObject,
-            NestedStatefulObject
         )
 
         @JvmStatic
@@ -73,10 +64,18 @@ class ObjectTest {
         roundTrip(statelessObject)
     }
 
-    @ParameterizedTest
-    @MethodSource("statefulObjects")
-    fun `serialization of Object with mutable properties should fail`(statefulObject: Any) {
-        assertThrows<SerdeError.MutablePropertiesInObject> { serialize(statefulObject) }
+    @Test
+    fun `serialization of Object with mutable properties should ignore serialized mutable state`() {
+        val ser = serialize(StatefulObject)
+
+        // Mutate state after serialization
+        StatefulObject.myInt = 123
+
+        val obj = deserialize<StatefulObject>(ser, serializersModule = BFLSerializers)
+
+        // Deserialization should not mutate singleton state
+        obj.myInt shouldBe 123
+        obj shouldBeSameInstanceAs StatefulObject
     }
 
     @ParameterizedTest

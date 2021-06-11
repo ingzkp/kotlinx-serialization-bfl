@@ -16,7 +16,7 @@ import org.junit.jupiter.params.provider.MethodSource
 class ObjectTest {
     @Serializable
     object StatelessObject {
-        const val myInt = 0     // constants should not produce any problems during serialization
+        const val myInt = 0 // constants should not produce any problems during serialization
     }
 
     @Serializable

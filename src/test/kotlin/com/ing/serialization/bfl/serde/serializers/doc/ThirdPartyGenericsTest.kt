@@ -6,7 +6,11 @@ import com.ing.serialization.bfl.api.SurrogateSerializer
 import com.ing.serialization.bfl.serde.SerdeError
 import io.kotest.assertions.throwables.shouldThrow
 import kotlinx.serialization.Contextual
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.contextual
 import org.junit.jupiter.api.Test
 import java.util.Currency
 import java.util.Locale
@@ -38,7 +42,18 @@ class ThirdPartyGenericsTest {
         assert(deserialized == original) { "Expected $deserialized to be $original" }
     }
 
-    private data class CustomData<T>(
+    @Test
+    fun serializeGenericStringDataWithSurrogateShouldSucceed() {
+        val original = CustomData("Hello World!")
+        val serializersModule = SerializersModule {
+            contextual(CustomDataSerializer(String.serializer()))
+        }
+        val serializedBytes = serializeInlined(original, serializersModule = serializersModule, outerFixedLength = intArrayOf(20))
+        val deserialized: CustomData<String> = deserializeInlined(serializedBytes, serializersModule = serializersModule, outerFixedLength = intArrayOf(20))
+        assert(deserialized == original) { "Expected $deserialized to be $original" }
+    }
+
+    data class CustomData<T>(
         val value: T
     )
 
@@ -65,4 +80,17 @@ class ThirdPartyGenericsTest {
     private object CustomDataCurrencySerializer : SurrogateSerializer<CustomData<Currency>, CustomDataCurrencySurrogate>(
         CustomDataCurrencySurrogate.serializer(), { CustomDataCurrencySurrogate(it.value) }
     )
+
+    @Serializable
+    private data class CustomDataSurrogate<T : Any>(
+        val value: @Contextual T
+    ) : Surrogate<CustomData<T>> {
+        override fun toOriginal(): CustomData<T> = CustomData(value)
+    }
+
+    private class CustomDataSerializer<T : Any>(valueSerializer: KSerializer<T>) :
+        SurrogateSerializer<CustomData<T>, CustomDataSurrogate<T>>(
+            CustomDataSurrogate.serializer(valueSerializer),
+            { CustomDataSurrogate(it.value) }
+        )
 }

@@ -55,12 +55,22 @@ class CollectionElement(
 
     override fun encodeNull(output: DataOutput) {
         repeat(4) { output.writeByte(0) }
-        repeat(requiredLength) { inner.forEach { it.encodeNull(output) } }
+        repeat(requiredLength) {
+            inner.forEach {
+                if (it.isNullable) output.writeBoolean(false)
+                it.encodeNull(output)
+            }
+        }
     }
 
     override fun decodeNull(input: DataInput) {
         input.skipBytes(4)
-        repeat(requiredLength) { inner.forEach { it.decodeNull(input) } }
+        repeat(requiredLength) {
+            inner.forEach {
+                if (it.isNullable) input.readBoolean()
+                it.decodeNull(input)
+            }
+        }
     }
 
     override fun clone(): CollectionElement =

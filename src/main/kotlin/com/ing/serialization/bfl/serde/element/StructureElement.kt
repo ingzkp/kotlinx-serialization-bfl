@@ -24,11 +24,17 @@ open class StructureElement(
     }
 
     override fun encodeNull(output: DataOutput) {
-        inner.forEach { it.encodeNull(output) }
+        inner.forEach {
+            if (it.isNullable) output.writeBoolean(false)
+            it.encodeNull(output)
+        }
     }
 
     override fun decodeNull(input: DataInput) {
-        inner.forEach { it.decodeNull(input) }
+        inner.forEach {
+            if (it.isNullable) input.readBoolean()
+            it.decodeNull(input)
+        }
     }
 
     override fun clone(): StructureElement = StructureElement(serialName, propertyName, inner, isNullable).also {

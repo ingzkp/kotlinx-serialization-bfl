@@ -35,7 +35,7 @@ sealed class SerdeError : IllegalStateException {
 
     class NoPolymorphicSerializerForSubClass(type: String) : SerdeError("Serializer absent for polymorphic subclass $type")
 
-    class NoSurrogateSerializer(klass: KClass<*>) : SerdeError("Surrogate serializer absent for $klass")
+    class NoSurrogateSerializer(klass: KClass<*>) : SerdeError("Surrogate serializer absent for ${klass.qualifiedName}")
 
     class NoPolymorphicBaseClass(serialName: String) : SerdeError("Base class for '$serialName' cannot be found")
 
@@ -51,7 +51,7 @@ sealed class SerdeError : IllegalStateException {
         SerdeError("Serializers module has no serializers for a context type ${descriptor.serialName}")
 
     class NoTopLevelSerializer : SerdeError {
-        constructor(clazz: Class<*>) : super("Top-level serializer absent for ${clazz.simpleName}")
-        constructor(klass: KClass<*>, cause: Throwable) : super("Top-level serializer absent for ${klass.simpleName}", cause)
+        constructor(clazz: Class<*>) : super("Top-level serializer absent for ${clazz.name}")
+        constructor(klass: KClass<*>, cause: Throwable) : super("Top-level serializer absent for ${klass.qualifiedName}", cause)
     }
 }
